@@ -8,26 +8,26 @@ It shows how to extract BigQuery table schemas and Dataplex metadata into a loca
 
 ```mermaid
 graph LR
-    subgraph GCP [Google Cloud Platform]
-        BQ[(BigQuery)]
-        KC[(Dataplex Catalog)]
-        GCS[(GCS Bucket)]
+    subgraph GCP ["Google Cloud Platform"]
+        BQ[("BigQuery")]
+        KC[("Dataplex Catalog")]
+        GCS[("GCS Bucket")]
     end
 
-    subgraph Local [Local Workspace]
-        OKF[(OKF Bundle <br> bundle/)]
-        CLI[kcmd CLI]
+    subgraph Local ["Local Workspace"]
+        OKF[("OKF Bundle <br> bundle/")]
+        CLI["kcmd CLI"]
     end
 
-    subgraph Automated [Cloud Run (Sync Service)]
-        SRV[kcmd Sync Service]
+    subgraph Automated ["Cloud Run (Sync Service)"]
+        SRV["kcmd Sync Service"]
     end
 
     %% Local Flow
     BQ -->|1. Pull Schema| CLI
     KC -->|2. Pull Metadata| CLI
     CLI -->|3. Generate OKF (.md)| OKF
-    OKF -->|4. Enrich| Steward[Data Steward / AI]
+    OKF -->|4. Enrich| Steward["Data Steward / AI"]
     OKF -->|5. Read OKF| CLI
     CLI -->|6. Push Enrichment| KC
 
