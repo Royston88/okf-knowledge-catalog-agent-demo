@@ -15,7 +15,7 @@ graph LR
     end
 
     subgraph Local ["Local Workspace"]
-        OKF[("OKF Bundle <br> bundle/")]
+        OKF[("OKF Bundle")]
         CLI["kcmd CLI"]
     end
 
@@ -24,16 +24,16 @@ graph LR
     end
 
     %% Local Flow
-    BQ -->|1. Pull Schema| CLI
-    KC -->|2. Pull Metadata| CLI
-    CLI -->|3. Generate OKF (.md)| OKF
-    OKF -->|4. Enrich| Steward["Data Steward / AI"]
-    OKF -->|5. Read OKF| CLI
-    CLI -->|6. Push Enrichment| KC
+    BQ -->|"1. Pull Schema"| CLI
+    KC -->|"2. Pull Metadata"| CLI
+    CLI -->|"3. Generate OKF"| OKF
+    OKF -->|"4. Enrich"| Steward["Data Steward or AI"]
+    OKF -->|"5. Read OKF"| CLI
+    CLI -->|"6. Push Enrichment"| KC
 
     %% Automated Flow
-    SRV <-->|Pull/Push| KC
-    SRV <-->|Sync| GCS
+    SRV <-->|"Pull and Push"| KC
+    SRV <-->|"Sync"| GCS
 ```
 
 ## Flow
