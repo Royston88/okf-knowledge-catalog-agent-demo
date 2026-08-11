@@ -1,0 +1,19 @@
+scope: bq-dataset.${GOOGLE_CLOUD_PROJECT}.${BIGQUERY_DATASET}
+layout: okf
+snapshot:
+  entries:
+    - dataplex-types.global.bigquery-dataset
+    - dataplex-types.global.bigquery-table
+  aspects:
+    - dataplex-types.global.schema
+    - dataplex-types.global.overview
+  entryLinks:
+    - schema-join
+publishing:
+  entries:
+    - dataplex-types.global.bigquery-dataset
+    - dataplex-types.global.bigquery-table
+  aspects:
+    - dataplex-types.global.overview
+  entryLinks:
+    - schema-join

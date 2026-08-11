@@ -1,0 +1,49 @@
+# Node.js
+**/node_modules/
+**/dist/
+**/build/
+npm-debug.log
+yarn-error.log
+
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*.pyc
+**/.venv/
+**/env/
+**/venv/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.ty/
+
+# Logs
+*.log
+**/*.log
+
+# Environment variables / Secrets
+.env
+**/.env
+.env.*
+!.env.example
+*.pem
+*-key.json
+credentials*.json
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*~
+
+# Project specific ignores
+~
+**/~
+bq-okf-workspace/bundle/
+.google-agents-cli/
+**/google-agents-cli/
+.adk/
+**/adk/
+
+# Google-internal build files (ignored for public GitHub portability)
+**/BUILD
