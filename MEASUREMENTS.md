@@ -178,3 +178,49 @@ invention. Useful as prose, unsafe as exemplars.
 
 Per the plan these are **recorded, not patched** — patching would corrupt
 Measurement F's review signal.
+
+## Phase 5 — BLOCKED: `kcmd push` indexes zero entries in this fork
+
+The bundle is authored, committed and staged correctly, and the EntryGroup +
+extended aspect type exist. **The projection does not land.** `kcmd push` reports
+*"Successfully pushed catalog entries"* and creates nothing — after two real
+pushes the EntryGroup contains only its own auto-created `okf_cymbal_v6z_entry`.
+
+Time-boxed per the plan ("the port is the biggest unknown … if it resists, fall
+back"). What is established, so the next person does not repeat it:
+
+**Not the cause (each ruled out by measurement):**
+
+| Hypothesis | Evidence against |
+|---|---|
+| Wrong identity / no auth | `push --validate-only` succeeds; the same creds write aspects directly (smoke test 1) |
+| Missing catalog location | Fixed — `ApiContext.default()` reads `gcloud config get-value compute/region`, unset on this profile. `CLOUDSDK_COMPUTE_REGION=us` resolves it per-invocation |
+| Missing Dataplex entry type | Fixed — this fork assigns `entry.type = metadata.type` verbatim where upstream falls back to generic; `toStaging` now emits `type: dataplex-types.global.generic`. Push still creates nothing |
+| Frontmatter-less `index.md` files aborting the scan | Removing all 6 leaves `listEntries()` at 0 |
+| The glob not matching | `glob('**/*.md', {cwd:'catalog'})` returns **59** in isolation |
+| `init()` never running | `CatalogSnapshot.fromPath` awaits `_layout.init()` (`snapshot.ts:97`) and does not throw |
+
+**Isolated to:** `DocumentsLayout.init()` globs 59 files and populates an index of
+**0**. Every file is being rejected between the glob and the index. The next step
+is to instrument `src/libts/layouts/documents.ts` around lines 54-90 (the
+per-file parse/index loop) and print why each path is dropped.
+
+**Suspected root cause.** Royston's README documents the Markdown layout as
+`catalog/<namespace>/<project>/<location>/<page>.md`, and `sources/kb.ts:63`
+builds local paths as `${namespace}/${project}/${location}/${entryId}`. Upstream's
+OKF demo writes bare paths (`catalog/tables/accounts.md`). If this fork's indexer
+requires the three-segment prefix, every OKF-shaped path fails to index — which
+matches the symptom exactly. Testing that means re-staging under
+`catalog/okf_cymbal_v6z/royston-dev-8253/us/…`.
+
+**Consequence for the plan.** Measurements A (clean-OKF round-trip loss), C
+(round-trip fidelity), D (extended trust tier survives projection), F (diff
+review), G (flag survives re-scan) and Phase 8 (agent read paths) all sit
+downstream of a working projection and are **not yet taken**.
+
+**What this already tells us.** The plan's headline risk was whether *clean OKF*
+survives kcmd's lossy path. The actual blocker is cruder and arrives earlier: the
+two forks disagree about where concept files live on disk, so upstream's OKF demo
+cannot be pointed at this fork without a path-shape adapter. The projection layer
+is not portable between them — the divergence table in the plan understated how
+deep it goes.

@@ -13,6 +13,15 @@
 //
 // So identity is passed explicitly, per CLAUDE.md rule 3 ("project routing is
 // explicit, not inherited from whichever gcloud config is active").
+//
+// ONE THING WE CANNOT PASS EXPLICITLY. The kcmd CLI subprocess builds its own
+// ApiContext, and `ApiContext.default()` resolves the catalog location from
+// `gcloud -q config get-value compute/region`. That property is unset on the
+// admin--royston-dev-8253 profile, so the CLI dies with "Unable to retrieve
+// project, location, or token". Export `CLOUDSDK_COMPUTE_REGION=us` for the
+// invocation — gcloud honours it per-process, so no profile is mutated. (`us`
+// is the catalog location where the @bigquery entries live; it is not a compute
+// region, but that is the property kcmd reads.)
 
 import * as path from 'node:path';
 

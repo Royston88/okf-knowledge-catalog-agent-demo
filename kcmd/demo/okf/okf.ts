@@ -20,6 +20,11 @@ export interface Split { meta: any | null; body: string; }
 // under that name because `type` is reserved on the Dataplex entry itself.
 const SIGNAL_KEYS = ['okf_type', 'generated', 'sources', 'verified', 'status', 'stale_after'];
 
+// The Dataplex entry type every OKF concept is stored as. OKF's own `type` is
+// freeform ("BigQuery Table", "Join", "Metric") and is not a Dataplex type ref,
+// so it rides on the okf aspect as `okf_type` and the entry itself is generic.
+const ENTRY_TYPE = 'dataplex-types.global.generic';
+
 export function splitFrontmatter(content: string): Split {
   const lines = content.split(/\r?\n/);
   if (lines[0] !== '---') {
@@ -57,6 +62,18 @@ export function toStaging(content: string, okfKey: string): string {
     return content;
   }
   const staged = pick(meta, ['title', 'description', 'tags']);
+  // FORK DIVERGENCE (measured). Upstream's documents layout validates the
+  // frontmatter `type` and falls back to generic when it is not a 3-part
+  // Dataplex ref:
+  //     entry.type = (typeof metadata.type === 'string'
+  //                   && metadata.type.split('.').length === 3) ? ... : GENERIC
+  // This fork assigns it verbatim (`entry.type = metadata.type`). Since
+  // toStaging deliberately does NOT carry the OKF `type` in the staged
+  // frontmatter — it belongs on the okf aspect as `okf_type` — entries arrived
+  // with `type: undefined` and `push` skipped every one of them while still
+  // reporting "Successfully pushed catalog entries". Setting the Dataplex entry
+  // type explicitly reproduces upstream's effective behaviour.
+  staged.type = ENTRY_TYPE;
   staged.catalogEntry = {
     resource: { name: meta.resource },
     aspects: {
