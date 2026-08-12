@@ -92,8 +92,27 @@ backoff, then verify all 13 tables exist before trusting a run.
 
 ### 2.5 Rules that still bind
 
-- `bi_modeling_playbook/` is **read-only**. Its generator and spec are *copied*
-  into `okf-emitter/`. `git status` clean on that path is a verification item.
+- `bi_modeling_playbook/` is **read-only for this work**. Its generator and spec
+  are *copied* into `okf-emitter/`.
+
+  > **The plan's verification item "`git status` clean for `bi_modeling_playbook/`"
+  > cannot pass and should not be used.** That path was *already* dirty when this
+  > session began (`generate_models.py`, `archive/relay_audit.py`,
+  > `docs/STRICT_BLIND_ASBUILT.md`, `tests/test_relay_audit.py`), and five more
+  > files became dirty *during* the session — `scaffold/run_config.py`,
+  > `scaffold/examples/run_config.example.yaml`,
+  > `scaffold/tests/test_bundle_assembly.py`, `specs/SPEC_REFERENCE_BLIND.md`,
+  > `tuning/hill_climb.py` — with content about PRISM judge-429 concurrency
+  > tuning that is unrelated to this work. Nothing in this session writes outside
+  > `okf-knowledge-catalog-agent-demo/`, `/tmp`, and the venv, so the likely cause
+  > is a parallel session or hand-editing.
+  >
+  > **The usable check is:** no *new* modification attributable to this work.
+  > Concretely — `git diff bi_modeling_playbook/engine/generate_models.py` must
+  > contain nothing about OKF, and `okf-emitter/generate_models.py` must stay
+  > byte-identical to its source (`sha256` in `okf-emitter/PROVENANCE.md`).
+  > Re-check that hash on resume; if it has drifted, the source moved under us and
+  > the faithful-copy check needs re-running.
 - Never push to Royston's `main` — it is **unprotected**, so an accidental push
   would land. Work stays on `v6z-okf-projector`. Push access is confirmed
   (`kenly-ldk`, `push: true`), so a `git push -u origin v6z-okf-projector` is
