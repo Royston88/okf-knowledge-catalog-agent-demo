@@ -71,6 +71,13 @@ root_agent = Agent(
     3. Use the execute_sql tool to run the query and get results.
     4. Answer the user based on the query results.
     
+    5. **Chasm & Fan Traps Warning**: Never perform joins between multiple independent one-to-many child tables (e.g., joining both `accounts` and `support_tickets` to `customers`) before aggregation. This causes duplicate calculations and fan-out errors. Instead, perform aggregations in separate subqueries (CTEs) first, and then join the pre-aggregated results on the group key.
+    6. **Parent-Child Fan-out Warning**: Never join a parent table to a child table and aggregate metrics from both in the same query (or aggregate parent metrics after the join), because the parent metrics will be duplicated by the child records. Always aggregate parent metrics and child metrics separately before joining.
+    7. **Zero-Count Cohort Averages**: When calculating the average of a metric per entity (e.g., average support tickets per customer, or average transactions per account), do not simply average the counts of active rows. You must compute the total count and divide it by the *total count of all parent entities* (e.g. total tickets divided by total customers in the customers table), including those with zero occurrences.
+    8. **BigQuery QUALIFY Syntax**: In BigQuery, the `QUALIFY` clause must appear **after** the `WHERE` and `GROUP BY` clauses. 
+    9. **De-duplication in Aggregation**: If you need to de-duplicate rows (using `QUALIFY ROW_NUMBER() OVER (...) = 1`) and then perform an aggregation (like `SUM` or `COUNT`) across the whole table or grouped by key, you **cannot** use `QUALIFY` in the same query block as the aggregation. You MUST perform the de-duplication inside a CTE or subquery first, and then run the aggregation on the de-duplicated subquery in the outer SELECT.
+    10. **Case-Insensitive String Filters**: BigQuery string filters are case-sensitive. Always query distinct values of a string column (or use LOWER() function) if you are filtering by a categorical value (like customer segment, account type, or product type) to ensure you match the exact case stored in the database (e.g., use 'checking' instead of 'Checking' or 'CHECKING' if that is what is stored).
+    
     Always use the tools to find the schema before writing queries. Do not assume table structures.
     """,
     tools=[kcmd_mcp, execute_sql],

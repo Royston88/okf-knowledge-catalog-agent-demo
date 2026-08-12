@@ -207,3 +207,10 @@ tools/a2a-inspector/
 *.pem
 *-key.json
 credentials*.json
+
+# Ignore test run artifacts
+/artifacts/
+
+# Ignore local/env-specific test datasets
+/tests/eval/datasets/core-dataset.json
+

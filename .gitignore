@@ -47,3 +47,7 @@ bq-okf-workspace/bundle/
 
 # Google-internal build files (ignored for public GitHub portability)
 **/BUILD
+
+# Ignore local evaluation folder
+/eval/
+
