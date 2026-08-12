@@ -1,0 +1,380 @@
+{
+  "row_count": "8000",
+  "profile": {
+    "fields": [
+      {
+        "name": "payment_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.999625,
+          "top_n_values": [
+            {
+              "value": "8000",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7999",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7998",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7997",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7996",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7995",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7994",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7993",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7992",
+              "count": "1",
+              "ratio": 0.000125
+            },
+            {
+              "value": "7991",
+              "count": "1",
+              "ratio": 0.000125
+            }
+          ],
+          "integer_profile": {
+            "average": 4000.499999999989,
+            "standard_deviation": 2309.5454098155315,
+            "min_": "1",
+            "max_": "8000",
+            "quartiles": [
+              "1999",
+              "3999",
+              "6000"
+            ]
+          }
+        }
+      },
+      {
+        "name": "customer_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0625,
+          "top_n_values": [
+            {
+              "value": "16",
+              "count": "29",
+              "ratio": 0.003625
+            },
+            {
+              "value": "479",
+              "count": "28",
+              "ratio": 0.0035
+            },
+            {
+              "value": "417",
+              "count": "27",
+              "ratio": 0.003375
+            },
+            {
+              "value": "367",
+              "count": "27",
+              "ratio": 0.003375
+            },
+            {
+              "value": "114",
+              "count": "27",
+              "ratio": 0.003375
+            },
+            {
+              "value": "360",
+              "count": "26",
+              "ratio": 0.00325
+            },
+            {
+              "value": "286",
+              "count": "26",
+              "ratio": 0.00325
+            },
+            {
+              "value": "138",
+              "count": "26",
+              "ratio": 0.00325
+            },
+            {
+              "value": "81",
+              "count": "26",
+              "ratio": 0.00325
+            },
+            {
+              "value": "76",
+              "count": "26",
+              "ratio": 0.00325
+            }
+          ],
+          "integer_profile": {
+            "average": 247.21287500000008,
+            "standard_deviation": 145.54156829836367,
+            "min_": "1",
+            "max_": "500",
+            "quartiles": [
+              "121",
+              "245",
+              "373"
+            ]
+          }
+        }
+      },
+      {
+        "name": "amount",
+        "type_": "FLOAT",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.80875,
+          "top_n_values": [
+            {
+              "value": "49.76",
+              "count": "6",
+              "ratio": 0.00075
+            },
+            {
+              "value": "58.27",
+              "count": "5",
+              "ratio": 0.000625
+            },
+            {
+              "value": "45.96",
+              "count": "5",
+              "ratio": 0.000625
+            },
+            {
+              "value": "31.4",
+              "count": "5",
+              "ratio": 0.000625
+            },
+            {
+              "value": "18.57",
+              "count": "5",
+              "ratio": 0.000625
+            },
+            {
+              "value": "87.57",
+              "count": "4",
+              "ratio": 0.0005
+            },
+            {
+              "value": "76.36",
+              "count": "4",
+              "ratio": 0.0005
+            },
+            {
+              "value": "72.25",
+              "count": "4",
+              "ratio": 0.0005
+            },
+            {
+              "value": "68.08",
+              "count": "4",
+              "ratio": 0.0005
+            },
+            {
+              "value": "64.66",
+              "count": "4",
+              "ratio": 0.0005
+            }
+          ],
+          "double_profile": {
+            "average": 98.14149999999992,
+            "standard_deviation": 103.41884221705303,
+            "min_": 2.89,
+            "max_": 1330.0,
+            "quartiles": [
+              35.82,
+              65.54,
+              121.8
+            ]
+          }
+        }
+      },
+      {
+        "name": "payment_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.106375,
+          "top_n_values": [
+            {
+              "value": "2025-04-01",
+              "count": "21",
+              "ratio": 0.002625
+            },
+            {
+              "value": "2025-02-10",
+              "count": "20",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2024-09-15",
+              "count": "19",
+              "ratio": 0.002375
+            },
+            {
+              "value": "2024-10-03",
+              "count": "18",
+              "ratio": 0.00225
+            },
+            {
+              "value": "2024-04-27",
+              "count": "18",
+              "ratio": 0.00225
+            },
+            {
+              "value": "2026-04-14",
+              "count": "17",
+              "ratio": 0.002125
+            },
+            {
+              "value": "2025-06-17",
+              "count": "17",
+              "ratio": 0.002125
+            },
+            {
+              "value": "2025-01-09",
+              "count": "17",
+              "ratio": 0.002125
+            },
+            {
+              "value": "2024-06-06",
+              "count": "17",
+              "ratio": 0.002125
+            },
+            {
+              "value": "2026-04-24",
+              "count": "16",
+              "ratio": 0.002
+            }
+          ]
+        }
+      },
+      {
+        "name": "payment_month",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0035,
+          "top_n_values": [
+            {
+              "value": "2025-01-01",
+              "count": "320",
+              "ratio": 0.04
+            },
+            {
+              "value": "2024-01-01",
+              "count": "308",
+              "ratio": 0.0385
+            },
+            {
+              "value": "2025-03-01",
+              "count": "305",
+              "ratio": 0.038125
+            },
+            {
+              "value": "2024-06-01",
+              "count": "301",
+              "ratio": 0.037625
+            },
+            {
+              "value": "2026-04-01",
+              "count": "300",
+              "ratio": 0.0375
+            },
+            {
+              "value": "2026-03-01",
+              "count": "300",
+              "ratio": 0.0375
+            },
+            {
+              "value": "2024-12-01",
+              "count": "296",
+              "ratio": 0.037
+            },
+            {
+              "value": "2024-10-01",
+              "count": "295",
+              "ratio": 0.036875
+            },
+            {
+              "value": "2025-07-01",
+              "count": "293",
+              "ratio": 0.036625
+            },
+            {
+              "value": "2026-01-01",
+              "count": "286",
+              "ratio": 0.03575
+            }
+          ]
+        }
+      },
+      {
+        "name": "channel",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.000625,
+          "top_n_values": [
+            {
+              "value": "ach",
+              "count": "2692",
+              "ratio": 0.3365
+            },
+            {
+              "value": "card",
+              "count": "2423",
+              "ratio": 0.302875
+            },
+            {
+              "value": "zelle",
+              "count": "1095",
+              "ratio": 0.136875
+            },
+            {
+              "value": "wire",
+              "count": "980",
+              "ratio": 0.1225
+            },
+            {
+              "value": "check",
+              "count": "810",
+              "ratio": 0.10125
+            }
+          ],
+          "string_profile": {
+            "min_length": "3",
+            "max_length": "5",
+            "average_length": 3.9016249999999917
+          }
+        }
+      }
+    ]
+  }
+}

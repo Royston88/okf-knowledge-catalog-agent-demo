@@ -1,0 +1,15 @@
+scope: kb.royston-dev-8253.us.okf_cymbal_v6z
+snapshot:
+  entries:
+    - dataplex-types.global.generic
+  aspects:
+    - dataplex-types.global.generic
+    - dataplex-types.global.overview
+    - royston-dev-8253.us.okf
+publishing:
+  entries:
+    - dataplex-types.global.generic
+  aspects:
+    - dataplex-types.global.generic
+    - dataplex-types.global.overview
+    - royston-dev-8253.us.okf

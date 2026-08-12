@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "kind": "kc_snapshot",
+  "snapshot_id": "kc-v6z-scaffold-copy-rich-20260812-2e7ae708",
+  "arm": "rich",
+  "arm_source": "digest-header",
+  "has_insights": true,
+  "digest_sha256": "04681f0219153963308fd7f9b4536775ecd5ecba69ae744861bb0407481215dd",
+  "digest_file": "kc_digest.md",
+  "content_sha256": "2e7ae7084bbed53ce86b15ca9eeeed961bf352e9e1076c4aaf7918acd295ded7",
+  "n_files": 29,
+  "provenance": {
+    "project": "royston-dev-8253",
+    "dataset": "cymbal_bank_v6z_scaffold_demo_copy",
+    "dataplex_location": "us-central1",
+    "catalog_location": "us",
+    "relationship_scan_id": "kc-rel-v6z-scaffold-copy",
+    "tables": [
+      "account_owners",
+      "accounts",
+      "balance_snapshots",
+      "calendar",
+      "customer_segment_history",
+      "customers",
+      "investors",
+      "loan_applications",
+      "loan_investors",
+      "payments",
+      "support_tickets",
+      "transactions",
+      "wire_transfers"
+    ],
+    "captured_at": "2026-08-12T20:34:15",
+    "captured_by": "capture_kc.py capture",
+    "tool": "capture_kc.py",
+    "tool_version": "1.1.0",
+    "frozen_at": "2026-08-12T20:37:58",
+    "source_run": null,
+    "note": "Dataplex KC capture is LLM-backed and non-deterministic; this snapshot is the immutable experimental condition. Reruns must `replay` it, never re-scan."
+  },
+  "files": {
+    "capture_manifest.json": {
+      "sha256": "d1b442b13d379ab04eb4823105ff9917c499aaaad9511151b654cbc86ccf69ff",
+      "bytes": 4622
+    },
+    "insights/account_owners.json": {
+      "sha256": "5fca69ab091fc2dad977e6c1fc2053fd1cffcbfadf7175eb2560b80e2b6c1ac6",
+      "bytes": 17252
+    },
+    "insights/accounts.json": {
+      "sha256": "bb40e5c367d48d6b5f407f62ff85169ecf19e8e8073502c45f13c58119564229",
+      "bytes": 18561
+    },
+    "insights/balance_snapshots.json": {
+      "sha256": "42e2664e8a2c6ef99b1c70ac5349d68f73fb879e486ecce8fbe0abfdc6b7e1dc",
+      "bytes": 15710
+    },
+    "insights/calendar.json": {
+      "sha256": "8a19f34cdeb726e8b7fd718b7a37db3ecfccdab7a9c160f172c38063bf26d3a1",
+      "bytes": 17248
+    },
+    "insights/customer_segment_history.json": {
+      "sha256": "4962691a71e50818052c0e7ebb62775ab8538d460ae3cad03a028912707f4a04",
+      "bytes": 16655
+    },
+    "insights/customers.json": {
+      "sha256": "ec5b63155c985de4401b02df1f1d02900d963e463e898c0bc211f962c107d47a",
+      "bytes": 17782
+    },
+    "insights/investors.json": {
+      "sha256": "41b6e7bb457d27c4945244aafabbd14184c3ce778a62f513ca1eafe247e12909",
+      "bytes": 14712
+    },
+    "insights/loan_applications.json": {
+      "sha256": "b049dc7c47cdc7548a4a0664ce2b53411f88780df168782796063de24f98694b",
+      "bytes": 18326
+    },
+    "insights/loan_investors.json": {
+      "sha256": "a60ef9ea6fda3af568d7203550f76c90ac27e7256eb49a30bfc7cd41d8cabd29",
+      "bytes": 17943
+    },
+    "insights/payments.json": {
+      "sha256": "a154c71f13b72cf647eae47105e1f7a79e67bb8a1ffbd2c5a3d6ed07eb8ca7c6",
+      "bytes": 14631
+    },
+    "insights/support_tickets.json": {
+      "sha256": "4ae3a48393852b1eefe87fcf18aca47b881485e1d74c568e54f88fd08e05c38e",
+      "bytes": 16608
+    },
+    "insights/transactions.json": {
+      "sha256": "1267edbb18f79859e3ad20d3fb0935ed95a184f88e0841e29579d8660679af17",
+      "bytes": 17330
+    },
+    "insights/wire_transfers.json": {
+      "sha256": "5beeda86d8a73903f60cc61b987cbf9c524af63398e5a3cbcd3114bbb7fdf6d2",
+      "bytes": 18788
+    },
+    "kc_digest.md": {
+      "sha256": "04681f0219153963308fd7f9b4536775ecd5ecba69ae744861bb0407481215dd",
+      "bytes": 55921
+    },
+    "profile/account_owners.json": {
+      "sha256": "2efdb88906113ccd479b47d05480f790ef0e84bd50efdcbfd24e0912d3e453ce",
+      "bytes": 4391
+    },
+    "profile/accounts.json": {
+      "sha256": "d3121225f03de239299e399c8016779781b666094997825409c5dc566acb0d64",
+      "bytes": 10657
+    },
+    "profile/balance_snapshots.json": {
+      "sha256": "48fd4727a98bbca2553148418fa8fbb3f7c68646aa13dc2f5917d59d93fb1eb0",
+      "bytes": 4860
+    },
+    "profile/calendar.json": {
+      "sha256": "478ffc0d97fb529e7eb11ef18525d6675ea5b04d6a46d63e80e63a654d3683cd",
+      "bytes": 7108
+    },
+    "profile/customer_segment_history.json": {
+      "sha256": "edf7e31b5d0dd8d87108fb1f89bfeae9f0aef502690467760158480e571c0fba",
+      "bytes": 5892
+    },
+    "profile/customers.json": {
+      "sha256": "0f3f935f461b6f704f483c2a9a03e5aaee3c8a0efe48654149cbbc542b510db1",
+      "bytes": 11473
+    },
+    "profile/investors.json": {
+      "sha256": "5cc1a482802838abfd11c2b54ce4f11dbda2e645ac7bacef388f5fa3b871dea5",
+      "bytes": 4151
+    },
+    "profile/loan_applications.json": {
+      "sha256": "373e82d521371e39dcdbeea3312759e54726fcc137c0e32ce4bb42de1c4658fd",
+      "bytes": 12062
+    },
+    "profile/loan_investors.json": {
+      "sha256": "a662d8d8a6eaf399ee1f98c76a586d0e4cbc66af2d375eb835004a93cd33a870",
+      "bytes": 6369
+    },
+    "profile/payments.json": {
+      "sha256": "eb8a70598804105b2d232d9f8420596566d8ff983aa17965c74ccf5b3f593930",
+      "bytes": 9088
+    },
+    "profile/support_tickets.json": {
+      "sha256": "14c0270b8f508345fe34394b0c32d38903d898cf34471b7631c89fb6500c0294",
+      "bytes": 7244
+    },
+    "profile/transactions.json": {
+      "sha256": "d8fceae5a547ad014aa393a29ea4d0e1968e50db427aba2f751a517e9758f7cf",
+      "bytes": 8224
+    },
+    "profile/wire_transfers.json": {
+      "sha256": "c3e9f964047ed4d3293df95ef45061e418a3d1681e80e72ef6aadc3a68489f67",
+      "bytes": 9883
+    },
+    "relationships.json": {
+      "sha256": "829eab15bbeaa9c0961acf1e91c2e1d204606fb0cb0e3bc9b56245eee5c3cf06",
+      "bytes": 7399
+    }
+  }
+}

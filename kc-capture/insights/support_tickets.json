@@ -1,0 +1,136 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/support_tickets",
+    "overview": "This table stores information about customer support interactions. It tracks individual requests for assistance. The data supports analysis of customer service operations. It helps in understanding the volume and nature of customer inquiries. This table is essential for monitoring and improving customer support efficiency.",
+    "schema": {
+      "fields": [
+        {
+          "name": "channel",
+          "description": "This column indicates the communication method used for the support ticket."
+        },
+        {
+          "name": "priority",
+          "description": "This column contains a numerical value representing the urgency level of the support ticket."
+        },
+        {
+          "name": "ticket_id",
+          "description": "This column contains a unique identifier for each support ticket."
+        },
+        {
+          "name": "customer_id",
+          "description": "This column holds the unique identifier for the customer associated with the support ticket."
+        },
+        {
+          "name": "created_date",
+          "description": "This column stores the date when the support ticket was created."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH DailyHighPriorityTickets AS (\n  SELECT\n    created_date,\n    FORMAT_DATE('%A', created_date) AS day_of_week,\n    COUNT(ticket_id) AS high_priority_ticket_count\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  WHERE priority = 1\n  GROUP BY created_date\n),\nWeeklyAverageHighPriority AS (\n  SELECT\n    day_of_week,\n    AVG(high_priority_ticket_count) AS avg_high_priority_ticket_count\n  FROM DailyHighPriorityTickets\n  GROUP BY day_of_week\n)\nSELECT\n  d.created_date,\n  d.day_of_week,\n  d.high_priority_ticket_count,\n  w.avg_high_priority_ticket_count\nFROM DailyHighPriorityTickets AS d\nJOIN WeeklyAverageHighPriority AS w\n  ON d.day_of_week = w.day_of_week\nWHERE d.high_priority_ticket_count > w.avg_high_priority_ticket_count * 1.5 -- 50% above average as anomaly threshold\nORDER BY d.created_date DESC;",
+        "description": "Identify days where the number of high-priority (priority = 1) tickets is significantly higher than the average number of high-priority tickets for that day of the week, indicating a potential anomaly in workload."
+      },
+      {
+        "sql": "WITH DailyChannelTickets AS (\n  SELECT\n    created_date,\n    channel,\n    COUNT(ticket_id) AS daily_ticket_count\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  GROUP BY created_date, channel\n),\nChannelRollingAverage AS (\n  SELECT\n    created_date,\n    channel,\n    daily_ticket_count,\n    AVG(daily_ticket_count) OVER (PARTITION BY channel ORDER BY UNIX_DATE(created_date) RANGE BETWEEN 7 PRECEDING AND 1 PRECEDING) AS seven_day_avg_ticket_count\n  FROM DailyChannelTickets\n)\nSELECT\n  created_date,\n  channel,\n  daily_ticket_count,\n  seven_day_avg_ticket_count\nFROM ChannelRollingAverage\nWHERE daily_ticket_count > seven_day_avg_ticket_count * 2 -- Daily count is more than double the 7-day average\n  AND seven_day_avg_ticket_count IS NOT NULL -- Exclude initial days with no 7-day average\nORDER BY created_date DESC, channel;",
+        "description": "Identify channels that experience a sudden surge in ticket volume on a specific date compared to their typical daily volume, potentially indicating a channel-specific issue or event."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  created_date,\n  COVAR_POP(priority, ticket_count) AS priority_ticket_count_covariance\nFROM (\n  SELECT\n    customer_id,\n    created_date,\n    AVG(priority) AS priority,\n    COUNT(ticket_id) AS ticket_count\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  GROUP BY\n    customer_id,\n    created_date\n)\nGROUP BY\n  customer_id,\n  created_date\nHAVING\n  COUNT(ticket_count) > 1;",
+        "description": "Compute the population covariance between the priority of tickets and the number of tickets created by each customer on a given day, to see if customers who create more tickets also tend to create higher priority tickets."
+      },
+      {
+        "sql": "SELECT\n  CORR(priority, ticket_count) AS priority_ticket_count_correlation\nFROM (\n  SELECT\n    created_date,\n    AVG(priority) AS priority,\n    COUNT(ticket_id) AS ticket_count\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  GROUP BY\n    created_date\n);",
+        "description": "Calculate the correlation between ticket priority and the number of tickets created on a given date to understand if higher priority issues tend to be reported more frequently on certain days."
+      },
+      {
+        "sql": "SELECT t1.customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` AS t1 JOIN (SELECT customer_id, MAX(created_date) AS last_ticket_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id) AS t2 ON t1.customer_id = t2.customer_id AND t1.created_date = t2.last_ticket_date JOIN (SELECT customer_id, AVG(priority) AS avg_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id) AS t3 ON t1.customer_id = t3.customer_id WHERE t1.priority > t3.avg_priority;",
+        "description": "Identify customers whose most recent ticket's priority is higher than their average ticket priority across all their tickets."
+      },
+      {
+        "sql": "SELECT created_date, customer_id, priority, AVG(priority) OVER (PARTITION BY customer_id ORDER BY created_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_moving_avg_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` ORDER BY customer_id, created_date;",
+        "description": "Calculate the moving average of ticket priority over a 7-day window for each customer."
+      },
+      {
+        "sql": "SELECT customer_id, STDDEV(priority) AS priority_stddev FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id ORDER BY priority_stddev DESC LIMIT 1;",
+        "description": "Find the customer who has the highest standard deviation in ticket priority across all their tickets."
+      },
+      {
+        "sql": "SELECT\n  FORMAT_DATE('%A', created_date) AS day_of_week,\n  VAR_POP(priority) AS daily_priority_variance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\nGROUP BY\n  day_of_week\nORDER BY\n  daily_priority_variance DESC;",
+        "description": "Calculate the population variance of ticket priorities for each day of the week to understand daily consistency in reported issue urgency."
+      },
+      {
+        "sql": "WITH DailyAveragePriority AS (\n  SELECT\n    created_date,\n    AVG(priority) AS average_priority\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  WHERE created_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\n  GROUP BY created_date\n)\nSELECT\n  created_date,\n  average_priority,\n  LAG(average_priority, 1, 0) OVER (ORDER BY created_date) AS previous_day_average_priority,\n  average_priority - LAG(average_priority, 1, 0) OVER (ORDER BY created_date) AS priority_change\nFROM DailyAveragePriority\nORDER BY created_date;",
+        "description": "Analyze the daily trend of average priority for support tickets, highlighting the change compared to the previous day."
+      },
+      {
+        "sql": "SELECT customer_id, APPROX_QUANTILES(priority, 100)[OFFSET(75)] AS p75_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` WHERE created_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY) GROUP BY customer_id;",
+        "description": "Calculate the 75th percentile of ticket priorities for each customer, considering only tickets created in the last 90 days."
+      },
+      {
+        "sql": "SELECT channel, AVG(priority) AS avg_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` WHERE created_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY channel ORDER BY avg_priority DESC LIMIT 3;",
+        "description": "Identify the top 3 channels with the highest average priority for tickets created in the last year."
+      },
+      {
+        "sql": "SELECT\n  channel,\n  AVG(priority) AS average_priority,\n  COUNT(ticket_id) AS total_tickets\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\nGROUP BY\n  channel\nORDER BY\n  average_priority DESC\nLIMIT 5;",
+        "description": "Find the top 5 channels that have the highest average ticket priority, along with the count of tickets for each, to identify channels frequently used for urgent issues."
+      },
+      {
+        "sql": "SELECT\n  channel,\n  customer_id,\n  ticket_count,\n  average_priority\nFROM (\n  SELECT\n    channel,\n    customer_id,\n    COUNT(ticket_id) AS ticket_count,\n    AVG(priority) AS average_priority,\n    ROW_NUMBER() OVER (PARTITION BY channel ORDER BY COUNT(ticket_id) DESC) AS rn\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  GROUP BY\n    channel,\n    customer_id\n)\nWHERE\n  rn <= 3\nORDER BY\n  channel,\n  ticket_count DESC;",
+        "description": "For each channel, list the top 3 customers who have created the most tickets, along with the average priority of their tickets within that channel."
+      },
+      {
+        "sql": "SELECT channel, COUNTIF(priority <= 2) * 100.0 / COUNT(ticket_id) AS high_priority_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY channel;",
+        "description": "Calculate the percentage of high-priority tickets (priority <= 2) for each channel."
+      },
+      {
+        "sql": "SELECT\n  t.customer_id,\n  MAX(t.priority) AS max_priority_across_channels\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` AS t\nWHERE\n  t.customer_id IN (\n    SELECT\n      customer_id\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n    GROUP BY\n      customer_id\n    HAVING\n      COUNT(DISTINCT channel) >= 2\n  )\nGROUP BY\n  t.customer_id;",
+        "description": "Identify customers who have submitted tickets through at least two different channels and calculate the maximum priority they've ever assigned."
+      },
+      {
+        "sql": "SELECT customer_id, MAX(priority) - MIN(priority) AS priority_range FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id HAVING COUNT(ticket_id) > 1;",
+        "description": "For each customer, find the difference between their maximum and minimum ticket priority."
+      },
+      {
+        "sql": "SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` WHERE priority = 1 GROUP BY customer_id HAVING COUNT(ticket_id) >= 5;",
+        "description": "Identify customers who have submitted at least 5 tickets with a priority of 1."
+      },
+      {
+        "sql": "SELECT CORR(t1.priority, t2.daily_ticket_count) AS priority_ticket_count_correlation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` AS t1 JOIN (SELECT created_date, customer_id, COUNT(ticket_id) AS daily_ticket_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY created_date, customer_id) AS t2 ON t1.created_date = t2.created_date AND t1.customer_id = t2.customer_id;",
+        "description": "Calculate the correlation between ticket priority and the number of tickets created by a customer on the same day."
+      },
+      {
+        "sql": "SELECT FORMAT_DATE('%A', created_date) AS day_of_week, AVG(priority) AS avg_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY day_of_week ORDER BY CASE WHEN day_of_week = 'Monday' THEN 1 WHEN day_of_week = 'Tuesday' THEN 2 WHEN day_of_week = 'Wednesday' THEN 3 WHEN day_of_week = 'Thursday' THEN 4 WHEN day_of_week = 'Friday' THEN 5 WHEN day_of_week = 'Saturday' THEN 6 WHEN day_of_week = 'Sunday' THEN 7 END;",
+        "description": "Find the average priority of tickets for each day of the week, considering all tickets."
+      },
+      {
+        "sql": "SELECT channel, AVG(ticket_count) AS avg_tickets_per_customer_per_channel FROM (SELECT customer_id, channel, COUNT(ticket_id) AS ticket_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id, channel HAVING COUNT(ticket_id) > 5) GROUP BY channel;",
+        "description": "Determine the average number of tickets created per customer per channel, but only for customers who have created more than 5 tickets in total."
+      },
+      {
+        "sql": "SELECT COUNT(DISTINCT customer_id) AS customers_with_multiple_channels FROM (SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id HAVING COUNT(DISTINCT channel) > 1);",
+        "description": "Determine the number of unique customers who have submitted tickets through more than one channel."
+      },
+      {
+        "sql": "SELECT channel, APPROX_QUANTILES(priority, 2)[OFFSET(1)] AS median_priority FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` WHERE customer_id IN (SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets` GROUP BY customer_id HAVING COUNT(ticket_id) >= 10) GROUP BY channel;",
+        "description": "Determine the median priority of tickets for each channel, considering only tickets submitted by customers who have submitted at least 10 tickets in total."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  STDDEV_SAMP(priority) AS priority_stddev\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\nGROUP BY\n  customer_id\nHAVING\n  COUNT(ticket_id) > 1;",
+        "description": "Determine the sample standard deviation of ticket priorities for each customer to identify customers with highly variable support needs."
+      },
+      {
+        "sql": "WITH MonthlyUniqueCustomers AS (\n  SELECT\n    DATE_TRUNC(created_date, MONTH) AS month,\n    COUNT(DISTINCT customer_id) AS unique_customers\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  WHERE created_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) AND CURRENT_DATE()\n  GROUP BY 1\n)\nSELECT\n  month,\n  unique_customers,\n  SUM(unique_customers) OVER (ORDER BY month) AS cumulative_unique_customers\nFROM MonthlyUniqueCustomers\nORDER BY month;",
+        "description": "Determine the number of unique customers who submitted tickets each month and their cumulative count over time."
+      },
+      {
+        "sql": "WITH CustomerTicketTimelines AS (\n  SELECT\n    customer_id,\n    MIN(created_date) AS first_ticket_date,\n    MAX(created_date) AS last_ticket_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  WHERE created_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\n  GROUP BY customer_id\n)\nSELECT\n  AVG(DATE_DIFF(last_ticket_date, first_ticket_date, DAY)) AS average_ticket_span_days\nFROM CustomerTicketTimelines;",
+        "description": "Determine the average time difference in days between a customer's first and last ticket submission within a year."
+      },
+      {
+        "sql": "WITH CustomerTicketCounts AS (\n  SELECT\n    customer_id,\n    COUNT(ticket_id) AS total_tickets\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.support_tickets`\n  GROUP BY customer_id\n),\nOverallTicketStats AS (\n  SELECT\n    AVG(total_tickets) AS avg_tickets_per_customer,\n    STDDEV(total_tickets) AS stddev_tickets_per_customer\n  FROM CustomerTicketCounts\n)\nSELECT\n  c.customer_id,\n  c.total_tickets,\n  o.avg_tickets_per_customer,\n  o.stddev_tickets_per_customer\nFROM CustomerTicketCounts AS c\nCROSS JOIN OverallTicketStats AS o\nWHERE c.total_tickets > o.avg_tickets_per_customer + (2 * o.stddev_tickets_per_customer) -- More than 2 standard deviations above average\nORDER BY c.total_tickets DESC;",
+        "description": "Find customer IDs that have an unusually high number of tickets compared to the average customer, potentially indicating a problematic customer or a customer experiencing recurring issues."
+      }
+    ]
+  }
+}

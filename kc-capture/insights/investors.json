@@ -1,0 +1,144 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
+    "overview": "This table stores information about individuals or entities that provide financial capital. It serves as a central repository for identifying and categorizing these financial contributors. The data supports analysis of different types of financial backing and their associated details. This table is essential for understanding the sources of funding.",
+    "schema": {
+      "fields": [
+        {
+          "name": "investor_id",
+          "description": "This column contains a unique numerical identifier for each investor."
+        },
+        {
+          "name": "name",
+          "description": "This column holds the full name of the investor."
+        },
+        {
+          "name": "investor_type",
+          "description": "This column specifies the category or classification of the investor."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH InvestorNameLengths AS (\n  SELECT\n    investor_id,\n    name,\n    investor_type,\n    LENGTH(name) AS name_length\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\n),\nTypeAverageNameLengths AS (\n  SELECT\n    investor_type,\n    AVG(name_length) AS avg_name_length,\n    STDDEV(name_length) AS stddev_name_length\n  FROM InvestorNameLengths\n  GROUP BY\n    investor_type\n)\nSELECT\n  inl.investor_id,\n  inl.name,\n  inl.investor_type,\n  inl.name_length,\n  tanl.avg_name_length,\n  tanl.stddev_name_length\nFROM InvestorNameLengths AS inl\nJOIN TypeAverageNameLengths AS tanl\n  ON inl.investor_type = tanl.investor_type\nWHERE\n  ABS(inl.name_length - tanl.avg_name_length) > 2 * tanl.stddev_name_length;",
+        "description": "This query identifies individual investors whose names are significantly longer or shorter than the average name length for their respective investor types, potentially highlighting data entry anomalies or unique naming conventions."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  COUNT(investor_id) AS investor_type_count\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nHAVING\n  COUNT(investor_id) < (\n    SELECT\n      AVG(investor_type_counts.count_investors)\n    FROM (\n      SELECT\n        investor_type,\n        COUNT(investor_id) AS count_investors\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\n      GROUP BY\n        investor_type\n    ) AS investor_type_counts\n  ) * 0.5;",
+        "description": "This query identifies investor types that have an unusually low count compared to the average count of all investor types, potentially indicating rare or niche investor categories."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  COUNT(investor_id) AS investor_count,\n  (COUNT(investor_id) * 100.0 / (SELECT COUNT(investor_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`)) AS percentage_of_total\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nHAVING\n  (COUNT(investor_id) * 100.0 / (SELECT COUNT(investor_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`)) > (\n    SELECT\n      PERCENTILE_CONT(percentage_val, 0.90) OVER()\n    FROM (\n      SELECT\n        (COUNT(investor_id) * 100.0 / (SELECT COUNT(investor_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`)) AS percentage_val\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\n      GROUP BY\n        investor_type\n    )\n  );",
+        "description": "This query identifies investor types that have a disproportionately high number of investors compared to the total number of investors, indicating a dominant or overrepresented investor category."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(DISTINCT investor_id) AS unique_investor_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type HAVING COUNT(DISTINCT investor_id) < (SELECT AVG(unique_count) FROM (SELECT COUNT(DISTINCT investor_id) AS unique_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type));",
+        "description": "Identify investor types where the number of unique investors is less than the average number of unique investors across all types."
+      },
+      {
+        "sql": "SELECT investor_type, APPROX_QUANTILES(LENGTH(name), 2)[OFFSET(1)] AS median_name_length FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type HAVING APPROX_QUANTILES(LENGTH(name), 2)[OFFSET(1)] > (SELECT APPROX_QUANTILES(LENGTH(name), 2)[OFFSET(1)] FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`);",
+        "description": "Identify investor types where the median length of investor names is above the overall median name length across all investors."
+      },
+      {
+        "sql": "SELECT\n  name,\n  COUNT(investor_id) AS name_occurrence\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  name\nHAVING\n  COUNT(investor_id) = 1;",
+        "description": "This query finds investor names that appear only once in the entire dataset, which could signify unique, potentially erroneous, or highly specialized entries."
+      },
+      {
+        "sql": "SELECT DISTINCT t1.investor_type FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS t1 JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS t2 ON t1.name = t2.name AND t1.investor_id != t2.investor_id;",
+        "description": "Find the investor type that has at least two investors with the same name."
+      },
+      {
+        "sql": "SELECT name, investor_type FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY name, investor_type HAVING COUNT(name) > 1;",
+        "description": "List all investor names that appear more than once, along with their investor type."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(investor_id) AS investors_starting_with_A FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` WHERE STARTS_WITH(name, 'A') GROUP BY investor_type ORDER BY investors_starting_with_A DESC LIMIT 1;",
+        "description": "Find the investor type that has the highest number of investors whose names start with the letter 'A'."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(investor_id) AS investors_with_substring FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` WHERE CONTAINS_SUBSTR(name, 'Bank') GROUP BY investor_type ORDER BY investors_with_substring DESC LIMIT 1;",
+        "description": "Find the investor type that has the highest number of investors whose names contain a specific substring (e.g., 'Bank')."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(DISTINCT investor_id) AS unique_investor_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY unique_investor_count DESC LIMIT 5;",
+        "description": "Identify the top 5 investor types that have the most unique investors."
+      },
+      {
+        "sql": "SELECT investor_type, AVG(LENGTH(name)) AS average_name_length FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY average_name_length DESC LIMIT 1;",
+        "description": "Find the investor type with the longest average investor name length."
+      },
+      {
+        "sql": "SELECT\n    investor_type,\n    COUNT(investor_id) AS investor_count,\n    COUNT(investor_id) * 100.0 / SUM(COUNT(investor_id)) OVER () AS percentage_of_total_investors\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n    investor_type\nORDER BY\n    investor_type;",
+        "description": "Calculate the percentage of total investors each investor type represents."
+      },
+      {
+        "sql": "SELECT\n    investor_type,\n    COUNT(investor_id) AS investor_count,\n    SUM(COUNT(investor_id)) OVER (ORDER BY investor_type) AS cumulative_investor_count\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n    investor_type\nORDER BY\n    investor_type;",
+        "description": "Count the number of investors per investor type, and also show the cumulative count of investors across investor types when ordered alphabetically."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  ANY_VALUE(name) AS example_investor_name\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  COUNT(investor_id) DESC\nLIMIT 1;",
+        "description": "Find the investor type with the highest number of investors and also retrieve one arbitrary investor name from that type."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  COUNT(investor_id) AS total_investors,\n  LOGICAL_AND(name IS NOT NULL) AS all_names_present,\n  COUNT(DISTINCT name) = COUNT(name) AS all_names_unique\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type;",
+        "description": "For each investor type, count the number of investors and check if all investors within that type have unique names."
+      },
+      {
+        "sql": "SELECT investor_type FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type HAVING COUNT(name) = COUNT(DISTINCT name);",
+        "description": "Find investor types where all investor names are unique within that type."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  STRING_AGG(name ORDER BY name) AS investor_names\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nHAVING\n  COUNT(investor_id) > 1;",
+        "description": "Identify investor types that have more than one investor, and for each, list a concatenated string of their names."
+      },
+      {
+        "sql": "SELECT\n    investor_type,\n    MAX(CURRENT_DATE()) AS most_recent_registration_date\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n    investor_type\nORDER BY\n    investor_type;",
+        "description": "Identify the most recent investor registration date for each investor type."
+      },
+      {
+        "sql": "SELECT investor_type, MAX(name) AS last_alphabetical_name FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type;",
+        "description": "For each investor type, find the investor name that is alphabetically last."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(investor_id) * 100.0 / (SELECT COUNT(investor_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`) AS percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY percentage DESC;",
+        "description": "Determine the percentage of investors belonging to each investor type."
+      },
+      {
+        "sql": "SELECT investor_type, STDDEV(LENGTH(CAST(investor_id AS STRING))) AS stddev_investor_id_length FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type;",
+        "description": "Calculate the standard deviation of investor ID lengths for each investor type."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(DISTINCT SUBSTR(name, 1, 1)) AS distinct_first_letters FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY distinct_first_letters DESC LIMIT 1;",
+        "description": "Determine the investor type with the most diverse set of investor names (measured by the number of distinct first letters)."
+      },
+      {
+        "sql": "SELECT investor_type, COUNT(DISTINCT investor_id) * 1.0 / COUNT(investor_id) AS unique_id_ratio FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY unique_id_ratio DESC LIMIT 1;",
+        "description": "Find the investor type that has the highest ratio of unique investor IDs to the total number of investors."
+      },
+      {
+        "sql": "SELECT investor_type, name, name_count FROM (SELECT investor_type, name, COUNT(name) AS name_count, ROW_NUMBER() OVER (PARTITION BY investor_type ORDER BY COUNT(name) DESC) AS rn FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type, name) WHERE rn = 1 ORDER BY name_count DESC LIMIT 1;",
+        "description": "Determine the investor type with the most common investor name, and what that name is."
+      },
+      {
+        "sql": "SELECT investor_type, APPROX_QUANTILES(investor_id, 100)[OFFSET(90)] AS ninety_percentile_investor_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type;",
+        "description": "Calculate the 90th percentile of investor ID values for each investor type."
+      },
+      {
+        "sql": "SELECT investor_type, MAX(investor_id) AS max_investor_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type HAVING MAX(investor_id) < (SELECT AVG(max_id) FROM (SELECT MAX(investor_id) AS max_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type));",
+        "description": "Identify investor types where the maximum investor ID is less than the average maximum investor ID across all investor types."
+      },
+      {
+        "sql": "SELECT investor_type, STDDEV(LENGTH(name)) AS stddev_name_length FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY stddev_name_length ASC LIMIT 1;",
+        "description": "Determine the investor type with the most consistent investor name lengths, measured by the lowest standard deviation of name lengths."
+      },
+      {
+        "sql": "SELECT investor_type, AVG(investor_id) AS average_investor_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` GROUP BY investor_type ORDER BY average_investor_id DESC LIMIT 3;",
+        "description": "List the top 3 investor types that have the highest average investor ID, along with their average ID."
+      },
+      {
+        "sql": "SELECT\n  investor_type,\n  COUNT(DISTINCT investor_id) AS distinct_investors_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  distinct_investors_count DESC\nLIMIT 1;",
+        "description": "Determine the most frequent investor type and the number of distinct investors within that type."
+      }
+    ]
+  }
+}

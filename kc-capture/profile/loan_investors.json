@@ -1,0 +1,250 @@
+{
+  "row_count": "2019",
+  "profile": {
+    "fields": [
+      {
+        "name": "application_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.396235760277365,
+          "top_n_values": [
+            {
+              "value": "787",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "786",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "784",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "783",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "782",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "780",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "777",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "771",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "763",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "759",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            }
+          ],
+          "integer_profile": {
+            "average": 397.3625557206538,
+            "standard_deviation": 227.88570437019408,
+            "min_": "1",
+            "max_": "800",
+            "quartiles": [
+              "199",
+              "395",
+              "594"
+            ]
+          }
+        }
+      },
+      {
+        "name": "investor_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.01981178801386825,
+          "top_n_values": [
+            {
+              "value": "8",
+              "count": "70",
+              "ratio": 0.03467062902426944
+            },
+            {
+              "value": "18",
+              "count": "64",
+              "ratio": 0.0316988608221892
+            },
+            {
+              "value": "40",
+              "count": "61",
+              "ratio": 0.030212976721149084
+            },
+            {
+              "value": "14",
+              "count": "61",
+              "ratio": 0.030212976721149084
+            },
+            {
+              "value": "3",
+              "count": "61",
+              "ratio": 0.030212976721149084
+            },
+            {
+              "value": "20",
+              "count": "60",
+              "ratio": 0.029717682020802376
+            },
+            {
+              "value": "36",
+              "count": "59",
+              "ratio": 0.02922238732045567
+            },
+            {
+              "value": "19",
+              "count": "59",
+              "ratio": 0.02922238732045567
+            },
+            {
+              "value": "35",
+              "count": "58",
+              "ratio": 0.028727092620108963
+            },
+            {
+              "value": "23",
+              "count": "58",
+              "ratio": 0.028727092620108963
+            }
+          ],
+          "integer_profile": {
+            "average": 20.526498266468572,
+            "standard_deviation": 11.674036067633013,
+            "min_": "1",
+            "max_": "40",
+            "quartiles": [
+              "10",
+              "20",
+              "31"
+            ]
+          }
+        }
+      },
+      {
+        "name": "allocation_pct",
+        "type_": "FLOAT",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.7964338781575037,
+          "top_n_values": [
+            {
+              "value": "1.0",
+              "count": "174",
+              "ratio": 0.0861812778603269
+            },
+            {
+              "value": "0.3326",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "0.3205",
+              "count": "4",
+              "ratio": 0.001981178801386825
+            },
+            {
+              "value": "0.6891",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.4595",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.4187",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.397",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.3857",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.37",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            },
+            {
+              "value": "0.3467",
+              "count": "3",
+              "ratio": 0.0014858841010401188
+            }
+          ],
+          "double_profile": {
+            "average": 0.39623576027736596,
+            "standard_deviation": 0.2515461030928984,
+            "min_": 0.0407,
+            "max_": 1.0,
+            "quartiles": [
+              0.2171,
+              0.3372,
+              0.4914
+            ]
+          }
+        }
+      },
+      {
+        "name": "participation_tier",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0014858841010401188,
+          "top_n_values": [
+            {
+              "value": "lead",
+              "count": "800",
+              "ratio": 0.396235760277365
+            },
+            {
+              "value": "co-lead",
+              "count": "626",
+              "ratio": 0.31005448241703815
+            },
+            {
+              "value": "participant",
+              "count": "593",
+              "ratio": 0.29370975730559684
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "11",
+            "average_length": 6.986131748390302
+          }
+        }
+      }
+    ]
+  }
+}

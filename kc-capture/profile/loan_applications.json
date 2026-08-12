@@ -1,0 +1,503 @@
+{
+  "row_count": "800",
+  "profile": {
+    "fields": [
+      {
+        "name": "application_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "800",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "799",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "798",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "797",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "796",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "795",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "794",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "793",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "792",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "791",
+              "count": "1",
+              "ratio": 0.00125
+            }
+          ],
+          "integer_profile": {
+            "average": 400.50000000000006,
+            "standard_deviation": 231.0844001658269,
+            "min_": "1",
+            "max_": "800",
+            "quartiles": [
+              "200",
+              "400",
+              "600"
+            ]
+          }
+        }
+      },
+      {
+        "name": "customer_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.515,
+          "top_n_values": [
+            {
+              "value": "371",
+              "count": "6",
+              "ratio": 0.0075
+            },
+            {
+              "value": "439",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "346",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "322",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "272",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "125",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "78",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "6",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "487",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "477",
+              "count": "4",
+              "ratio": 0.005
+            }
+          ],
+          "integer_profile": {
+            "average": 243.71249999999998,
+            "standard_deviation": 145.39535620423777,
+            "min_": "3",
+            "max_": "500",
+            "quartiles": [
+              "115",
+              "241",
+              "370"
+            ]
+          }
+        }
+      },
+      {
+        "name": "product_type",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.00625,
+          "top_n_values": [
+            {
+              "value": "mortgage",
+              "count": "248",
+              "ratio": 0.31
+            },
+            {
+              "value": "auto",
+              "count": "221",
+              "ratio": 0.27625
+            },
+            {
+              "value": "personal",
+              "count": "156",
+              "ratio": 0.195
+            },
+            {
+              "value": "business",
+              "count": "102",
+              "ratio": 0.1275
+            },
+            {
+              "value": "student",
+              "count": "73",
+              "ratio": 0.09125
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "8",
+            "average_length": 6.803750000000011
+          }
+        }
+      },
+      {
+        "name": "amount",
+        "type_": "FLOAT",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "811968.38",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "532119.71",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "531584.54",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "433833.63",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "409618.94",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "385906.77",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "373986.86",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "354907.94",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "352569.25",
+              "count": "1",
+              "ratio": 0.00125
+            },
+            {
+              "value": "342476.82",
+              "count": "1",
+              "ratio": 0.00125
+            }
+          ],
+          "double_profile": {
+            "average": 81918.21613750007,
+            "standard_deviation": 75113.99157317274,
+            "min_": 3761.11,
+            "max_": 811968.38,
+            "quartiles": [
+              34932.87,
+              59866.07,
+              101784.25
+            ]
+          }
+        }
+      },
+      {
+        "name": "applied_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.70375,
+          "top_n_values": [
+            {
+              "value": "2024-04-09",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "2023-10-02",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "2025-12-31",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2024-04-15",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2023-05-20",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2026-03-19",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-02-18",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-12-25",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-12-02",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-10-21",
+              "count": "3",
+              "ratio": 0.00375
+            }
+          ]
+        }
+      },
+      {
+        "name": "approved_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "null_ratio": 0.2125,
+          "distinct_ratio": 0.60625,
+          "top_n_values": [
+            {
+              "value": "2025-03-22",
+              "count": "5",
+              "ratio": 0.00625
+            },
+            {
+              "value": "2024-08-15",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2024-05-11",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2023-07-17",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2026-03-31",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-03-04",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-02-20",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-04-19",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-04-12",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-03-25",
+              "count": "3",
+              "ratio": 0.00375
+            }
+          ]
+        }
+      },
+      {
+        "name": "funded_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "null_ratio": 0.33125,
+          "distinct_ratio": 0.50625,
+          "top_n_values": [
+            {
+              "value": "2026-02-18",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2025-07-15",
+              "count": "4",
+              "ratio": 0.005
+            },
+            {
+              "value": "2026-04-13",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-03-07",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-02-26",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-07-27",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-05-29",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-04-12",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-04-02",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-02-01",
+              "count": "3",
+              "ratio": 0.00375
+            }
+          ]
+        }
+      },
+      {
+        "name": "closed_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "null_ratio": 0.76375,
+          "distinct_ratio": 0.21,
+          "top_n_values": [
+            {
+              "value": "2025-12-24",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-11-09",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2025-09-28",
+              "count": "3",
+              "ratio": 0.00375
+            },
+            {
+              "value": "2026-04-14",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2026-01-09",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2025-12-31",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2025-08-08",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2025-08-03",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2025-06-23",
+              "count": "2",
+              "ratio": 0.0025
+            },
+            {
+              "value": "2025-06-07",
+              "count": "2",
+              "ratio": 0.0025
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

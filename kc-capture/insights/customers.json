@@ -1,0 +1,148 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customers",
+    "overview": "This table stores comprehensive information about individual customers. It captures key demographic and registration details for each customer. This data supports analysis of customer segmentation, regional distribution, and acquisition trends. It also facilitates understanding customer origins and geographic spread.",
+    "schema": {
+      "fields": [
+        {
+          "name": "city",
+          "description": "This column contains the city where the customer resides."
+        },
+        {
+          "name": "customer_id",
+          "description": "This column holds a unique identifier for each customer."
+        },
+        {
+          "name": "name",
+          "description": "This column contains the full name of the customer."
+        },
+        {
+          "name": "segment",
+          "description": "This column stores the assigned segment for each customer."
+        },
+        {
+          "name": "region",
+          "description": "This column holds the geographical region where the customer is located."
+        },
+        {
+          "name": "signup_date",
+          "description": "This column contains the date when the customer registered."
+        },
+        {
+          "name": "referred_by",
+          "description": "This column stores the identifier of the customer who referred the current customer."
+        },
+        {
+          "name": "state",
+          "description": "This column contains the state where the customer resides."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH ReferralCounts AS (\n  SELECT\n    referred_by AS referrer_customer_id,\n    COUNT(customer_id) AS referred_count\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  WHERE referred_by IS NOT NULL\n  GROUP BY referred_by\n)\nSELECT\n  rc.referrer_customer_id,\n  c.name AS referrer_name,\n  rc.referred_count\nFROM ReferralCounts AS rc\nJOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c\n  ON rc.referrer_customer_id = c.customer_id\nWHERE rc.referred_count > (\n  SELECT\n    APPROX_QUANTILES(referred_count, 100)[OFFSET(99)]\n  FROM ReferralCounts\n)\nORDER BY rc.referred_count DESC;",
+        "description": "Find customers who were referred by an unusually high number of other customers, indicating potential referral fraud or a highly influential customer, by identifying those in the top 1% of referrers."
+      },
+      {
+        "sql": "WITH RegionalSignupStats AS (\n  SELECT\n    region,\n    AVG(UNIX_DATE(signup_date)) AS avg_signup_unix_date,\n    STDDEV(UNIX_DATE(signup_date)) AS stddev_signup_unix_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  GROUP BY region\n)\nSELECT\n  c.customer_id,\n  c.name,\n  c.region,\n  c.signup_date,\n  DATE(TIMESTAMP_SECONDS(CAST(rs.avg_signup_unix_date AS INT64))) AS average_regional_signup_date,\n  ABS(UNIX_DATE(c.signup_date) - rs.avg_signup_unix_date) AS days_from_average\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c\nJOIN RegionalSignupStats AS rs\n  ON c.region = rs.region\nWHERE ABS(UNIX_DATE(c.signup_date) - rs.avg_signup_unix_date) > (3 * rs.stddev_signup_unix_date)\nORDER BY days_from_average DESC;",
+        "description": "Identify customers who signed up on dates that are significantly outside the typical signup patterns for their respective regions, defined by a 3-standard-deviation threshold from the regional average signup date."
+      },
+      {
+        "sql": "SELECT region, CORR(customer_count, avg_signup_date_days) AS customer_signup_date_correlation FROM (SELECT region, city, COUNT(customer_id) AS customer_count, AVG(UNIX_DATE(signup_date)) AS avg_signup_date_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` GROUP BY region, city) GROUP BY region;",
+        "description": "Calculate the correlation between the number of customers in a city and the average signup date (represented as days since a fixed epoch) for that city, within each region."
+      },
+      {
+        "sql": "SELECT region, (SUM(CASE WHEN EXTRACT(MONTH FROM signup_date) BETWEEN 7 AND 12 THEN 1 ELSE 0 END) - SUM(CASE WHEN EXTRACT(MONTH FROM signup_date) BETWEEN 1 AND 6 THEN 1 ELSE 0 END)) * 100.0 / SUM(CASE WHEN EXTRACT(MONTH FROM signup_date) BETWEEN 1 AND 6 THEN 1 ELSE 0 END) AS growth_rate FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` WHERE referred_by IS NOT NULL GROUP BY region HAVING SUM(CASE WHEN EXTRACT(MONTH FROM signup_date) BETWEEN 1 AND 6 THEN 1 ELSE 0 END) > 0 ORDER BY growth_rate DESC LIMIT 5;",
+        "description": "Find the top 5 regions with the highest growth rate in customer sign-ups between the first and second half of the year, considering only customers who were referred."
+      },
+      {
+        "sql": "SELECT state FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` WHERE signup_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) GROUP BY state ORDER BY COUNT(CASE WHEN referred_by IS NOT NULL THEN 1 END) * 1.0 / COUNT(CASE WHEN referred_by IS NULL THEN 1 END) DESC LIMIT 1;",
+        "description": "Find the state with the highest ratio of referred customers to non-referred customers, considering only customers who signed up in the last two years."
+      },
+      {
+        "sql": "WITH OverallSignupStats AS (\n  SELECT\n    AVG(UNIX_DATE(signup_date)) AS overall_avg_signup_unix_date,\n    STDDEV(UNIX_DATE(signup_date)) AS overall_stddev_signup_unix_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n),\nSegmentSignupStats AS (\n  SELECT\n    segment,\n    AVG(UNIX_DATE(signup_date)) AS segment_avg_signup_unix_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  GROUP BY segment\n)\nSELECT\n  sss.segment,\n  DATE(TIMESTAMP_SECONDS(CAST(sss.segment_avg_signup_unix_date AS INT64))) AS segment_average_signup_date,\n  DATE(TIMESTAMP_SECONDS(CAST(oss.overall_avg_signup_unix_date AS INT64))) AS overall_average_signup_date,\n  ABS(sss.segment_avg_signup_unix_date - oss.overall_avg_signup_unix_date) AS days_difference\nFROM SegmentSignupStats AS sss\nCROSS JOIN OverallSignupStats AS oss\nWHERE ABS(sss.segment_avg_signup_unix_date - oss.overall_avg_signup_unix_date) > (2 * oss.overall_stddev_signup_unix_date)\nORDER BY days_difference DESC;",
+        "description": "Identify customer segments that have a significantly lower or higher average signup date compared to the overall average signup date across all customers, using a 2-standard-deviation threshold."
+      },
+      {
+        "sql": "SELECT c.segment, COUNT(CASE WHEN c.region != r.region THEN 1 END) * 100.0 / COUNT(c.customer_id) AS cross_region_referral_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c LEFT JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS r ON c.referred_by = r.customer_id GROUP BY c.segment;",
+        "description": "For each customer segment, calculate the percentage of customers who were referred by someone from a different region."
+      },
+      {
+        "sql": "SELECT\n  CORR(c1.customer_id, c2.customer_id) AS customer_id_referral_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c1\nJOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c2\nON\n  c1.referred_by = c2.customer_id;",
+        "description": "Calculate the correlation between a customer's `customer_id` and the `customer_id` of the person who referred them, to see if there's any numerical relationship in referral chains."
+      },
+      {
+        "sql": "SELECT c.region, AVG(DATE_DIFF(c.signup_date, r.signup_date, DAY)) AS avg_referral_signup_gap_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS r ON c.referred_by = r.customer_id GROUP BY c.region;",
+        "description": "Calculate the average number of days between a customer's signup date and the signup date of the customer who referred them, broken down by region."
+      },
+      {
+        "sql": "SELECT\n  region,\n  LOGICAL_OR(segment = 'Premium') AS has_premium_segment\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\nGROUP BY\n  region\nHAVING\n  LOGICAL_OR(segment = 'Premium')\nORDER BY\n  region;",
+        "description": "Identify regions where the logical OR of all customer segments being 'Premium' is true, indicating regions with a significant presence of premium customers."
+      },
+      {
+        "sql": "SELECT region FROM (SELECT region, state, COUNT(customer_id) AS customer_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` GROUP BY region, state) GROUP BY region ORDER BY STDDEV(customer_count) DESC LIMIT 1;",
+        "description": "Find the region with the highest standard deviation in the number of customers per state."
+      },
+      {
+        "sql": "SELECT state, city, referred_customer_percentage FROM (SELECT state, city, COUNT(CASE WHEN referred_by IS NOT NULL THEN 1 END) * 100.0 / COUNT(customer_id) AS referred_customer_percentage, ROW_NUMBER() OVER (PARTITION BY state ORDER BY COUNT(CASE WHEN referred_by IS NOT NULL THEN 1 END) * 100.0 / COUNT(customer_id) DESC) AS rn FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` GROUP BY state, city) WHERE rn <= 3;",
+        "description": "Identify the top 3 cities within each state that have the highest percentage of customers referred by another customer."
+      },
+      {
+        "sql": "WITH MonthlySignups AS (\n  SELECT\n    FORMAT_DATE('%Y-%m', signup_date) AS signup_month,\n    region,\n    COUNT(customer_id) AS monthly_signups\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  WHERE signup_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\n  GROUP BY 1, 2\n)\nSELECT\n  signup_month,\n  region,\n  monthly_signups,\n  LAG(monthly_signups, 1, 0) OVER (PARTITION BY region ORDER BY signup_month) AS previous_month_signups,\n  (monthly_signups - LAG(monthly_signups, 1, 0) OVER (PARTITION BY region ORDER BY signup_month)) AS signup_difference\nFROM MonthlySignups\nORDER BY signup_month, region;",
+        "description": "Analyze the monthly customer signup trends by region, comparing the current month's signups to the previous month's signups."
+      },
+      {
+        "sql": "SELECT\n  region,\n  ANY_VALUE(city) AS city_with_most_segments,\n  COUNT(DISTINCT segment) AS distinct_segments_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\nGROUP BY\n  region, city\nQUALIFY\n  ROW_NUMBER() OVER (PARTITION BY region ORDER BY COUNT(DISTINCT segment) DESC) = 1\nORDER BY\n  region;",
+        "description": "Find the city within each region that has the most distinct customer segments, indicating diverse customer bases."
+      },
+      {
+        "sql": "SELECT c.name, COUNT(r.customer_id) AS referral_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS r ON c.customer_id = r.referred_by GROUP BY c.name ORDER BY referral_count DESC LIMIT 1;",
+        "description": "Identify the customer who has referred the most other customers, and list their name and the count of their referrals."
+      },
+      {
+        "sql": "SELECT\n  signup_date,\n  segment,\n  COUNT(customer_id) AS daily_signups,\n  SUM(COUNT(customer_id)) OVER (PARTITION BY segment ORDER BY signup_date) AS cumulative_signups\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\nWHERE signup_date BETWEEN DATE_TRUNC(CURRENT_DATE(), YEAR) AND CURRENT_DATE()\nGROUP BY signup_date, segment\nORDER BY segment, signup_date;",
+        "description": "Calculate the cumulative number of customer signups over time for each customer segment, showing the running total of new customers."
+      },
+      {
+        "sql": "WITH StateSignups AS (\n  SELECT\n    region,\n    state,\n    COUNT(customer_id) AS state_signup_count,\n    SUM(COUNT(customer_id)) OVER (PARTITION BY region) AS region_total_signups\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  WHERE EXTRACT(YEAR FROM signup_date) = EXTRACT(YEAR FROM CURRENT_DATE())\n  GROUP BY region, state\n),\nRankedStateSignups AS (\n  SELECT\n    region,\n    state,\n    state_signup_count,\n    region_total_signups,\n    (state_signup_count * 100.0 / region_total_signups) AS percentage_of_region_signups,\n    RANK() OVER (PARTITION BY region ORDER BY state_signup_count DESC) AS rank_in_region\n  FROM StateSignups\n)\nSELECT\n  region,\n  state,\n  state_signup_count,\n  percentage_of_region_signups\nFROM RankedStateSignups\nWHERE rank_in_region <= 3\nORDER BY region, rank_in_region;",
+        "description": "Identify the top 3 states within each region with the highest number of customer signups for the current year, including the percentage of signups they represent within their region."
+      },
+      {
+        "sql": "SELECT\n  VAR_SAMP(referral_count) AS variance_of_referral_counts\nFROM (\n  SELECT\n    referred_by,\n    COUNT(customer_id) AS referral_count\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\n  WHERE\n    referred_by IS NOT NULL\n  GROUP BY\n    referred_by\n  HAVING\n    COUNT(customer_id) > 0\n);",
+        "description": "Calculate the sample variance of the number of customers each customer has referred, for customers who have referred at least one person."
+      },
+      {
+        "sql": "SELECT region, AVG(customer_count) AS average_customers_per_city FROM (SELECT region, city, COUNT(customer_id) AS customer_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` GROUP BY region, city HAVING COUNT(customer_id) > 10) GROUP BY region;",
+        "description": "Calculate the average number of customers per city for each region, but only for cities with more than 10 customers."
+      },
+      {
+        "sql": "SELECT region, APPROX_QUANTILES(UNIX_DATE(signup_date), 100)[OFFSET(90)] AS ninetieth_percentile_signup_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` WHERE SUBSTR(name, 1, 1) IN ('A', 'E', 'I', 'O', 'U', 'a', 'e', 'i', 'o', 'u') GROUP BY region;",
+        "description": "Calculate the 90th percentile of customer signup dates (in days since epoch) for each region, considering only customers whose names start with a vowel."
+      },
+      {
+        "sql": "SELECT segment, APPROX_QUANTILES(UNIX_DATE(signup_date), 2)[OFFSET(1)] AS median_signup_date_unix FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` WHERE signup_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY segment;",
+        "description": "Determine the median signup date for customers in each segment, considering only customers who signed up in the last year."
+      },
+      {
+        "sql": "SELECT state, COUNT(CASE WHEN EXTRACT(QUARTER FROM signup_date) = 1 THEN 1 END) * 100.0 / COUNT(customer_id) AS first_quarter_signup_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` GROUP BY state;",
+        "description": "Determine the percentage of customers in each state who signed up in the first quarter of any year."
+      },
+      {
+        "sql": "SELECT c.segment, COUNT(CASE WHEN c.city = r.city AND c.state != r.state THEN 1 END) * 100.0 / COUNT(c.customer_id) AS same_city_different_state_referral_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS r ON c.referred_by = r.customer_id GROUP BY c.segment;",
+        "description": "Determine the percentage of customers in each segment who were referred by someone from the same city, but a different state."
+      },
+      {
+        "sql": "SELECT\n  state,\n  STDDEV_SAMP(customer_id) AS customer_id_stddev\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\nGROUP BY\n  state\nHAVING\n  COUNT(customer_id) > 5\nORDER BY\n  customer_id_stddev DESC;",
+        "description": "Determine the standard deviation of customer IDs within each state, considering only states with more than 5 customers, to identify states with highly varied customer ID distributions."
+      },
+      {
+        "sql": "SELECT\n  region,\n  ANY_VALUE(customer_id HAVING MIN signup_date) AS earliest_customer_id,\n  MIN(signup_date) AS earliest_signup_date,\n  ANY_VALUE(customer_id HAVING MAX signup_date) AS latest_customer_id,\n  MAX(signup_date) AS latest_signup_date\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers`\nGROUP BY\n  region\nORDER BY\n  region;",
+        "description": "For each region, find the customer ID of the customer who signed up earliest and the customer ID of the customer who signed up latest, along with their respective signup dates."
+      },
+      {
+        "sql": "SELECT\n  c.region,\n  AVG(DATE_DIFF(c.signup_date, r.signup_date, DAY)) AS avg_referral_time_difference_days\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c\nJOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS r\n  ON c.referred_by = r.customer_id\nWHERE c.signup_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) AND CURRENT_DATE()\nGROUP BY c.region\nORDER BY c.region;",
+        "description": "Determine the average time difference in days between a customer's signup date and the signup date of the customer who referred them, grouped by the customer's region."
+      }
+    ]
+  }
+}

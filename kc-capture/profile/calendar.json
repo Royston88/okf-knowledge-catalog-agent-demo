@@ -1,0 +1,278 @@
+{
+  "row_count": "1096",
+  "profile": {
+    "fields": [
+      {
+        "name": "cal_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "2026-04-30",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-29",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-28",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-27",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-26",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-25",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-24",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-23",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-22",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            },
+            {
+              "value": "2026-04-21",
+              "count": "1",
+              "ratio": 0.0009124087591240876
+            }
+          ]
+        }
+      },
+      {
+        "name": "cal_year",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0036496350364963502,
+          "top_n_values": [
+            {
+              "value": "2024",
+              "count": "366",
+              "ratio": 0.33394160583941607
+            },
+            {
+              "value": "2025",
+              "count": "365",
+              "ratio": 0.333029197080292
+            },
+            {
+              "value": "2023",
+              "count": "245",
+              "ratio": 0.22354014598540145
+            },
+            {
+              "value": "2026",
+              "count": "120",
+              "ratio": 0.10948905109489052
+            }
+          ],
+          "integer_profile": {
+            "average": 2024.3284671532845,
+            "standard_deviation": 0.9420427744398367,
+            "min_": "2023",
+            "max_": "2026",
+            "quartiles": [
+              "2024",
+              "2024",
+              "2025"
+            ]
+          }
+        }
+      },
+      {
+        "name": "cal_quarter",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0036496350364963502,
+          "top_n_values": [
+            {
+              "value": "Q4",
+              "count": "276",
+              "ratio": 0.2518248175182482
+            },
+            {
+              "value": "Q3",
+              "count": "276",
+              "ratio": 0.2518248175182482
+            },
+            {
+              "value": "Q2",
+              "count": "273",
+              "ratio": 0.2490875912408759
+            },
+            {
+              "value": "Q1",
+              "count": "271",
+              "ratio": 0.24726277372262773
+            }
+          ],
+          "string_profile": {
+            "min_length": "2",
+            "max_length": "2",
+            "average_length": 2.0
+          }
+        }
+      },
+      {
+        "name": "fiscal_quarter",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.010948905109489052,
+          "top_n_values": [
+            {
+              "value": "FY2026-Q4",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2026-Q3",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2026-Q2",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2025-Q4",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2025-Q3",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2025-Q2",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2024-Q4",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2024-Q3",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2024-Q2",
+              "count": "92",
+              "ratio": 0.08394160583941605
+            },
+            {
+              "value": "FY2025-Q1",
+              "count": "90",
+              "ratio": 0.08211678832116788
+            }
+          ],
+          "string_profile": {
+            "min_length": "9",
+            "max_length": "9",
+            "average_length": 9.0
+          }
+        }
+      },
+      {
+        "name": "is_holiday",
+        "type_": "BOOLEAN",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0018248175182481751,
+          "top_n_values": [
+            {
+              "value": "false",
+              "count": "1063",
+              "ratio": 0.9698905109489051
+            },
+            {
+              "value": "true",
+              "count": "33",
+              "ratio": 0.030109489051094892
+            }
+          ]
+        }
+      },
+      {
+        "name": "day_of_week",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.006386861313868613,
+          "top_n_values": [
+            {
+              "value": "Wed",
+              "count": "157",
+              "ratio": 0.14324817518248176
+            },
+            {
+              "value": "Tue",
+              "count": "157",
+              "ratio": 0.14324817518248176
+            },
+            {
+              "value": "Thu",
+              "count": "157",
+              "ratio": 0.14324817518248176
+            },
+            {
+              "value": "Mon",
+              "count": "157",
+              "ratio": 0.14324817518248176
+            },
+            {
+              "value": "Sun",
+              "count": "156",
+              "ratio": 0.14233576642335766
+            },
+            {
+              "value": "Sat",
+              "count": "156",
+              "ratio": 0.14233576642335766
+            },
+            {
+              "value": "Fri",
+              "count": "156",
+              "ratio": 0.14233576642335766
+            }
+          ],
+          "string_profile": {
+            "min_length": "3",
+            "max_length": "3",
+            "average_length": 3.0
+          }
+        }
+      }
+    ]
+  }
+}

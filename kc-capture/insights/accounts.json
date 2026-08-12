@@ -1,0 +1,152 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/accounts",
+    "overview": "This table stores comprehensive information about financial accounts. It provides details on individual accounts, including their type, financial standing, and associated rates. The data supports analysis of customer account portfolios and financial product performance.",
+    "schema": {
+      "fields": [
+        {
+          "name": "customer_id",
+          "description": "This column contains a unique identifier for the customer associated with the account."
+        },
+        {
+          "name": "account_type",
+          "description": "This column specifies the type of the financial account."
+        },
+        {
+          "name": "balance",
+          "description": "This column stores the current monetary value held in the account."
+        },
+        {
+          "name": "interest_rate",
+          "description": "This column contains the interest rate applicable to the account."
+        },
+        {
+          "name": "open_date",
+          "description": "This column records the date when the account was opened."
+        },
+        {
+          "name": "load_batch_id",
+          "description": "This column holds an identifier for the data loading batch."
+        },
+        {
+          "name": "account_id",
+          "description": "This column holds a unique identifier for each individual account."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH AccountBalances AS ( SELECT account_type, AVG(CASE WHEN open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) THEN balance ELSE NULL END) AS avg_balance_last_2_years, AVG(CASE WHEN open_date < DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) AND open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 4 YEAR) THEN balance ELSE NULL END) AS avg_balance_prev_2_years FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY account_type ) SELECT account_type, (avg_balance_last_2_years - avg_balance_prev_2_years) / avg_balance_prev_2_years * 100 AS percentage_increase FROM AccountBalances WHERE avg_balance_prev_2_years IS NOT NULL AND avg_balance_prev_2_years > 0 ORDER BY percentage_increase DESC LIMIT 3;",
+        "description": "Identify the top 3 account types that have seen the largest percentage increase in average balance over the last two years compared to the two years prior."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  account_type,\n  balance,\n  avg_balance,\n  stddev_balance\nFROM (\n  SELECT\n    account_id,\n    account_type,\n    balance,\n    AVG(balance) OVER (PARTITION BY account_type) AS avg_balance,\n    STDDEV(balance) OVER (PARTITION BY account_type) AS stddev_balance\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n)\nWHERE balance > (avg_balance + 3 * stddev_balance);",
+        "description": "This query identifies accounts with unusually high balances for their account type, defined as balances exceeding 3 standard deviations above the average balance for that specific account type."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  open_date,\n  load_batch_id\nFROM (\n  SELECT\n    account_id,\n    open_date,\n    load_batch_id,\n    PERCENTILE_CONT(UNIX_DATE(open_date), 0.01) OVER (PARTITION BY load_batch_id) AS p1_open_date,\n    PERCENTILE_CONT(UNIX_DATE(open_date), 0.99) OVER (PARTITION BY load_batch_id) AS p99_open_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n)\nWHERE UNIX_DATE(open_date) < p1_open_date OR UNIX_DATE(open_date) > p99_open_date;",
+        "description": "This query flags accounts opened on dates that are significantly outside the typical opening date distribution for a given `load_batch_id`, specifically those in the earliest 1st percentile or latest 99th percentile."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  num_accounts\nFROM (\n  SELECT\n    customer_id,\n    COUNT(account_id) AS num_accounts,\n    PERCENTILE_CONT(COUNT(account_id), 0.95) OVER () AS p95_num_accounts\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n  GROUP BY customer_id\n)\nWHERE num_accounts > p95_num_accounts;",
+        "description": "This query identifies `customer_id`s that have an unusually high number of accounts compared to the average number of accounts per customer, specifically those exceeding the 95th percentile."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  account_type,\n  interest_rate,\n  q1_interest_rate,\n  q3_interest_rate,\n  iqr\nFROM (\n  SELECT\n    account_id,\n    account_type,\n    interest_rate,\n    PERCENTILE_CONT(interest_rate, 0.25) OVER (PARTITION BY account_type) AS q1_interest_rate,\n    PERCENTILE_CONT(interest_rate, 0.75) OVER (PARTITION BY account_type) AS q3_interest_rate,\n    (PERCENTILE_CONT(interest_rate, 0.75) OVER (PARTITION BY account_type) - PERCENTILE_CONT(interest_rate, 0.25) OVER (PARTITION BY account_type)) AS iqr\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n)\nWHERE interest_rate < (q1_interest_rate - 1.5 * iqr) OR interest_rate > (q3_interest_rate + 1.5 * iqr);",
+        "description": "This query detects accounts with an `interest_rate` that is an outlier compared to other accounts of the same `account_type`, specifically those falling outside 1.5 times the interquartile range (IQR)."
+      },
+      {
+        "sql": "WITH YearlyBalances AS ( SELECT EXTRACT(YEAR FROM open_date) AS account_year, account_type, SUM(balance) AS total_balance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY account_year, account_type ) SELECT account_year, account_type, total_balance, LAG(total_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY account_year) AS previous_year_balance, (total_balance - LAG(total_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY account_year)) / LAG(total_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY account_year) * 100 AS growth_rate_percent FROM YearlyBalances ORDER BY account_type, account_year;",
+        "description": "Calculate the year-over-year growth rate of the total balance for each account type."
+      },
+      {
+        "sql": "WITH MonthlyAverageBalance AS (\n  SELECT\n    FORMAT_DATE('%Y-%m', open_date) AS month,\n    account_type,\n    AVG(balance) AS average_balance\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n  WHERE open_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2\n)\nSELECT\n  month,\n  account_type,\n  average_balance,\n  LAG(average_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY month) AS previous_month_average_balance,\n  (average_balance - LAG(average_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY month)) / LAG(average_balance, 1, 0) OVER (PARTITION BY account_type ORDER BY month) * 100 AS percentage_change\nFROM MonthlyAverageBalance\nORDER BY account_type, month;",
+        "description": "Calculate the monthly average balance for each account type and compare it to the previous month's average balance to identify trends."
+      },
+      {
+        "sql": "SELECT\n  account_type,\n  CORR(balance, interest_rate) AS balance_interest_rate_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\nGROUP BY\n  account_type;",
+        "description": "Calculate the correlation between the balance and the interest rate for each account type to understand if higher balances attract higher interest rates."
+      },
+      {
+        "sql": "SELECT\n  COVAR_POP(balance, interest_rate) AS balance_interest_rate_covar_pop\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`;",
+        "description": "Calculate the population covariance between the account balance and the interest rate across all accounts to understand their general linear relationship."
+      },
+      {
+        "sql": "SELECT account_type, APPROX_QUANTILES(balance, 100)[OFFSET(90)] AS ninetieth_percentile_balance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` WHERE open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) GROUP BY account_type ORDER BY ninetieth_percentile_balance DESC;",
+        "description": "Calculate the 90th percentile of account balances for each account type, considering only accounts opened in the last two years."
+      },
+      {
+        "sql": "SELECT\n  account_type,\n  AVG(balance) AS average_balance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\nGROUP BY\n  account_type\nHAVING\n  COUNT(account_id) > (\n    SELECT\n      AVG(account_count)\n    FROM (\n      SELECT\n        customer_id,\n        COUNT(account_id) AS account_count\n      FROM\n        `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n      GROUP BY\n        customer_id\n    )\n  );",
+        "description": "Find the average balance for each account type, but only for account types where the total number of accounts is greater than the average number of accounts per customer."
+      },
+      {
+        "sql": "WITH CustomerFirstAccount AS ( SELECT customer_id, MIN(open_date) AS first_open_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY customer_id ) SELECT EXTRACT(YEAR FROM cfa.first_open_date) AS first_account_year, AVG(t2.num_accounts) AS avg_accounts_per_customer, MAX(t2.max_customer_balance) AS max_balance_any_customer FROM CustomerFirstAccount cfa JOIN ( SELECT customer_id, COUNT(account_id) AS num_accounts, SUM(balance) AS max_customer_balance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY customer_id ) t2 ON cfa.customer_id = t2.customer_id GROUP BY first_account_year ORDER BY first_account_year;",
+        "description": "Calculate the average number of accounts per customer and the maximum balance held by any customer, grouped by the year the customer's first account was opened."
+      },
+      {
+        "sql": "WITH DailyAccountBalance AS (\n  SELECT\n    customer_id,\n    account_id,\n    open_date,\n    balance,\n    LAST_DAY(open_date, MONTH) AS end_of_month\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n  WHERE open_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n),\nMonthlyCustomerAverage AS (\n  SELECT\n    customer_id,\n    FORMAT_DATE('%Y-%m', end_of_month) AS month,\n    AVG(balance) AS average_monthly_balance\n  FROM DailyAccountBalance\n  GROUP BY 1, 2\n)\nSELECT\n  month,\n  customer_id,\n  average_monthly_balance,\n  RANK() OVER (PARTITION BY month ORDER BY average_monthly_balance DESC) AS rank_in_month\nFROM MonthlyCustomerAverage\nQUALIFY rank_in_month <= 3\nORDER BY month, rank_in_month;",
+        "description": "Identify the top 3 customers with the highest average daily balance for each month."
+      },
+      {
+        "sql": "SELECT account_type, AVG(balance) AS average_balance, STDDEV(balance) AS balance_std_dev FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` WHERE open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY account_type ORDER BY average_balance DESC;",
+        "description": "Calculate the average balance and the standard deviation of balances for each account type, but only for accounts opened in the last year."
+      },
+      {
+        "sql": "SELECT\n  account_type,\n  AVG(balance) AS avg_balance,\n  AVG(interest_rate) AS avg_interest_rate\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\nWHERE\n  open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR)\nGROUP BY\n  account_type\nORDER BY\n  avg_balance DESC\nLIMIT 1;",
+        "description": "Find the account type with the highest average balance and its corresponding average interest rate, considering only accounts opened in the last year."
+      },
+      {
+        "sql": "SELECT EXTRACT(QUARTER FROM open_date) AS quarter, account_type, AVG(interest_rate) AS average_interest_rate FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY quarter, account_type QUALIFY ROW_NUMBER() OVER (PARTITION BY quarter ORDER BY AVG(interest_rate) DESC) = 1 ORDER BY quarter;",
+        "description": "Find the account type with the highest average interest rate for accounts opened in each quarter of the year."
+      },
+      {
+        "sql": "SELECT EXTRACT(MONTH FROM open_date) AS month, account_type, AVG(balance) AS average_balance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` WHERE interest_rate > 0.01 GROUP BY month, account_type QUALIFY ROW_NUMBER() OVER (PARTITION BY month ORDER BY AVG(balance) DESC) = 1 ORDER BY month;",
+        "description": "Find the account type that has the highest average balance for accounts opened in each month of the year, considering only accounts with an interest rate greater than 0.01."
+      },
+      {
+        "sql": "SELECT account_type, AVG(balance) AS average_balance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY account_type HAVING COUNT(account_id) >= 100 AND AVG(interest_rate) > 0.02 ORDER BY average_balance DESC;",
+        "description": "Find the average balance per account type, but only for account types that have at least 100 accounts and an average interest rate greater than 0.02."
+      },
+      {
+        "sql": "SELECT\n  account_type,\n  MAX(balance) AS max_balance,\n  ANY_VALUE(open_date HAVING MAX balance) AS open_date_of_max_balance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\nGROUP BY\n  account_type;",
+        "description": "For each account type, find the maximum balance and the corresponding open date, using ANY_VALUE to retrieve the open date for the row with the maximum balance."
+      },
+      {
+        "sql": "SELECT customer_id, SUM(balance) AS total_balance, COUNT(account_id) AS number_of_accounts FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY customer_id ORDER BY total_balance DESC LIMIT 1;",
+        "description": "Find the customer ID with the highest total balance across all their accounts, along with the total number of accounts they hold."
+      },
+      {
+        "sql": "SELECT account_type, APPROX_QUANTILES(interest_rate, 2)[OFFSET(1)] AS median_interest_rate FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` WHERE balance > 1000 GROUP BY account_type ORDER BY median_interest_rate DESC;",
+        "description": "Determine the median interest rate for each account type, considering only accounts with a balance greater than $1000."
+      },
+      {
+        "sql": "SELECT account_type, CORR(balance, interest_rate) AS balance_interest_correlation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY account_type HAVING COUNT(account_id) > 50 ORDER BY balance_interest_correlation DESC;",
+        "description": "Determine the correlation between account balance and interest rate for each account type, considering only accounts with more than 50 entries."
+      },
+      {
+        "sql": "SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY customer_id HAVING COUNT(DISTINCT account_type) >= 2 AND SUM(balance) > 5000 ORDER BY customer_id;",
+        "description": "Identify the customer IDs who have accounts of at least two different types and have a total balance exceeding $5000."
+      },
+      {
+        "sql": "WITH CustomerFirstAccount AS ( SELECT customer_id, MIN(open_date) AS first_open_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY customer_id ) SELECT a.customer_id, MAX(a.balance) AS max_balance, COUNT(a.account_id) AS number_of_accounts FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` a JOIN CustomerFirstAccount cfa ON a.customer_id = cfa.customer_id WHERE cfa.first_open_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 YEAR) GROUP BY a.customer_id ORDER BY max_balance DESC;",
+        "description": "Determine the maximum balance for each customer, along with the number of accounts they hold, but only for customers who opened their first account in the last five years."
+      },
+      {
+        "sql": "SELECT EXTRACT(QUARTER FROM open_date) AS quarter, STDDEV(interest_rate) AS interest_rate_std_dev FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` GROUP BY quarter HAVING AVG(balance) > 10000 ORDER BY quarter;",
+        "description": "Determine the standard deviation of interest rates for accounts opened in each quarter, but only for quarters where the average balance exceeds $10000."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  STDDEV_SAMP(balance) AS balance_std_dev\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\nGROUP BY\n  customer_id\nHAVING\n  COUNT(account_id) > 1;",
+        "description": "Determine the standard deviation of balances for each customer, but only for customers with more than one account, to identify customers with highly volatile account balances."
+      },
+      {
+        "sql": "SELECT\n  t1.customer_id,\n  VAR_SAMP(t1.interest_rate) AS interest_rate_variance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` AS t1\nWHERE\n  t1.customer_id IN (\n    SELECT\n      customer_id\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n    WHERE\n      interest_rate > (SELECT AVG(interest_rate) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`)\n    GROUP BY\n      customer_id\n  )\nGROUP BY\n  t1.customer_id;",
+        "description": "Determine the variance of interest rates for each customer, but only for those customers who have at least one account with an interest rate above the overall average interest rate."
+      },
+      {
+        "sql": "WITH QuarterlyNewAccounts AS (\n  SELECT\n    customer_id,\n    DATE_TRUNC(open_date, QUARTER) AS quarter_opened,\n    COUNT(account_id) AS new_accounts_opened\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`\n  WHERE open_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2\n)\nSELECT\n  customer_id,\n  quarter_opened,\n  new_accounts_opened,\n  SUM(new_accounts_opened) OVER (PARTITION BY customer_id ORDER BY quarter_opened) AS cumulative_accounts\nFROM QuarterlyNewAccounts\nORDER BY customer_id, quarter_opened;",
+        "description": "Determine the number of new accounts opened each quarter and the cumulative number of open accounts over time for each customer."
+      }
+    ]
+  }
+}

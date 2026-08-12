@@ -1,0 +1,104 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history",
+    "overview": "This table tracks the historical segmentation of customers. It records the different segments a customer belonged to over time. This data supports analysis of customer segment changes and their impact. It also enables understanding customer lifecycle within various segments.",
+    "schema": {
+      "fields": [
+        {
+          "name": "customer_id",
+          "description": "This column contains a unique identifier for each customer."
+        },
+        {
+          "name": "segment",
+          "description": "This column contains the assigned segment for a customer."
+        },
+        {
+          "name": "valid_from",
+          "description": "This column contains the date from which a customer's segment became active."
+        },
+        {
+          "name": "valid_to",
+          "description": "This column contains the date until which a customer's segment was active."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  customer_id,\n  COUNT(segment) AS segment_change_count,\n  MIN(valid_from) AS first_segment_change,\n  MAX(valid_to) AS last_segment_change\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\nGROUP BY\n  customer_id\nHAVING\n  COUNT(segment) > (\n    SELECT\n      APPROX_QUANTILES(segment_changes_per_customer, 100)[OFFSET(95)]\n    FROM (\n      SELECT\n        customer_id,\n        COUNT(segment) AS segment_changes_per_customer\n      FROM\n        `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n      GROUP BY\n        customer_id\n    )\n  )\n  AND DATE_DIFF(MAX(valid_to), MIN(valid_from), DAY) < 30\nORDER BY\n  segment_change_count DESC;",
+        "description": "Identify customers who have an unusually high number of segment changes within a short period (e.g., 30 days), indicating potential data anomalies or highly volatile customer behavior."
+      },
+      {
+        "sql": "WITH CustomerSegmentDurations AS (\n  SELECT\n    customer_id,\n    segment,\n    DATE_DIFF(valid_to, valid_from, DAY) AS segment_duration_days\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n  WHERE\n    valid_to IS NOT NULL AND valid_from IS NOT NULL\n),\nSegmentAverages AS (\n  SELECT\n    segment,\n    AVG(segment_duration_days) AS avg_segment_duration_for_segment,\n    STDDEV(segment_duration_days) AS stddev_segment_duration_for_segment\n  FROM\n    CustomerSegmentDurations\n  GROUP BY\n    segment\n),\nCustomerAvgDurations AS (\n  SELECT\n    csd.customer_id,\n    csd.segment,\n    AVG(csd.segment_duration_days) AS customer_avg_segment_duration,\n    COUNT(csd.segment) AS segment_count,\n    ROW_NUMBER() OVER(PARTITION BY csd.customer_id ORDER BY COUNT(csd.segment) DESC) as rn\n  FROM\n    CustomerSegmentDurations csd\n  GROUP BY\n    csd.customer_id, csd.segment\n)\nSELECT\n  cad.customer_id,\n  cad.segment AS most_frequent_segment,\n  cad.customer_avg_segment_duration,\n  sa.avg_segment_duration_for_segment,\n  sa.stddev_segment_duration_for_segment\nFROM\n  CustomerAvgDurations cad\nJOIN\n  SegmentAverages sa\nON\n  cad.segment = sa.segment\nWHERE\n  cad.rn = 1\n  AND cad.customer_avg_segment_duration < sa.avg_segment_duration_for_segment - (2 * sa.stddev_segment_duration_for_segment)\nORDER BY\n  cad.customer_avg_segment_duration ASC;",
+        "description": "Find customers whose average segment duration is significantly shorter than the typical segment duration for their most frequent segment, suggesting unusual churn or rapid re-segmentation."
+      },
+      {
+        "sql": "WITH SegmentEntryExit AS ( SELECT customer_id, segment, valid_from AS entry_date, LEAD(valid_from) OVER (PARTITION BY customer_id ORDER BY valid_from) AS next_segment_entry_date, LEAD(segment) OVER (PARTITION BY customer_id ORDER BY valid_from) AS next_segment FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` ), ChurnEvents AS ( SELECT segment, COUNT(DISTINCT customer_id) AS total_customers_in_segment, COUNT(DISTINCT CASE WHEN next_segment_entry_date IS NOT NULL AND DATE_DIFF(next_segment_entry_date, entry_date, DAY) <= 90 THEN customer_id ELSE NULL END) AS churned_customers FROM SegmentEntryExit GROUP BY segment ) SELECT segment, (churned_customers * 100.0 / total_customers_in_segment) AS churn_rate FROM ChurnEvents WHERE total_customers_in_segment > 0 ORDER BY churn_rate DESC LIMIT 5;",
+        "description": "Identify the top 5 segments with the highest churn rate, defined as the percentage of customers who moved out of a segment within 90 days of joining it."
+      },
+      {
+        "sql": "WITH CurrentYearCustomers AS ( SELECT segment, COUNT(DISTINCT customer_id) AS current_year_customer_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` WHERE valid_from >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY segment ), PreviousYearCustomers AS ( SELECT segment, COUNT(DISTINCT customer_id) AS previous_year_customer_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` WHERE valid_from >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) AND valid_from < DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY segment ) SELECT c.segment, (c.current_year_customer_count - COALESCE(p.previous_year_customer_count, 0)) * 100.0 / COALESCE(p.previous_year_customer_count, 1) AS percentage_growth FROM CurrentYearCustomers c LEFT JOIN PreviousYearCustomers p ON c.segment = p.segment ORDER BY percentage_growth DESC LIMIT 5;",
+        "description": "Find the segments that have experienced the most significant growth in customer count over the last year, measured by the percentage increase in unique customers."
+      },
+      {
+        "sql": "SELECT\n  segment,\n  VAR_SAMP(DATE_DIFF(valid_to, valid_from, DAY)) AS variance_in_segment_duration\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\nGROUP BY\n  segment\nORDER BY\n  variance_in_segment_duration DESC\nLIMIT 5;",
+        "description": "Identify customer segments that exhibit the highest variability in their membership duration, indicating potentially volatile or frequently changing customer statuses."
+      },
+      {
+        "sql": "SELECT\n  AVG(segment_change_count) AS average_segment_changes,\n  STDDEV_SAMP(segment_change_count) AS stddev_segment_changes\nFROM (\n  SELECT\n    customer_id,\n    COUNT(DISTINCT segment) - 1 AS segment_change_count\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n  WHERE\n    valid_from BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    customer_id\n) AS customer_segment_changes;",
+        "description": "Calculate the average number of segment changes a customer undergoes within a specific time frame, and the standard deviation of these changes, to assess customer churn or migration patterns between segments."
+      },
+      {
+        "sql": "WITH CustomerSegmentChanges AS ( SELECT customer_id, COUNT(segment) - 1 AS num_changes FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` WHERE valid_from >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) GROUP BY customer_id HAVING MAX(valid_to) >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) ) SELECT APPROX_QUANTILES(num_changes, 2)[OFFSET(1)] AS median_segment_changes FROM CustomerSegmentChanges;",
+        "description": "Calculate the median number of segment changes for customers who have been active for at least one year, considering only their history within the last two years."
+      },
+      {
+        "sql": "SELECT\n  segment,\n  AVG(DATE_DIFF(valid_to, valid_from, DAY)) AS average_segment_duration_days,\n  STDDEV_SAMP(DATE_DIFF(valid_to, valid_from, DAY)) AS stddev_segment_duration_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\nGROUP BY\n  segment\nORDER BY\n  average_segment_duration_days DESC;",
+        "description": "Calculate the average duration a customer spends in each segment, along with the standard deviation of that duration, to understand segment stability and typical engagement periods."
+      },
+      {
+        "sql": "SELECT segment, AVG(DATE_DIFF(valid_to, valid_from, DAY)) AS average_segment_duration_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` WHERE DATE_DIFF(valid_to, valid_from, DAY) >= 30 GROUP BY segment ORDER BY average_segment_duration_days DESC LIMIT 5;",
+        "description": "Identify the top 5 customer segments with the highest average duration of segment membership, considering only segments that have been active for at least 30 days."
+      },
+      {
+        "sql": "WITH CustomerActivity AS ( SELECT customer_id, COUNT(DISTINCT segment) AS distinct_segments, SUM(DATE_DIFF(valid_to, valid_from, DAY)) AS total_active_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` GROUP BY customer_id HAVING SUM(DATE_DIFF(valid_to, valid_from, DAY)) >= 180 ) SELECT AVG(distinct_segments) AS average_segments_per_customer FROM CustomerActivity;",
+        "description": "Calculate the average number of segments a customer has been part of, considering only customers who have been active for at least 6 months in total."
+      },
+      {
+        "sql": "WITH SegmentConsecutiveDays AS (\n  SELECT\n    customer_id,\n    segment,\n    valid_from,\n    valid_to,\n    DATE_DIFF(valid_to, valid_from, DAY) AS duration_days,\n    LAG(valid_to) OVER (PARTITION BY customer_id, segment ORDER BY valid_from) AS prev_valid_to\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n),\nSegmentGroups AS (\n  SELECT\n    customer_id,\n    segment,\n    valid_from,\n    valid_to,\n    duration_days,\n    SUM(CASE WHEN valid_from = DATE_ADD(prev_valid_to, INTERVAL 1 DAY) THEN 0 ELSE 1 END) OVER (PARTITION BY customer_id, segment ORDER BY valid_from) AS segment_group\n  FROM SegmentConsecutiveDays\n)\nSELECT\n  customer_id,\n  segment,\n  MIN(valid_from) AS continuous_period_start,\n  MAX(valid_to) AS continuous_period_end,\n  DATE_DIFF(MAX(valid_to), MIN(valid_from), DAY) AS total_continuous_days\nFROM SegmentGroups\nGROUP BY customer_id, segment, segment_group\nHAVING DATE_DIFF(MAX(valid_to), MIN(valid_from), DAY) >= 365 -- Example: longer than 365 days\nORDER BY customer_id, segment, continuous_period_start;",
+        "description": "Identify customers who have been in a specific segment for a continuous period longer than a given threshold, using a rolling sum."
+      },
+      {
+        "sql": "WITH SegmentTransitions AS (\n  SELECT\n    customer_id,\n    segment,\n    valid_from,\n    LEAD(valid_from) OVER (PARTITION BY customer_id ORDER BY valid_from) AS next_segment_start,\n    valid_to\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n)\nSELECT\n  customer_id,\n  segment,\n  AVG(DATE_DIFF(COALESCE(next_segment_start, valid_to), valid_from, DAY)) AS avg_days_in_segment\nFROM SegmentTransitions\nGROUP BY customer_id, segment\nORDER BY customer_id, segment;",
+        "description": "Calculate the average time a customer stays in a specific segment before transitioning to another, or exiting."
+      },
+      {
+        "sql": "WITH CustomerSegmentCounts AS (\n  SELECT\n    customer_id,\n    segment,\n    COUNT(*) AS segment_occurrence_count,\n    SUM(DATE_DIFF(valid_to, valid_from, DAY)) AS total_days_in_segment,\n    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY COUNT(*) DESC, SUM(DATE_DIFF(valid_to, valid_from, DAY)) DESC) AS rn\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n  GROUP BY\n    customer_id, segment\n)\nSELECT\n  customer_id,\n  segment AS most_frequent_segment,\n  total_days_in_segment\nFROM\n  CustomerSegmentCounts\nWHERE\n  rn = 1;",
+        "description": "For each customer, find the most frequent segment they belonged to and the total number of days they spent in that segment."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  segment,\n  valid_from,\n  valid_to,\n  DATE_DIFF(valid_to, valid_from, DAY) AS duration_in_segment_days\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\nORDER BY customer_id, valid_from;",
+        "description": "Identify the duration each customer spent in a particular segment, considering segment changes over time."
+      },
+      {
+        "sql": "WITH SegmentTransitions AS ( SELECT t1.customer_id, t1.segment AS from_segment, t2.segment AS to_segment, t1.valid_to AS transition_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` t1 JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` t2 ON t1.customer_id = t2.customer_id AND t2.valid_from > t1.valid_to AND DATE_DIFF(t2.valid_from, t1.valid_to, DAY) <= 90 ) SELECT COUNT(DISTINCT customer_id) * 100.0 / (SELECT COUNT(DISTINCT customer_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`) AS percentage_customers_transitioned FROM SegmentTransitions WHERE from_segment = 'Premium' AND to_segment = 'VIP';",
+        "description": "Determine the percentage of customers who have transitioned from one specific segment to another specific segment within a 90-day period."
+      },
+      {
+        "sql": "SELECT customer_id FROM ( SELECT customer_id, COUNT(DISTINCT segment) AS distinct_segments, MAX(CASE WHEN valid_to = (SELECT MAX(valid_to) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` WHERE customer_id = t.customer_id) THEN DATE_DIFF(valid_to, valid_from, DAY) ELSE 0 END) AS days_in_current_segment FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` t GROUP BY customer_id ) WHERE distinct_segments >= 3 AND days_in_current_segment > 180;",
+        "description": "Find the customer IDs who have been in at least 3 different segments and have spent more than 180 days in their current segment."
+      },
+      {
+        "sql": "WITH InitialSegmentDurations AS ( SELECT customer_id, DATE_DIFF(MIN(valid_to) OVER (PARTITION BY customer_id ORDER BY valid_from), MIN(valid_from) OVER (PARTITION BY customer_id ORDER BY valid_from), DAY) AS initial_segment_duration FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history` QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY valid_from) = 1 ) SELECT AVG(initial_segment_duration) AS average_initial_segment_duration FROM InitialSegmentDurations;",
+        "description": "Determine the average number of days a customer spends in their initial segment before transitioning to another segment."
+      },
+      {
+        "sql": "WITH CustomerSegmentDurations AS (\n  SELECT\n    customer_id,\n    valid_from,\n    valid_to,\n    DATE_DIFF(valid_to, valid_from, DAY) AS duration_days,\n    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY valid_from) AS rn\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n)\nSELECT\n  CORR(t1.duration_days, t2.duration_days) AS correlation_initial_vs_subsequent_duration\nFROM\n  CustomerSegmentDurations t1\nJOIN\n  CustomerSegmentDurations t2\nON\n  t1.customer_id = t2.customer_id\nWHERE\n  t1.rn = 1 AND t2.rn = 2;",
+        "description": "Determine the correlation between the length of a customer's initial segment membership and the length of their subsequent segment membership, to understand if early engagement duration predicts later engagement."
+      },
+      {
+        "sql": "WITH SegmentDurations AS (\n  SELECT\n    customer_id,\n    segment,\n    DATE_DIFF(valid_to, valid_from, DAY) AS duration_days\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customer_segment_history`\n),\nTotalSegmentDuration AS (\n  SELECT\n    customer_id,\n    segment,\n    SUM(duration_days) AS total_days_in_segment\n  FROM SegmentDurations\n  GROUP BY customer_id, segment\n)\nSELECT\n  customer_id,\n  segment,\n  total_days_in_segment\nFROM (\n  SELECT\n    customer_id,\n    segment,\n    total_days_in_segment,\n    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY total_days_in_segment DESC, segment ASC) AS rn\n  FROM TotalSegmentDuration\n)\nWHERE rn = 1\nORDER BY customer_id;",
+        "description": "Determine the most frequent segment a customer has been in, based on the total time spent in each segment."
+      }
+    ]
+  }
+}

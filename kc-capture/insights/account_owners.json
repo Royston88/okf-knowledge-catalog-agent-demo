@@ -1,0 +1,136 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners",
+    "overview": "This table establishes the relationships between customer accounts and their respective owners. It details which individuals are associated with specific accounts and their designated roles in that ownership. This table supports analysis of account ownership structures and customer relationships.",
+    "schema": {
+      "fields": [
+        {
+          "name": "account_id",
+          "description": "This column holds the unique identifier for each bank account."
+        },
+        {
+          "name": "customer_id",
+          "description": "This column holds the unique identifier for each customer."
+        },
+        {
+          "name": "ownership_role",
+          "description": "This column holds the specific role a customer has in relation to an account."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  customer_id,\n  COUNT(DISTINCT account_id) AS number_of_accounts\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  customer_id\nHAVING\n  COUNT(DISTINCT account_id) > (\n    SELECT\n      AVG(account_count) * 2.5 -- Using 2.5 times the average as a threshold for anomaly\n    FROM (\n      SELECT\n        customer_id,\n        COUNT(DISTINCT account_id) AS account_count\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n      GROUP BY\n        customer_id\n    )\n  );",
+        "description": "Identify customer_ids that own a significantly higher number of accounts compared to the average customer, potentially indicating a high-value customer or an anomaly in account creation."
+      },
+      {
+        "sql": "SELECT\n  ownership_role,\n  COUNT(*) AS role_occurrence_count\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  ownership_role\nHAVING\n  COUNT(*) < (\n    SELECT\n      APPROX_QUANTILES(role_count, 100)[OFFSET(1)] -- Less than the 1st percentile of occurrence\n    FROM (\n      SELECT\n        ownership_role,\n        COUNT(*) AS role_count\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n      GROUP BY\n        ownership_role\n    )\n  );",
+        "description": "Find ownership_roles that are extremely rare, occurring less frequently than the 1st percentile of all ownership roles, potentially highlighting specialized or erroneous roles."
+      },
+      {
+        "sql": "WITH customer_role_counts AS (\n  SELECT\n    customer_id,\n    ownership_role,\n    COUNT(DISTINCT account_id) AS num_accounts_with_role,\n    COUNT(DISTINCT ownership_role) OVER (PARTITION BY customer_id) AS total_distinct_roles_for_customer\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n  GROUP BY\n    customer_id,\n    ownership_role\n),\nunusual_roles AS (\n  SELECT\n    ownership_role\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n  GROUP BY\n    ownership_role\n  HAVING\n    COUNT(*) < (SELECT APPROX_QUANTILES(role_count, 100)[OFFSET(5)] FROM (SELECT COUNT(*) AS role_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY ownership_role))\n)\nSELECT\n  crc.customer_id,\n  crc.ownership_role\nFROM customer_role_counts AS crc\nINNER JOIN unusual_roles AS ur\n  ON crc.ownership_role = ur.ownership_role\nWHERE\n  crc.total_distinct_roles_for_customer = 1\n  AND crc.ownership_role NOT IN ('Primary', 'Joint');",
+        "description": "Identify customer_ids that have a single ownership_role across all their accounts, but that specific role is highly unusual (e.g., not 'Primary' or 'Joint'), indicating a potential outlier in customer behavior."
+      },
+      {
+        "sql": "SELECT a.customer_id AS customer_id_1, b.customer_id AS customer_id_2, COUNT(DISTINCT a.account_id) AS co_owned_accounts FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS a JOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS b ON a.account_id = b.account_id AND a.customer_id < b.customer_id GROUP BY customer_id_1, customer_id_2 HAVING COUNT(DISTINCT a.account_id) >= 2 ORDER BY co_owned_accounts DESC;",
+        "description": "Identify customer pairs who share ownership of at least two different accounts, and the number of accounts they co-own."
+      },
+      {
+        "sql": "SELECT ownership_role, COUNT(DISTINCT account_id) AS accounts_with_multiple_owners, AVG(num_owners) AS average_owners_for_multi_owner_accounts FROM (SELECT account_id, ownership_role, COUNT(customer_id) AS num_owners FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id, ownership_role HAVING COUNT(customer_id) > 1) GROUP BY ownership_role ORDER BY accounts_with_multiple_owners DESC LIMIT 3;",
+        "description": "Identify the top 3 ownership roles that are most frequently associated with accounts having multiple owners, and the average number of owners for accounts with these roles."
+      },
+      {
+        "sql": "SELECT ownership_role, STDDEV(accounts_per_customer) AS stddev_accounts_per_customer FROM (SELECT ownership_role, customer_id, COUNT(DISTINCT account_id) AS accounts_per_customer FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY ownership_role, customer_id) GROUP BY ownership_role ORDER BY stddev_accounts_per_customer DESC LIMIT 1;",
+        "description": "Find the ownership role with the highest standard deviation in the number of accounts owned per customer."
+      },
+      {
+        "sql": "WITH CustomerPrimaryAccounts AS (\n  SELECT\n    customer_id,\n    COUNT(account_id) AS num_accounts\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n  WHERE\n    ownership_role = 'primary'\n  GROUP BY\n    customer_id\n)\nSELECT\n  VAR_SAMP(num_accounts) AS variance_of_primary_accounts_per_customer\nFROM\n  CustomerPrimaryAccounts;",
+        "description": "Calculate the variance in the number of accounts held by customers, grouped by their primary ownership role (if they have one)."
+      },
+      {
+        "sql": "SELECT APPROX_QUANTILES(unique_roles_per_customer, 100)[OFFSET(50)] AS median_unique_roles FROM (SELECT customer_id, COUNT(DISTINCT ownership_role) AS unique_roles_per_customer FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY customer_id HAVING COUNT(DISTINCT account_id) > 1);",
+        "description": "Calculate the median number of unique ownership roles held by customers who own more than one account."
+      },
+      {
+        "sql": "SELECT ownership_role, APPROX_QUANTILES(accounts_per_customer, 100)[OFFSET(75)] AS p75_accounts_per_customer FROM (SELECT ownership_role, customer_id, COUNT(DISTINCT account_id) AS accounts_per_customer FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY ownership_role, customer_id) GROUP BY ownership_role;",
+        "description": "For each ownership role, calculate the 75th percentile of the number of accounts associated with customers holding that role."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  ARRAY_AGG(DISTINCT ownership_role ORDER BY ownership_role) AS unique_ownership_roles\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  customer_id\nORDER BY\n  ARRAY_LENGTH(unique_ownership_roles) DESC\nLIMIT 1;",
+        "description": "Identify the customer_id with the most diverse set of ownership roles and list those roles."
+      },
+      {
+        "sql": "SELECT ownership_role, COUNT(DISTINCT account_id) AS accounts_with_multiple_owners, (COUNT(DISTINCT account_id) * 100.0 / (SELECT COUNT(DISTINCT account_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`)) AS percentage_of_total_accounts FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` WHERE account_id IN (SELECT account_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id HAVING COUNT(customer_id) > 1) GROUP BY ownership_role ORDER BY percentage_of_total_accounts DESC;",
+        "description": "Calculate the percentage of accounts that have more than one owner, broken down by the primary ownership role."
+      },
+      {
+        "sql": "SELECT DISTINCT t1.ownership_role FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS t1 WHERE t1.customer_id IN (SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY customer_id HAVING COUNT(DISTINCT account_id) = 1) AND t1.ownership_role NOT IN (SELECT t2.ownership_role FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS t2 WHERE t2.customer_id IN (SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY customer_id HAVING COUNT(DISTINCT account_id) > 1));",
+        "description": "Identify ownership roles that are exclusively held by customers who own only one account."
+      },
+      {
+        "sql": "SELECT account_id, ownership_role, COUNT(customer_id) AS customers_with_role FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id, ownership_role ORDER BY account_id, customers_with_role DESC;",
+        "description": "For each account, list all ownership roles associated with it, and count how many customers hold each role for that account."
+      },
+      {
+        "sql": "SELECT\n  ownership_role,\n  COUNT(account_id) AS total_accounts_for_role,\n  COUNT(DISTINCT customer_id) AS distinct_customers_for_role,\n  SAFE_DIVIDE(COUNT(account_id), COUNT(DISTINCT customer_id)) AS avg_accounts_per_customer_with_role\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  ownership_role\nORDER BY\n  avg_accounts_per_customer_with_role DESC;",
+        "description": "Calculate the average number of accounts associated with each distinct ownership role."
+      },
+      {
+        "sql": "SELECT\n  ownership_role,\n  ANY_VALUE(customer_id HAVING MAX num_accounts_per_customer_role) AS customer_with_max_accounts_for_role,\n  MAX(num_accounts_per_customer_role) AS max_accounts_for_role\nFROM (\n  SELECT\n    ownership_role,\n    customer_id,\n    COUNT(account_id) AS num_accounts_per_customer_role\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n  GROUP BY\n    ownership_role,\n    customer_id\n)\nGROUP BY\n  ownership_role\nORDER BY\n  ownership_role;",
+        "description": "For each ownership role, identify the customer_id that has the maximum number of accounts with that specific role."
+      },
+      {
+        "sql": "SELECT AVG(num_owners) AS average_owners_per_account, STDDEV(num_owners) AS stddev_owners_per_account FROM (SELECT account_id, COUNT(customer_id) AS num_owners FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id);",
+        "description": "Find the average number of owners per account, and the standard deviation of owners per account."
+      },
+      {
+        "sql": "SELECT\n    AVG(owner_count) AS average_owners_per_account\nFROM (\n    SELECT\n        account_id,\n        COUNT(DISTINCT customer_id) AS owner_count\n    FROM\n        `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n    GROUP BY\n        account_id\n);",
+        "description": "Calculate the average number of owners per account."
+      },
+      {
+        "sql": "SELECT customer_id, COUNT(DISTINCT account_id) AS unique_accounts_owned, COUNT(DISTINCT ownership_role) AS unique_ownership_roles FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY customer_id ORDER BY unique_accounts_owned DESC, unique_ownership_roles DESC LIMIT 5;",
+        "description": "Determine the top 5 customer IDs that are associated with the most unique account IDs, and the number of unique ownership roles they hold across these accounts."
+      },
+      {
+        "sql": "SELECT COUNT(DISTINCT account_id) AS accounts_with_multiple_roles FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id HAVING COUNT(DISTINCT ownership_role) >= 2;",
+        "description": "Determine the number of accounts that have at least two different ownership roles associated with them."
+      },
+      {
+        "sql": "SELECT customer_id, ownership_role FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY customer_id, ownership_role HAVING COUNT(DISTINCT account_id) = (SELECT COUNT(DISTINCT account_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS sub WHERE sub.customer_id = `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`.customer_id);",
+        "description": "Find the customer IDs that have the same ownership role across all their owned accounts, and the count of such customers."
+      },
+      {
+        "sql": "SELECT ownership_role, (COUNT(DISTINCT t1.customer_id) * 100.0 / (SELECT COUNT(DISTINCT customer_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`)) AS percentage_of_customers FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS t1 WHERE t1.customer_id IN (SELECT customer_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` GROUP BY account_id, customer_id HAVING COUNT(customer_id) > 1) GROUP BY ownership_role ORDER BY percentage_of_customers DESC;",
+        "description": "Determine the percentage of customers who hold a specific ownership role and also own accounts where they are not the sole owner."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  COUNT(DISTINCT ownership_role) AS distinct_ownership_roles\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  customer_id\nORDER BY\n  distinct_ownership_roles DESC;",
+        "description": "Determine the distribution of ownership roles across different customer IDs by counting distinct roles per customer."
+      },
+      {
+        "sql": "WITH CustomerAccountStats AS (\n  SELECT\n    customer_id,\n    COUNT(account_id) AS num_accounts,\n    COUNT(DISTINCT ownership_role) AS num_distinct_roles\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n  GROUP BY\n    customer_id\n)\nSELECT\n  CORR(num_accounts, num_distinct_roles) AS correlation_accounts_roles\nFROM\n  CustomerAccountStats;",
+        "description": "Determine the correlation between the number of accounts a customer has and the number of distinct ownership roles they hold."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    COUNT(DISTINCT customer_id) AS unique_customer_count\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n    account_id\nORDER BY\n    account_id;",
+        "description": "Determine the number of unique customer IDs associated with each account, ordered by account ID."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    COUNT(DISTINCT customer_id) AS number_of_owners\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n    account_id\nHAVING\n    COUNT(DISTINCT customer_id) > 1\nORDER BY\n    account_id;",
+        "description": "Identify accounts that have more than one customer ID associated with them, indicating shared ownership."
+      },
+      {
+        "sql": "SELECT\n    t1.customer_id,\n    t1.account_id,\n    t1.ownership_role AS primary_ownership_role\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners` AS t1\nWHERE\n    t1.ownership_role = 'Primary'\nORDER BY\n    t1.customer_id, t1.account_id;",
+        "description": "List all customer IDs and their associated account IDs, showing the primary ownership role for each account if available."
+      },
+      {
+        "sql": "SELECT\n    customer_id,\n    COUNT(DISTINCT account_id) AS owned_account_count\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n    customer_id\nORDER BY\n    owned_account_count DESC\nLIMIT 1;",
+        "description": "Find the customer ID that owns the most accounts, along with the count of accounts they own."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  COUNT(DISTINCT ownership_role) AS distinct_ownership_roles\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\nGROUP BY\n  account_id\nHAVING\n  COUNT(DISTINCT ownership_role) > (\n    SELECT\n      PERCENTILE_CONT(distinct_roles_count, 0.99) OVER () -- Identifying accounts in the top 1% for distinct ownership roles\n    FROM (\n      SELECT\n        account_id,\n        COUNT(DISTINCT ownership_role) AS distinct_roles_count\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.account_owners`\n      GROUP BY\n        account_id\n    )\n  );",
+        "description": "Discover account_ids that have an unusually diverse set of ownership_roles associated with them, which might indicate complex ownership structures or data entry errors."
+      }
+    ]
+  }
+}

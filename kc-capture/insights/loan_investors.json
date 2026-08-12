@@ -1,0 +1,148 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_investors",
+    "overview": "This table records the involvement of various investors in loan applications. It details how different investors contribute to specific loan applications. The table supports analysis of investor participation across the loan portfolio. It also helps in understanding the distribution of loan allocations among investors.",
+    "schema": {
+      "fields": [
+        {
+          "name": "application_id",
+          "description": "This column contains a unique identifier for each loan application."
+        },
+        {
+          "name": "investor_id",
+          "description": "This column contains a unique identifier for each investor."
+        },
+        {
+          "name": "allocation_pct",
+          "description": "This column contains the percentage of a loan application allocated to a specific investor."
+        },
+        {
+          "name": "participation_tier",
+          "description": "This column contains a categorical description of an investor's participation level."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  application_id,\n  SUM(allocation_pct) AS total_allocation_pct\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  application_id\nHAVING ABS(SUM(allocation_pct) - 1.0) > 0.001;",
+        "description": "Find applications where the total sum of allocation percentages from all investors does not equal 100% (allowing for a small tolerance due to floating point arithmetic), indicating potential data anomalies."
+      },
+      {
+        "sql": "SELECT\n  application_id,\n  investor_id,\n  allocation_pct\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nWHERE allocation_pct > (\n  SELECT\n    PERCENTILE_CONT(allocation_pct, 0.99) OVER()\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n  LIMIT 1\n);",
+        "description": "Identify applications where a single investor has an unusually high allocation percentage, defined as being above the 99th percentile of all investor allocations."
+      },
+      {
+        "sql": "WITH InvestorAvgAllocation AS (\n  SELECT\n    investor_id,\n    AVG(allocation_pct) AS avg_investor_allocation\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n  GROUP BY\n    investor_id\n),\nOverallStats AS (\n  SELECT\n    AVG(avg_investor_allocation) AS overall_mean_allocation,\n    STDDEV(avg_investor_allocation) AS overall_stddev_allocation\n  FROM InvestorAvgAllocation\n)\nSELECT\n  iaa.investor_id,\n  iaa.avg_investor_allocation\nFROM InvestorAvgAllocation AS iaa\nCROSS JOIN OverallStats AS os\nWHERE ABS((iaa.avg_investor_allocation - os.overall_mean_allocation) / os.overall_stddev_allocation) > 2;",
+        "description": "Find investors whose average allocation percentage across all applications deviates significantly (more than 2 standard deviations) from the overall average investor allocation."
+      },
+      {
+        "sql": "WITH ApplicationInvestorCount AS (\n  SELECT\n    application_id,\n    COUNT(DISTINCT investor_id) AS unique_investor_count\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n  GROUP BY\n    application_id\n)\nSELECT\n  aic.application_id,\n  aic.unique_investor_count\nFROM ApplicationInvestorCount AS aic\nWHERE aic.unique_investor_count < (\n  SELECT APPROX_QUANTILES(unique_investor_count, 100)[OFFSET(5)]\n  FROM ApplicationInvestorCount\n);",
+        "description": "Identify applications where the number of unique investors is an outlier, specifically less than the 5th percentile of unique investors per application."
+      },
+      {
+        "sql": "SELECT CORR(avg_allocation, num_applications) AS allocation_application_correlation FROM (SELECT investor_id, AVG(allocation_pct) AS avg_allocation, COUNT(DISTINCT application_id) AS num_applications FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY investor_id);",
+        "description": "Calculate the correlation between an investor's average allocation percentage and the number of applications they participate in."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  COVAR_POP(allocation_pct, application_id) AS population_covariance_allocation_application\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  participation_tier\nORDER BY\n  participation_tier;",
+        "description": "Calculate the population covariance between `allocation_pct` and `application_id` (treated as a numerical proxy for application complexity/size) for each `participation_tier`."
+      },
+      {
+        "sql": "SELECT investor_id, STDDEV(allocation_pct) AS allocation_std_dev FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY investor_id HAVING COUNT(allocation_pct) > 1 ORDER BY allocation_std_dev DESC;",
+        "description": "Calculate the standard deviation of allocation percentages for each investor, and identify investors with highly variable allocations."
+      },
+      {
+        "sql": "SELECT application_id, investor_id, allocation_pct FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS t1 WHERE t1.allocation_pct > 0.75 AND t1.allocation_pct = (SELECT MAX(allocation_pct) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` WHERE application_id = t1.application_id);",
+        "description": "Identify applications where a single investor holds more than 75% of the total allocation."
+      },
+      {
+        "sql": "SELECT DISTINCT t1.investor_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS t1 JOIN (SELECT application_id, AVG(allocation_pct) AS avg_app_allocation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY application_id) AS t2 ON t1.application_id = t2.application_id WHERE t1.allocation_pct > t2.avg_app_allocation GROUP BY t1.investor_id HAVING COUNT(DISTINCT t1.application_id) = (SELECT COUNT(DISTINCT application_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` WHERE investor_id = t1.investor_id);",
+        "description": "Identify investors who have participated in applications where their allocation percentage was consistently above the average allocation for that specific application."
+      },
+      {
+        "sql": "SELECT\n  application_id,\n  ARRAY_AGG(DISTINCT investor_id) AS investors_involved,\n  SUM(allocation_pct) AS total_allocated_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nWHERE\n  allocation_pct > 0.5\nGROUP BY\n  application_id\nHAVING\n  COUNT(DISTINCT investor_id) < 3\nORDER BY\n  application_id;",
+        "description": "Find applications where the `allocation_pct` for any investor is greater than 50% and the total number of unique investors for that application is less than 3."
+      },
+      {
+        "sql": "SELECT participation_tier, cumulative_allocation_pct FROM (SELECT participation_tier, SUM(allocation_pct) AS total_tier_allocation, SUM(SUM(allocation_pct)) OVER (ORDER BY SUM(allocation_pct) DESC) AS cumulative_allocation_pct FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY participation_tier) WHERE cumulative_allocation_pct <= (SELECT SUM(allocation_pct) * 0.8 FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`) ORDER BY total_tier_allocation DESC LIMIT 3;",
+        "description": "Find the top 3 participation tiers that collectively account for at least 80% of the total allocated percentage across all applications."
+      },
+      {
+        "sql": "SELECT application_id, investor_id, allocation_pct FROM (SELECT application_id, investor_id, allocation_pct, ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY allocation_pct ASC) AS rn FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` WHERE participation_tier = 'Premium') WHERE rn = 1;",
+        "description": "For each application, identify the investor who has the lowest allocation percentage but is still part of the 'Premium' participation tier."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  AVG(allocation_pct) AS average_allocation_pct,\n  STDDEV_SAMP(allocation_pct) AS stddev_allocation_pct,\n  VAR_SAMP(allocation_pct) AS variance_allocation_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  participation_tier\nORDER BY\n  participation_tier;",
+        "description": "Analyze the distribution of investor allocation percentages across different participation tiers by calculating the average, standard deviation, and variance of `allocation_pct` for each `participation_tier`."
+      },
+      {
+        "sql": "SELECT investor_id, SUM(allocation_pct) AS total_allocated_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY investor_id ORDER BY total_allocated_percentage DESC LIMIT 5;",
+        "description": "Find the top 5 investors with the highest total allocated percentage across all applications they've participated in."
+      },
+      {
+        "sql": "SELECT application_id, participation_tier FROM (SELECT application_id, participation_tier, SUM(allocation_pct) AS tier_allocation, ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY SUM(allocation_pct) DESC) AS rn FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY application_id, participation_tier) WHERE rn = 1;",
+        "description": "For each application, identify the participation tier that holds the largest share of the total allocated percentage."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  ANY_VALUE(investor_id HAVING MAX allocation_pct) AS investor_with_max_allocation,\n  MAX(allocation_pct) AS max_allocation_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  participation_tier\nORDER BY\n  participation_tier;",
+        "description": "Identify the `investor_id` that has the maximum `allocation_pct` for each `participation_tier`, along with that maximum percentage."
+      },
+      {
+        "sql": "WITH RankedInvestors AS (\n  SELECT\n    investor_id,\n    participation_tier,\n    allocation_pct,\n    RANK() OVER (PARTITION BY participation_tier ORDER BY allocation_pct DESC) AS rank_in_tier\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n)\nSELECT\n  investor_id,\n  participation_tier,\n  allocation_pct\nFROM\n  RankedInvestors\nWHERE\n  rank_in_tier <= 3\nORDER BY\n  participation_tier, allocation_pct DESC;",
+        "description": "Identify the top 3 investors with the highest allocation percentage within each participation tier."
+      },
+      {
+        "sql": "WITH TierAverage AS (\n  SELECT\n    participation_tier,\n    AVG(allocation_pct) AS avg_tier_allocation_pct\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n  GROUP BY\n    participation_tier\n)\nSELECT\n  li.investor_id,\n  li.participation_tier,\n  li.allocation_pct,\n  ta.avg_tier_allocation_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS li\nJOIN\n  TierAverage AS ta\nON\n  li.participation_tier = ta.participation_tier\nWHERE\n  li.allocation_pct > ta.avg_tier_allocation_pct\nORDER BY\n  li.participation_tier, li.allocation_pct DESC;",
+        "description": "Identify investors whose allocation percentage is above the average for their participation tier."
+      },
+      {
+        "sql": "SELECT participation_tier, APPROX_QUANTILES(allocation_pct, 100)[OFFSET(90)] AS p90_allocation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY participation_tier;",
+        "description": "Calculate the 90th percentile of allocation percentages for each participation tier."
+      },
+      {
+        "sql": "SELECT participation_tier, AVG(allocation_pct) AS average_allocation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY participation_tier ORDER BY average_allocation DESC LIMIT 1;",
+        "description": "Calculate the average allocation percentage for each participation tier, and identify the tier with the highest average allocation."
+      },
+      {
+        "sql": "SELECT participation_tier, AVG(num_investors) AS average_investors_per_application FROM (SELECT application_id, participation_tier, COUNT(DISTINCT investor_id) AS num_investors FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY application_id, participation_tier) GROUP BY participation_tier;",
+        "description": "Find the average number of investors per application, broken down by participation tier."
+      },
+      {
+        "sql": "SELECT APPROX_QUANTILES(t1.allocation_pct, 2)[OFFSET(1)] AS median_allocation_for_multi_application_investors FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS t1 WHERE t1.investor_id IN (SELECT investor_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY investor_id HAVING COUNT(DISTINCT application_id) > 1);",
+        "description": "Determine the median allocation percentage for investors who have participated in more than one application."
+      },
+      {
+        "sql": "SELECT participation_tier, SUM(allocation_pct) * 100.0 / (SELECT SUM(allocation_pct) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`) AS percentage_of_total_allocation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY participation_tier ORDER BY percentage_of_total_allocation DESC;",
+        "description": "Determine the percentage of total allocation contributed by each participation tier across all applications."
+      },
+      {
+        "sql": "SELECT investor_id, application_id, allocation_pct FROM (SELECT investor_id, application_id, allocation_pct, ROW_NUMBER() OVER (PARTITION BY investor_id ORDER BY allocation_pct DESC) AS rn FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`) WHERE rn = 1;",
+        "description": "For each investor, find the maximum allocation percentage they have ever received and the corresponding application ID."
+      },
+      {
+        "sql": "SELECT investor_id, COUNT(DISTINCT application_id) AS num_applications, CASE WHEN COUNT(DISTINCT application_id) = 1 THEN 'Single Application' WHEN COUNT(DISTINCT application_id) BETWEEN 2 AND 5 THEN 'Few Applications' ELSE 'Many Applications' END AS participation_frequency_group FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY investor_id ORDER BY num_applications DESC;",
+        "description": "Determine the number of unique applications each investor has participated in, and categorize them into participation frequency groups."
+      },
+      {
+        "sql": "SELECT COUNT(DISTINCT application_id) * 100.0 / (SELECT COUNT(DISTINCT application_id) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`) FROM (SELECT application_id FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` GROUP BY application_id HAVING COUNT(DISTINCT participation_tier) = 1);",
+        "description": "Determine the percentage of applications where all participating investors belong to the same participation tier."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  CORR(total_allocated_pct, num_applications) AS correlation_allocation_applications\nFROM (\n  SELECT\n    investor_id,\n    participation_tier,\n    SUM(allocation_pct) AS total_allocated_pct,\n    COUNT(DISTINCT application_id) AS num_applications\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\n  GROUP BY\n    investor_id, participation_tier\n)\nGROUP BY\n  participation_tier\nORDER BY\n  participation_tier;",
+        "description": "Determine the correlation between an investor's total allocated percentage and the number of applications they participate in, grouped by `participation_tier`."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  AVG(allocation_pct) AS avg_allocation_for_tier\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  participation_tier\nHAVING\n  AVG(allocation_pct) > (SELECT AVG(allocation_pct) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`)\nORDER BY\n  participation_tier;",
+        "description": "Determine the `participation_tier`s where the average `allocation_pct` is above the overall average `allocation_pct` across all investors and applications."
+      },
+      {
+        "sql": "SELECT\n  participation_tier,\n  AVG(allocation_pct) AS avg_allocation_pct_tier,\n  (SELECT AVG(allocation_pct) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`) AS overall_avg_allocation_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nGROUP BY\n  participation_tier\nORDER BY\n  participation_tier;",
+        "description": "Determine the average allocation percentage for each participation tier, and compare it to the overall average allocation percentage across all investors."
+      },
+      {
+        "sql": "SELECT\n  investor_id,\n  application_id,\n  participation_tier,\n  allocation_pct,\n  SUM(allocation_pct) OVER (PARTITION BY participation_tier ORDER BY application_id) AS cumulative_allocation_pct\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors`\nORDER BY\n  participation_tier, application_id;",
+        "description": "Calculate the cumulative allocation percentage for each investor within their respective participation tier, ordered by application ID."
+      }
+    ]
+  }
+}

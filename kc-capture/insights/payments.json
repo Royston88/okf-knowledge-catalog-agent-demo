@@ -1,0 +1,108 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments",
+    "overview": "This table records individual financial transactions. It captures details about monetary transfers and their associated attributes. The data supports analysis of transaction volumes, customer spending patterns, and payment channel usage. It provides a historical record of financial movements.",
+    "schema": {
+      "fields": [
+        {
+          "name": "payment_id",
+          "description": "This column holds a unique identifier for each individual payment transaction."
+        },
+        {
+          "name": "customer_id",
+          "description": "This column contains a unique identifier for the customer associated with each payment."
+        },
+        {
+          "name": "amount",
+          "description": "This column stores the monetary value of each payment."
+        },
+        {
+          "name": "payment_date",
+          "description": "This column records the specific date on which each payment was made."
+        },
+        {
+          "name": "payment_month",
+          "description": "This column indicates the month in which each payment occurred."
+        },
+        {
+          "name": "channel",
+          "description": "This column specifies the method or platform used for each payment."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  customer_id,\n  payment_id,\n  amount,\n  payment_date\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nWHERE\n  amount > (SELECT APPROX_QUANTILES(amount, 100)[OFFSET(99)] FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`);",
+        "description": "This query pinpoints individual payments that are exceptionally large, specifically those exceeding the 99th percentile of all payment amounts, suggesting potential fraudulent or erroneous transactions."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  AVG(amount) AS average_payment_amount,\n  (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`) AS overall_average_payment_amount,\n  (SELECT STDDEV(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`) AS overall_stddev_payment_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nGROUP BY\n  customer_id\nHAVING\n  ABS(AVG(amount) - (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`)) > 3 * (SELECT STDDEV(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`);",
+        "description": "This query identifies customers whose average payment amount significantly deviates (more than 3 standard deviations) from the overall average payment amount across all customers, indicating potential high-value or low-value outliers."
+      },
+      {
+        "sql": "WITH MonthlyPaymentCounts AS (\n  SELECT\n    customer_id,\n    payment_month,\n    COUNT(payment_id) AS monthly_payment_count\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\n  GROUP BY\n    customer_id,\n    payment_month\n),\nCustomerPaymentStats AS (\n  SELECT\n    customer_id,\n    AVG(monthly_payment_count) AS avg_monthly_payments,\n    STDDEV(monthly_payment_count) AS stddev_monthly_payments\n  FROM MonthlyPaymentCounts\n  GROUP BY\n    customer_id\n)\nSELECT\n  mpc.customer_id,\n  mpc.payment_month,\n  mpc.monthly_payment_count,\n  cps.avg_monthly_payments,\n  cps.stddev_monthly_payments\nFROM MonthlyPaymentCounts AS mpc\nJOIN CustomerPaymentStats AS cps\n  ON mpc.customer_id = cps.customer_id\nWHERE\n  mpc.monthly_payment_count > cps.avg_monthly_payments + 2 * cps.stddev_monthly_payments\n  AND cps.stddev_monthly_payments > 0;",
+        "description": "This query detects customers who have an unusually high number of payments within a single month compared to their historical average, potentially indicating a surge in activity or a data anomaly."
+      },
+      {
+        "sql": "WITH ChannelAvgAmounts AS (\n  SELECT\n    channel,\n    AVG(amount) AS channel_avg_amount,\n    STDDEV(amount) AS channel_stddev_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\n  GROUP BY\n    channel\n)\nSELECT\n  p.channel,\n  p.payment_id,\n  p.amount,\n  caa.channel_avg_amount,\n  caa.channel_stddev_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` AS p\nJOIN ChannelAvgAmounts AS caa\n  ON p.channel = caa.channel\nWHERE\n  p.amount > caa.channel_avg_amount + 2 * caa.channel_stddev_amount\n  AND caa.channel_stddev_amount > 0;",
+        "description": "This query identifies payment channels that exhibit an unusually high average transaction amount compared to the overall average for that channel, indicating potential misuse or a shift in transaction patterns."
+      },
+      {
+        "sql": "WITH MonthlyAvg AS ( SELECT customer_id, payment_month, AVG(amount) AS avg_monthly_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY customer_id, payment_month ), LaggedMonthlyAvg AS ( SELECT customer_id, payment_month, avg_monthly_amount, LAG(avg_monthly_amount, 1) OVER (PARTITION BY customer_id ORDER BY payment_month) AS prev_month_avg_amount FROM MonthlyAvg ) SELECT customer_id, payment_month, avg_monthly_amount, prev_month_avg_amount, (avg_monthly_amount - prev_month_avg_amount) AS monthly_change, (avg_monthly_amount - prev_month_avg_amount) / prev_month_avg_amount AS percentage_change FROM LaggedMonthlyAvg WHERE prev_month_avg_amount IS NOT NULL AND ABS((avg_monthly_amount - prev_month_avg_amount) / prev_month_avg_amount) > 0.2 -- Threshold for significant change (e.g., 20%) ORDER BY customer_id, payment_month;",
+        "description": "Identify customers whose average monthly payment amount has significantly increased or decreased compared to their previous month's average, indicating a change in spending habits."
+      },
+      {
+        "sql": "SELECT\n  channel,\n  CORR(daily_total_amount, daily_payment_count) AS amount_payment_count_correlation\nFROM (\n  SELECT\n    customer_id,\n    channel,\n    payment_date,\n    SUM(amount) AS daily_total_amount,\n    COUNT(payment_id) AS daily_payment_count\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\n  GROUP BY\n    customer_id, channel, payment_date\n)\nGROUP BY\n  channel;",
+        "description": "Analyze the correlation between payment amount and the number of payments made by a customer on a given day, segmented by payment channel."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  VAR_SAMP(amount) AS payment_amount_variance_across_channels\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nGROUP BY\n  customer_id\nHAVING\n  COUNT(DISTINCT channel) > 1;",
+        "description": "Identify customers who have made payments through more than one channel and calculate the variance of their payment amounts across all channels."
+      },
+      {
+        "sql": "WITH PaymentDates AS ( SELECT customer_id, payment_date, LAG(payment_date) OVER (PARTITION BY customer_id ORDER BY payment_date) AS previous_payment_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' ), PaymentIntervals AS ( SELECT customer_id, payment_date, previous_payment_date, DATE_DIFF(payment_date, previous_payment_date, DAY) AS days_between_payments FROM PaymentDates WHERE previous_payment_date IS NOT NULL ) SELECT customer_id, AVG(days_between_payments) AS average_days_between_payments, STDDEV(days_between_payments) AS stddev_days_between_payments FROM PaymentIntervals GROUP BY customer_id HAVING STDDEV(days_between_payments) IS NOT NULL ORDER BY stddev_days_between_payments DESC;",
+        "description": "Analyze the average time between payments for each customer, identifying customers with irregular payment frequencies."
+      },
+      {
+        "sql": "SELECT customer_id, channel, AVG(amount) AS average_payment_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY customer_id, channel HAVING AVG(amount) > (SELECT AVG(amount) * 1.5 FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31') OR AVG(amount) < (SELECT AVG(amount) * 0.5 FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31') ORDER BY customer_id, channel;",
+        "description": "Calculate the average payment amount per customer for each channel, identifying channels with significantly higher or lower average payments."
+      },
+      {
+        "sql": "WITH MonthlyChannelPayments AS (\n  SELECT\n    FORMAT_DATE('%Y-%m', payment_date) AS payment_month_str,\n    channel,\n    SUM(amount) AS total_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\n  WHERE payment_date BETWEEN DATE('2023-01-01') AND DATE('2023-12-31')\n  GROUP BY 1, 2\n),\nLaggedMonthlyChannelPayments AS (\n  SELECT\n    payment_month_str,\n    channel,\n    total_amount,\n    LAG(total_amount, 1, 0) OVER (PARTITION BY channel ORDER BY payment_month_str) AS previous_month_amount\n  FROM MonthlyChannelPayments\n)\nSELECT\n  payment_month_str,\n  channel,\n  total_amount,\n  previous_month_amount,\n  CASE\n    WHEN previous_month_amount = 0 THEN NULL\n    ELSE (total_amount - previous_month_amount) / previous_month_amount * 100\n  END AS growth_rate_percentage\nFROM LaggedMonthlyChannelPayments\nORDER BY channel, payment_month_str;",
+        "description": "Calculate the month-over-month growth rate of total payment amount for each channel."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  payment_month,\n  AVG(amount) OVER (PARTITION BY customer_id ORDER BY payment_month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS three_month_moving_avg_amount\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nORDER BY\n  customer_id, payment_month;",
+        "description": "Calculate the moving average of payment amounts for each customer over a 3-month window to identify trends in spending."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  payment_date,\n  amount,\n  SUM(amount) OVER (PARTITION BY customer_id ORDER BY payment_date) AS cumulative_payment_amount,\n  (amount / SUM(amount) OVER (PARTITION BY customer_id)) * 100 AS percentage_of_total_payments\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nORDER BY\n  customer_id, payment_date;",
+        "description": "Calculate the cumulative sum of payment amounts for each customer, ordered by payment date, and also determine the percentage of their total payments each transaction represents."
+      },
+      {
+        "sql": "SELECT channel, APPROX_QUANTILES(amount, 100)[OFFSET(25)] AS percentile_25, APPROX_QUANTILES(amount, 100)[OFFSET(50)] AS median_payment, APPROX_QUANTILES(amount, 100)[OFFSET(75)] AS percentile_75 FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY channel ORDER BY channel;",
+        "description": "Analyze the distribution of payment amounts by channel using percentiles (25th, 50th, 75th), to understand typical payment sizes for each channel."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  MAX(amount) AS max_payment_amount,\n  ANY_VALUE(channel HAVING MAX amount) AS channel_of_max_payment\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nGROUP BY\n  customer_id;",
+        "description": "Find the maximum payment amount for each customer and the specific channel through which that maximum payment was made."
+      },
+      {
+        "sql": "SELECT customer_id, FORMAT_DATE('%Y-%m', payment_month) AS payment_year_month, STDDEV(amount) AS monthly_payment_stddev FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY customer_id, payment_year_month HAVING STDDEV(amount) > (SELECT AVG(stddev_amount) FROM (SELECT customer_id, STDDEV(amount) AS stddev_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY customer_id, FORMAT_DATE('%Y-%m', payment_month))) ORDER BY customer_id, payment_year_month DESC;",
+        "description": "Determine the monthly payment volatility (standard deviation of payment amounts) for each customer, highlighting customers with highly inconsistent payment behavior."
+      },
+      {
+        "sql": "WITH CustomerChannelTotal AS ( SELECT customer_id, channel, SUM(amount) AS total_payment_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments` WHERE payment_date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY customer_id, channel ), RankedCustomers AS ( SELECT customer_id, channel, total_payment_amount, RANK() OVER (PARTITION BY channel ORDER BY total_payment_amount DESC) AS rank_num FROM CustomerChannelTotal ) SELECT customer_id, channel, total_payment_amount FROM RankedCustomers WHERE rank_num <= 5 ORDER BY channel, rank_num;",
+        "description": "Determine the top 5 customers with the highest total payment amount for each channel, providing insights into high-value customers per channel."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  (STDDEV_SAMP(amount) / AVG(amount)) AS coefficient_of_variation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\nGROUP BY\n  customer_id\nHAVING\n  AVG(amount) IS NOT NULL AND AVG(amount) != 0\nORDER BY\n  coefficient_of_variation DESC\nLIMIT 10;",
+        "description": "Determine the coefficient of variation (standard deviation divided by the mean) of payment amounts for each customer, highlighting customers with the most volatile payment behavior."
+      },
+      {
+        "sql": "SELECT\n  channel,\n  AVG(monthly_total_amount) AS avg_monthly_payment_amount,\n  STDDEV_SAMP(monthly_total_amount) AS stddev_monthly_payment_amount\nFROM (\n  SELECT\n    channel,\n    payment_month,\n    SUM(amount) AS monthly_total_amount\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.payments`\n  GROUP BY\n    channel, payment_month\n)\nGROUP BY\n  channel;",
+        "description": "Determine the average monthly payment amount and the standard deviation of monthly payment amounts for each channel."
+      }
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/wire_transfers",
+    "overview": "This table stores records of financial transfers between accounts. It captures details about the movement of funds, including the amounts and timing of these transactions. The table supports analysis of transfer activity and financial flows. It provides a historical record of all completed transfers.",
+    "schema": {
+      "fields": [
+        {
+          "name": "customer_id",
+          "description": "This column contains the identifier for the customer initiating the transfer."
+        },
+        {
+          "name": "amount",
+          "description": "This column contains the monetary value of the transfer."
+        },
+        {
+          "name": "sent_date",
+          "description": "This column contains the date when the transfer was initiated."
+        },
+        {
+          "name": "received_date",
+          "description": "This column contains the date when the transfer was completed and received."
+        },
+        {
+          "name": "corridor",
+          "description": "This column contains information about the geographical or transactional path of the transfer."
+        },
+        {
+          "name": "transfer_id",
+          "description": "This column contains a unique identifier for each individual transfer."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH DailyTransfers AS ( SELECT customer_id, sent_date, SUM(amount) AS daily_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id, sent_date ), Streaks AS ( SELECT customer_id, sent_date, daily_amount, DATE_SUB(sent_date, INTERVAL ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY sent_date) DAY) AS grp FROM DailyTransfers ) SELECT customer_id, MIN(sent_date) AS streak_start_date, MAX(sent_date) AS streak_end_date, COUNT(sent_date) AS streak_length_days, SUM(daily_amount) AS total_amount_in_streak FROM Streaks GROUP BY customer_id, grp HAVING COUNT(sent_date) > 1 ORDER BY customer_id, streak_length_days DESC;",
+        "description": "For each customer, find the longest streak of consecutive days they sent transfers, and the total amount transferred during that streak."
+      },
+      {
+        "sql": "WITH CustomerAvg AS ( SELECT customer_id, AVG(CASE WHEN sent_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH) THEN amount ELSE NULL END) AS current_avg, AVG(CASE WHEN sent_date < DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH) AND sent_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH) THEN amount ELSE NULL END) AS previous_avg FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id ) SELECT customer_id, current_avg, previous_avg FROM CustomerAvg WHERE current_avg IS NOT NULL AND previous_avg IS NOT NULL AND current_avg < previous_avg * 0.8 ORDER BY customer_id;",
+        "description": "Identify customers whose average transfer amount has decreased by more than 20% in the last 6 months compared to the previous 6 months."
+      },
+      {
+        "sql": "SELECT\n  corridor,\n  CORR(amount, DATE_DIFF(received_date, sent_date, DAY)) AS amount_duration_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\nWHERE\n  received_date IS NOT NULL AND sent_date IS NOT NULL\nGROUP BY\n  corridor;",
+        "description": "Calculate the correlation between the amount of wire transfers and the duration it takes for them to be received, grouped by the transfer corridor, to identify corridors where higher amounts might be associated with faster or slower processing."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  transfer_id,\n  amount,\n  corridor,\n  avg_corridor_amount,\n  (amount - avg_corridor_amount) / stddev_corridor_amount AS z_score\nFROM (\n  SELECT\n    customer_id,\n    transfer_id,\n    amount,\n    corridor,\n    AVG(amount) OVER (PARTITION BY corridor) AS avg_corridor_amount,\n    STDDEV(amount) OVER (PARTITION BY corridor) AS stddev_corridor_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n)\nWHERE ABS((amount - avg_corridor_amount) / stddev_corridor_amount) > 3\nORDER BY z_score DESC;",
+        "description": "Identify wire transfers with amounts significantly higher than the average for their respective corridors, potentially indicating fraudulent activity or errors."
+      },
+      {
+        "sql": "SELECT\n  corridor,\n  COVAR_POP(amount, DATE_DIFF(received_date, sent_date, DAY)) AS amount_duration_covariance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\nWHERE\n  received_date IS NOT NULL AND sent_date IS NOT NULL\nGROUP BY\n  corridor;",
+        "description": "Calculate the population covariance between the transfer amount and the duration (in days) for each corridor, to understand how these two variables move together within specific transfer routes."
+      },
+      {
+        "sql": "SELECT\n  corridor,\n  VAR_SAMP(amount) AS amount_variance,\n  AVG(DATE_DIFF(received_date, sent_date, DAY)) AS average_transfer_duration_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\nWHERE\n  received_date IS NOT NULL AND sent_date IS NOT NULL\nGROUP BY\n  corridor\nORDER BY\n  amount_variance DESC\nLIMIT 5;",
+        "description": "Find the top 5 corridors with the highest variance in wire transfer amounts and the corresponding average transfer duration, to pinpoint corridors with volatile transaction values and their typical processing times."
+      },
+      {
+        "sql": "SELECT customer_id, COUNT(transfer_id) AS total_transfers, AVG(amount) AS average_transfer_amount, MAX(sent_date) AS last_transfer_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id HAVING COUNT(transfer_id) > 5 AND AVG(amount) > 1000 AND MAX(sent_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) ORDER BY total_transfers DESC;",
+        "description": "Identify customers who have sent more than 5 wire transfers with an average amount exceeding $1000, and whose most recent transfer was within the last 30 days."
+      },
+      {
+        "sql": "WITH MonthlyTransfers AS ( SELECT FORMAT_DATE('%Y-%m', sent_date) AS transfer_month, corridor, SUM(amount) AS monthly_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY 1, 2 ) SELECT transfer_month, corridor, monthly_amount, LAG(monthly_amount, 1, 0) OVER (PARTITION BY corridor ORDER BY transfer_month) AS previous_month_amount, (monthly_amount - LAG(monthly_amount, 1, 0) OVER (PARTITION BY corridor ORDER BY transfer_month)) / LAG(monthly_amount, 1, 0) OVER (PARTITION BY corridor ORDER BY transfer_month) AS growth_rate FROM MonthlyTransfers ORDER BY corridor, transfer_month;",
+        "description": "Calculate the month-over-month growth rate of total transfer amounts for each corridor."
+      },
+      {
+        "sql": "SELECT customer_id, AVG(amount) AS customer_avg_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id HAVING AVG(amount) > (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`) AND COUNT(transfer_id) >= 10 ORDER BY customer_avg_amount DESC;",
+        "description": "Identify customers who have a higher average transfer amount than the overall average transfer amount, and have made at least 10 transfers."
+      },
+      {
+        "sql": "SELECT customer_id, sent_date, SUM(amount) AS daily_total_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id, sent_date ORDER BY daily_total_amount DESC LIMIT 5;",
+        "description": "Find the top 5 customers who have the highest total transfer amount in a single day, and the date on which this occurred."
+      },
+      {
+        "sql": "SELECT\n  t1.customer_id,\n  t1.sent_date AS date_of_largest_transfer,\n  t1.amount AS largest_transfer_amount,\n  SUM(t2.amount) AS total_customer_transfers\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` AS t1\nJOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` AS t2\n  ON t1.customer_id = t2.customer_id\nWHERE\n  t1.amount = (SELECT MAX(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE customer_id = t1.customer_id)\nGROUP BY\n  t1.customer_id, t1.sent_date, t1.amount\nHAVING\n  t1.amount > (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`);",
+        "description": "Identify the customer_id and the date of their largest single wire transfer, along with the total sum of all their transfers, for customers whose largest transfer exceeds the overall average transfer amount."
+      },
+      {
+        "sql": "WITH MonthlyCorridorTransfers AS (\n  SELECT\n    FORMAT_DATE('%Y-%m', sent_date) AS transfer_month,\n    corridor,\n    AVG(amount) AS average_monthly_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n  WHERE sent_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2\n),\nLaggedMonthlyCorridorTransfers AS (\n  SELECT\n    transfer_month,\n    corridor,\n    average_monthly_amount,\n    LAG(average_monthly_amount, 1, 0) OVER (PARTITION BY corridor ORDER BY transfer_month) AS previous_month_amount\n  FROM MonthlyCorridorTransfers\n)\nSELECT\n  transfer_month,\n  corridor,\n  average_monthly_amount,\n  (average_monthly_amount - previous_month_amount) / previous_month_amount * 100 AS percentage_change_from_previous_month\nFROM LaggedMonthlyCorridorTransfers\nWHERE previous_month_amount > 0\nORDER BY corridor, transfer_month;",
+        "description": "Calculate the monthly average transfer amount for each corridor, showing the percentage change from the previous month."
+      },
+      {
+        "sql": "WITH QuarterlyCustomerTransfers AS (\n  SELECT\n    customer_id,\n    EXTRACT(YEAR FROM sent_date) AS transfer_year,\n    EXTRACT(QUARTER FROM sent_date) AS transfer_quarter,\n    SUM(amount) AS total_quarterly_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n  WHERE sent_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2, 3\n),\nRankedQuarterlyCustomerTransfers AS (\n  SELECT\n    customer_id,\n    transfer_year,\n    transfer_quarter,\n    total_quarterly_amount,\n    RANK() OVER (PARTITION BY transfer_year, transfer_quarter ORDER BY total_quarterly_amount DESC) AS customer_rank\n  FROM QuarterlyCustomerTransfers\n)\nSELECT\n  customer_id,\n  transfer_year,\n  transfer_quarter,\n  total_quarterly_amount,\n  customer_rank\nFROM RankedQuarterlyCustomerTransfers\nWHERE customer_rank <= 3\nORDER BY transfer_year, transfer_quarter, customer_rank;",
+        "description": "Identify the top 3 customers with the highest cumulative transfer amount within each quarter, along with their rank."
+      },
+      {
+        "sql": "SELECT corridor, SUM(amount) AS total_volume FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY corridor HAVING AVG(DATE_DIFF(received_date, sent_date, DAY)) < 2 ORDER BY total_volume DESC LIMIT 3;",
+        "description": "Find the top 3 corridors with the highest total transfer volume (sum of amounts) where the average time taken for transfers (received_date - sent_date) is less than 2 days."
+      },
+      {
+        "sql": "SELECT corridor, APPROX_QUANTILES(amount, 100)[OFFSET(90)] AS p90_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE DATE_DIFF(received_date, sent_date, DAY) <= 7 GROUP BY corridor ORDER BY p90_amount DESC;",
+        "description": "Calculate the 90th percentile of transfer amounts for each corridor, considering only transfers that were received within 7 days of being sent."
+      },
+      {
+        "sql": "SELECT customer_id, COUNT(DISTINCT corridor) AS distinct_corridors, SUM(amount) AS total_transfer_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY customer_id HAVING COUNT(DISTINCT corridor) > 5 AND SUM(amount) > 5000 ORDER BY distinct_corridors DESC;",
+        "description": "Identify customers who have sent transfers to more than 5 distinct corridors and whose total transfer amount exceeds $5000."
+      },
+      {
+        "sql": "SELECT customer_id, MAX(amount) AS max_transfer_amount, ARRAY_AGG(corridor ORDER BY amount DESC LIMIT 1)[OFFSET(0)] AS corridor_of_max_transfer FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE sent_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH) GROUP BY customer_id ORDER BY customer_id;",
+        "description": "For each customer, find the maximum transfer amount they sent and the corresponding corridor, but only for transfers sent in the last quarter."
+      },
+      {
+        "sql": "SELECT customer_id, APPROX_QUANTILES(amount, 2)[OFFSET(1)] AS median_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE DATE_DIFF(received_date, sent_date, DAY) > 3 GROUP BY customer_id ORDER BY median_amount DESC;",
+        "description": "Calculate the median transfer amount for each customer, considering only transfers that took longer than 3 days to be received."
+      },
+      {
+        "sql": "SELECT corridor, COUNTIF(sent_date = received_date) * 100.0 / COUNT(transfer_id) AS same_day_delivery_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` GROUP BY corridor ORDER BY same_day_delivery_percentage DESC;",
+        "description": "Calculate the percentage of transfers that were received on the same day they were sent, for each corridor."
+      },
+      {
+        "sql": "SELECT\n  FORMAT_DATE('%Y-%m', sent_date) AS transfer_month,\n  corridor,\n  AVG(DATE_DIFF(received_date, sent_date, DAY)) AS average_days_to_receive\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\nWHERE sent_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  AND received_date IS NOT NULL\nGROUP BY 1, 2\nORDER BY transfer_month, corridor;",
+        "description": "Analyze the average time taken for a wire transfer to be received after it was sent, grouped by corridor and month."
+      },
+      {
+        "sql": "SELECT corridor, AVG(amount) AS average_amount, STDDEV(amount) AS stddev_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE FORMAT_DATE('%w', sent_date) IN ('0', '6') GROUP BY corridor ORDER BY average_amount DESC;",
+        "description": "Determine the average transfer amount and the standard deviation of transfer amounts for each corridor, but only for transfers that occurred on weekends."
+      },
+      {
+        "sql": "SELECT corridor, CORR(amount, DATE_DIFF(received_date, sent_date, DAY)) AS amount_duration_correlation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers` WHERE sent_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY corridor ORDER BY amount_duration_correlation DESC;",
+        "description": "Determine the correlation between the transfer amount and the duration of the transfer (in days) for each corridor, for transfers sent in the last year."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  AVG(amount) AS average_transfer_amount,\n  STDDEV_SAMP(amount) AS stddev_transfer_amount,\n  MAX(DATE_DIFF(received_date, sent_date, DAY)) AS max_transfer_duration_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\nWHERE\n  received_date IS NOT NULL AND sent_date IS NOT NULL\nGROUP BY\n  customer_id\nHAVING\n  COUNT(transfer_id) > 5;",
+        "description": "Determine the average wire transfer amount, the standard deviation of the amount, and the maximum transfer duration (in days) for each customer, but only for customers who have made more than 5 transfers, to understand individual customer transfer behavior and variability."
+      },
+      {
+        "sql": "WITH DailyCustomerTransfers AS (\n  SELECT\n    customer_id,\n    sent_date,\n    SUM(amount) AS daily_transfer_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n  WHERE sent_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY) AND CURRENT_DATE()\n  GROUP BY customer_id, sent_date\n)\nSELECT\n  customer_id,\n  sent_date AS max_transfer_date,\n  daily_transfer_amount AS max_daily_transfer_amount\nFROM (\n  SELECT\n    customer_id,\n    sent_date,\n    daily_transfer_amount,\n    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY daily_transfer_amount DESC, sent_date DESC) AS rn\n  FROM DailyCustomerTransfers\n)\nWHERE rn = 1\nORDER BY customer_id;",
+        "description": "Determine the maximum daily transfer amount for each customer and the date it occurred, considering only transfers within the last 90 days."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  num_transfers\nFROM (\n  SELECT\n    customer_id,\n    COUNT(transfer_id) AS num_transfers,\n    AVG(COUNT(transfer_id)) OVER () AS avg_customer_transfers,\n    STDDEV(COUNT(transfer_id)) OVER () AS stddev_customer_transfers\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n  GROUP BY customer_id\n)\nWHERE ABS((num_transfers - avg_customer_transfers) / stddev_customer_transfers) > 2.5\nORDER BY num_transfers DESC;",
+        "description": "Find customers who have an unusually high number of wire transfers compared to the average customer activity, which might indicate a high-risk profile."
+      },
+      {
+        "sql": "SELECT\n  transfer_id,\n  corridor,\n  DATE_DIFF(received_date, sent_date, DAY) AS transfer_duration_days,\n  avg_corridor_duration,\n  (DATE_DIFF(received_date, sent_date, DAY) - avg_corridor_duration) / stddev_corridor_duration AS z_score_duration\nFROM (\n  SELECT\n    transfer_id,\n    corridor,\n    sent_date,\n    received_date,\n    AVG(DATE_DIFF(received_date, sent_date, DAY)) OVER (PARTITION BY corridor) AS avg_corridor_duration,\n    STDDEV(DATE_DIFF(received_date, sent_date, DAY)) OVER (PARTITION BY corridor) AS stddev_corridor_duration\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.wire_transfers`\n  WHERE received_date IS NOT NULL AND sent_date IS NOT NULL AND received_date >= sent_date\n)\nWHERE ABS((DATE_DIFF(received_date, sent_date, DAY) - avg_corridor_duration) / stddev_corridor_duration) > 3\nORDER BY z_score_duration DESC;",
+        "description": "Detect transfers where the time difference between sent_date and received_date is significantly longer than the typical transfer duration for a given corridor, suggesting potential delays or issues."
+      }
+    ]
+  }
+}

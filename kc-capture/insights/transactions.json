@@ -1,0 +1,128 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/transactions",
+    "overview": "This table stores individual financial transactions. It provides a record of monetary movements associated with accounts. This data supports analysis of spending patterns and financial activity. It is useful for tracking account debits and credits.",
+    "schema": {
+      "fields": [
+        {
+          "name": "txn_date",
+          "description": "This column holds the date when the transaction occurred."
+        },
+        {
+          "name": "amount",
+          "description": "This column holds the monetary value of the transaction."
+        },
+        {
+          "name": "merchant_category",
+          "description": "This column holds the category of the merchant involved in the transaction."
+        },
+        {
+          "name": "transaction_id",
+          "description": "This column holds a unique identifier for each transaction."
+        },
+        {
+          "name": "account_id",
+          "description": "This column holds the identifier for the account associated with the transaction."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  COVAR_SAMP(t.amount, account_merchant_diversity.distinct_merchants) AS amount_merchant_diversity_covariance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t\nJOIN (\n  SELECT\n    account_id,\n    COUNT(DISTINCT merchant_category) AS distinct_merchants\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  WHERE\n    txn_date BETWEEN '2023-01-01' AND '2023-01-31'\n  GROUP BY\n    account_id\n) AS account_merchant_diversity\nON\n  t.account_id = account_merchant_diversity.account_id\nWHERE\n  t.txn_date BETWEEN '2023-01-01' AND '2023-01-31';",
+        "description": "Compute the sample covariance between the transaction amount and the number of distinct merchant categories visited by each account, for a given period, to see if accounts with higher spending also explore more merchant types."
+      },
+      {
+        "sql": "SELECT\n  CORR(t.amount, account_txn_counts.num_transactions) AS amount_transaction_count_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t\nJOIN (\n  SELECT\n    account_id,\n    COUNT(transaction_id) AS num_transactions\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  WHERE\n    txn_date = '2023-01-15'\n  GROUP BY\n    account_id\n) AS account_txn_counts\nON\n  t.account_id = account_txn_counts.account_id\nWHERE\n  t.txn_date = '2023-01-15';",
+        "description": "Calculate the Pearson correlation coefficient between transaction amount and the number of transactions per account for a specific date, to understand if higher transaction amounts are associated with more frequent transactions."
+      },
+      {
+        "sql": "SELECT account_id, txn_date, cumulative_amount FROM (SELECT account_id, txn_date, amount, SUM(amount) OVER (PARTITION BY account_id ORDER BY txn_date) AS cumulative_amount, SUM(amount) OVER (PARTITION BY account_id) AS total_account_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`) WHERE cumulative_amount >= 0.5 * total_account_amount QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY txn_date) = 1;",
+        "description": "Calculate the cumulative sum of transaction amounts for each account, ordered by transaction date, and identify the date when 50% of the total amount was reached."
+      },
+      {
+        "sql": "SELECT account_id, STDDEV(daily_total_amount) AS stddev_daily_amount FROM (SELECT account_id, txn_date, SUM(amount) AS daily_total_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE txn_date >= CURRENT_DATE() - INTERVAL 30 DAY GROUP BY account_id, txn_date) GROUP BY account_id ORDER BY stddev_daily_amount DESC LIMIT 5;",
+        "description": "Find the top 5 accounts with the highest standard deviation in their daily transaction amounts over the last 30 days."
+      },
+      {
+        "sql": "SELECT account_id, FORMAT_DATE('%Y-%m', txn_date) AS transaction_month, COUNT(DISTINCT merchant_category) AS distinct_categories_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` GROUP BY account_id, transaction_month HAVING COUNT(DISTINCT merchant_category) >= 5;",
+        "description": "Identify accounts that have made transactions in at least 5 different merchant categories within a single month, and list the count of distinct categories for each."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  AVG(amount) AS average_transaction_amount,\n  VAR_SAMP(amount) AS transaction_amount_variance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE\n  EXTRACT(QUARTER FROM txn_date) = 1 AND EXTRACT(YEAR FROM txn_date) = 2023\nGROUP BY\n  account_id\nORDER BY\n  average_transaction_amount DESC\nLIMIT 5;",
+        "description": "Find the top 5 accounts with the highest average transaction amount, along with the variance of their transaction amounts, for a specific quarter, to identify high-value accounts with potentially volatile spending habits."
+      },
+      {
+        "sql": "SELECT current_year.merchant_category, (current_year.total_amount - previous_year.total_amount) * 100.0 / previous_year.total_amount AS percentage_increase FROM (SELECT merchant_category, SUM(amount) AS total_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE EXTRACT(YEAR FROM txn_date) = EXTRACT(YEAR FROM CURRENT_DATE()) GROUP BY merchant_category) AS current_year JOIN (SELECT merchant_category, SUM(amount) AS total_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE EXTRACT(YEAR FROM txn_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 1 GROUP BY merchant_category) AS previous_year ON current_year.merchant_category = previous_year.merchant_category ORDER BY percentage_increase DESC LIMIT 3;",
+        "description": "Identify the top 3 merchant categories that have experienced the largest percentage increase in total transaction amount between the current year and the previous year."
+      },
+      {
+        "sql": "SELECT merchant_category, APPROX_QUANTILES(amount, 100)[OFFSET(90)] AS p90_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE amount > (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t2 WHERE t2.merchant_category = `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`.merchant_category) GROUP BY merchant_category;",
+        "description": "Calculate the 90th percentile of transaction amounts for each merchant category, considering only transactions above the average amount for that category."
+      },
+      {
+        "sql": "SELECT\n  t1.transaction_id,\n  t1.amount,\n  t1.merchant_category,\n  t1.txn_date\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t1\nJOIN (\n  SELECT\n    merchant_category,\n    AVG(amount) AS avg_amount,\n    STDDEV(amount) AS stddev_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  GROUP BY\n    merchant_category\n) AS t2\nON t1.merchant_category = t2.merchant_category\nWHERE t1.amount > t2.avg_amount + (3 * t2.stddev_amount)\nAND t1.txn_date BETWEEN '2023-01-01' AND '2023-12-31';",
+        "description": "Identify transactions where the amount is significantly higher than the average transaction amount for that specific merchant category, indicating potential outlier spending."
+      },
+      {
+        "sql": "WITH AccountSpending AS (\n  SELECT\n    account_id,\n    amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  WHERE txn_date BETWEEN '2023-01-01' AND '2023-12-31'\n),\nQuartiles AS (\n  SELECT\n    account_id,\n    APPROX_QUANTILES(amount, 100)[OFFSET(25)] AS q1,\n    APPROX_QUANTILES(amount, 100)[OFFSET(75)] AS q3\n  FROM AccountSpending\n  GROUP BY\n    account_id\n)\nSELECT\n  t.transaction_id,\n  t.account_id,\n  t.amount,\n  t.txn_date\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t\nJOIN Quartiles AS q\nON t.account_id = q.account_id\nWHERE t.amount < (q.q1 - 1.5 * (q.q3 - q.q1))\nOR t.amount > (q.q3 + 1.5 * (q.q3 - q.q1))\nAND t.txn_date BETWEEN '2023-01-01' AND '2023-12-31';",
+        "description": "Find transactions where the amount is an outlier compared to the typical spending pattern for that specific account, using the interquartile range (IQR) method."
+      },
+      {
+        "sql": "SELECT merchant_category, MAX(amount) AS max_amount, AVG(amount) AS avg_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` GROUP BY merchant_category HAVING MAX(amount) >= 2 * AVG(amount);",
+        "description": "Identify merchant categories where the maximum transaction amount is at least twice the average transaction amount for that category."
+      },
+      {
+        "sql": "SELECT account_id, AVG(amount) AS avg_weekend_high_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE EXTRACT(DAYOFWEEK FROM txn_date) IN (1, 7) AND amount > (SELECT AVG(amount) FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t2 WHERE t2.account_id = `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`.account_id) GROUP BY account_id;",
+        "description": "Find the average transaction amount for each account, but only for transactions that occurred on weekends and are above the overall average transaction amount for that account."
+      },
+      {
+        "sql": "SELECT account_id, txn_date, AVG(amount) OVER (PARTITION BY account_id ORDER BY txn_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS moving_avg_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE txn_date >= CURRENT_DATE() - INTERVAL 90 DAY;",
+        "description": "Calculate the moving average of transaction amounts for each account over a 7-day window, considering only transactions within the last 90 days."
+      },
+      {
+        "sql": "SELECT account_id, MAX(DATE_DIFF(txn_date, prev_txn_date, DAY)) AS max_gap_days FROM (SELECT account_id, txn_date, LAG(txn_date) OVER (PARTITION BY account_id ORDER BY txn_date) AS prev_txn_date FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` WHERE txn_date >= CURRENT_DATE() - INTERVAL 1 YEAR) WHERE prev_txn_date IS NOT NULL GROUP BY account_id;",
+        "description": "Find the maximum gap in days between consecutive transactions for each account, considering only transactions within the last year."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  txn_date,\n  amount,\n  AVG(amount) OVER (PARTITION BY account_id ORDER BY txn_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_rolling_avg_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE txn_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()\nORDER BY account_id, txn_date;",
+        "description": "Calculate the 7-day rolling average of transaction amounts for each account, highlighting daily spending trends."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  txn_date,\n  amount,\n  SUM(amount) OVER (PARTITION BY account_id ORDER BY txn_date) AS cumulative_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE txn_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY) AND CURRENT_DATE()\nORDER BY account_id, txn_date;",
+        "description": "Analyze the cumulative transaction amount for each account over time, showing their spending progression."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  MIN(txn_date) AS first_transaction_date,\n  MAX(txn_date) AS last_transaction_date,\n  DATE_DIFF(MAX(txn_date), MIN(txn_date), DAY) AS active_days_duration\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE txn_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\nGROUP BY account_id\nORDER BY account_id;",
+        "description": "Identify the first and last transaction dates for each account and calculate the duration of their activity."
+      },
+      {
+        "sql": "SELECT\n  EXTRACT(YEAR FROM txn_date) AS transaction_year,\n  EXTRACT(MONTH FROM txn_date) AS transaction_month,\n  merchant_category,\n  transaction_id,\n  amount,\n  RANK() OVER (PARTITION BY EXTRACT(YEAR FROM txn_date), EXTRACT(MONTH FROM txn_date), merchant_category ORDER BY amount DESC) AS rank_by_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE txn_date BETWEEN DATE_TRUNC(CURRENT_DATE(), MONTH) AND LAST_DAY(CURRENT_DATE(), MONTH)\nORDER BY transaction_year, transaction_month, merchant_category, rank_by_amount;",
+        "description": "Rank transactions by amount within each merchant category for a specific month, highlighting top spending."
+      },
+      {
+        "sql": "SELECT merchant_category, FORMAT_DATE('%Y-%m', txn_date) AS transaction_month, AVG(transactions_per_account) AS avg_transactions_per_account FROM (SELECT merchant_category, txn_date, account_id, COUNT(transaction_id) AS transactions_per_account FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` GROUP BY merchant_category, txn_date, account_id) GROUP BY merchant_category, transaction_month ORDER BY merchant_category, transaction_month;",
+        "description": "Determine the average number of transactions per account per month for each merchant category."
+      },
+      {
+        "sql": "SELECT merchant_category, CORR(amount, EXTRACT(DAYOFWEEK FROM txn_date)) AS amount_dayofweek_correlation FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` GROUP BY merchant_category;",
+        "description": "Determine the correlation between the transaction amount and the day of the week for each merchant category."
+      },
+      {
+        "sql": "SELECT\n  merchant_category,\n  STDDEV_POP(amount) AS population_stddev_amount\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nWHERE\n  txn_date BETWEEN '2023-01-01' AND '2023-01-31'\nGROUP BY\n  merchant_category\nHAVING\n  AVG(amount) > 100.0;",
+        "description": "Determine the population standard deviation of transaction amounts for each merchant category, but only for categories with an average transaction amount greater than a certain threshold, to identify categories with significant variability."
+      },
+      {
+        "sql": "SELECT\n  COUNTIF(has_groceries AND has_restaurants) AS accounts_with_both_categories\nFROM (\n  SELECT\n    account_id,\n    LOGICAL_OR(merchant_category = 'Groceries') AS has_groceries,\n    LOGICAL_OR(merchant_category = 'Restaurants') AS has_restaurants\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  WHERE\n    EXTRACT(MONTH FROM txn_date) = 2 AND EXTRACT(YEAR FROM txn_date) = 2023\n  GROUP BY\n    account_id\n);",
+        "description": "Calculate the logical AND of whether each account has made transactions in both 'Groceries' and 'Restaurants' categories within a specific month, and then count how many accounts satisfy this condition."
+      },
+      {
+        "sql": "WITH monthly_category_spend AS (\n  SELECT\n    FORMAT_DATE('%Y-%m', txn_date) AS month,\n    merchant_category,\n    SUM(amount) AS total_monthly_amount\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n  WHERE txn_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH) AND CURRENT_DATE()\n  GROUP BY 1, 2\n),\nlagged_monthly_spend AS (\n  SELECT\n    month,\n    merchant_category,\n    total_monthly_amount,\n    LAG(total_monthly_amount, 1, 0) OVER (PARTITION BY merchant_category ORDER BY month) AS previous_month_amount\n  FROM monthly_category_spend\n)\nSELECT\n  month,\n  merchant_category,\n  total_monthly_amount,\n  previous_month_amount,\n  CASE\n    WHEN previous_month_amount = 0 THEN NULL\n    ELSE (total_monthly_amount - previous_month_amount) * 100.0 / previous_month_amount\n  END AS percentage_change_from_previous_month\nFROM lagged_monthly_spend\nORDER BY merchant_category, month;",
+        "description": "Determine the percentage change in total transaction amount for each merchant category compared to the previous month."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  txn_date,\n  COUNT(transaction_id) AS daily_transaction_count\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\nGROUP BY\n  account_id,\n  txn_date\nHAVING\n  COUNT(transaction_id) > (\n    SELECT\n      PERCENTILE_CONT(daily_count, 0.99) OVER()\n    FROM (\n      SELECT\n        account_id,\n        txn_date,\n        COUNT(transaction_id) AS daily_count\n      FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions`\n      GROUP BY\n        account_id,\n        txn_date\n    )\n  )\nAND txn_date BETWEEN '2023-01-01' AND '2023-12-31';",
+        "description": "Detect accounts with an unusually high number of transactions within a short period (e.g., a single day), which could indicate fraudulent activity or an anomaly."
+      }
+    ]
+  }
+}

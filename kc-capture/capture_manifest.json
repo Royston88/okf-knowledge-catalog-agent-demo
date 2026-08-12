@@ -1,0 +1,191 @@
+{
+  "project": "royston-dev-8253",
+  "dataset": "cymbal_bank_v6z_scaffold_demo_copy",
+  "dataplex_location": "us-central1",
+  "tables": [
+    "account_owners",
+    "accounts",
+    "balance_snapshots",
+    "calendar",
+    "customer_segment_history",
+    "customers",
+    "investors",
+    "loan_applications",
+    "loan_investors",
+    "payments",
+    "support_tickets",
+    "transactions",
+    "wire_transfers"
+  ],
+  "captured_at": "2026-08-12T20:34:15",
+  "results": {
+    "profile": [
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-account-owners",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 11.0
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-accounts",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.2
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-balance-snapshots",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.3
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-calendar",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.6
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-customer-segment-history",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.5
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-customers",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.2
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-investors",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.1
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-loan-applications",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.1
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-loan-investors",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 10.8
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-payments",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.1
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-support-tickets",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.1
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-transactions",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.1
+      },
+      {
+        "scan": "kc-prof-v6z-scaffold-copy-wire-transfers",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 21.2
+      }
+    ],
+    "docs": [
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-accounts",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.4
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-account-owners",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 62.6
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-balance-snapshots",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 53.1
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-calendar",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 62.7
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-customer-segment-history",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.9
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-customers",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.6
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-investors",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.8
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-loan-applications",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 62.9
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-loan-investors",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.9
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-payments",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.3
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-support-tickets",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 52.1
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-transactions",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 42.2
+      },
+      {
+        "scan": "kc-doc-v6z-scaffold-copy-wire-transfers",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 62.8
+      }
+    ],
+    "relationships": [
+      {
+        "scan": "kc-rel-v6z-scaffold-copy",
+        "state": "SUCCEEDED",
+        "ok": true,
+        "elapsed_s": 97.0
+      }
+    ]
+  }
+}
