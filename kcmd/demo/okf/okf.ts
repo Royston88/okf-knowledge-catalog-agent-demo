@@ -18,7 +18,17 @@ export interface Split { meta: any | null; body: string; }
 
 // The OKF frontmatter keys carried on the custom aspect. `okf_type` is stored
 // under that name because `type` is reserved on the Dataplex entry itself.
-const SIGNAL_KEYS = ['okf_type', 'generated', 'sources', 'verified', 'status', 'stale_after'];
+const SIGNAL_KEYS = ['okf_type', 'generated', 'sources', 'verified', 'status', 'stale_after',
+                     'title', 'tags'];
+
+// WHY `title` AND `tags` RIDE ON THE ASPECT.
+// On an INGESTED entry (`@bigquery`) `entry_source` is platform-owned: measured,
+// `displayName` stays the native `accounts` and `labels`/`description` stay null
+// no matter what we push. So a pull returned the platform's title and no tags,
+// and the round trip was not an inverse. Track B entries are ours and would
+// round-trip either way; carrying them here uniformly keeps one code path.
+// `description` needs no such treatment — it round-trips via the `descriptions`
+// aspect, which we own on Track A.
 
 // The Dataplex entry type every OKF concept is stored as. OKF's own `type` is
 // freeform ("BigQuery Table", "Join", "Metric") and is not a Dataplex type ref,
@@ -132,6 +142,8 @@ export function toStaging(
           verified: meta.verified,
           status: meta.status,
           stale_after: meta.stale_after,
+          title: meta.title,
+          tags: meta.tags,
         },
         SIGNAL_KEYS,
       ),
@@ -309,6 +321,13 @@ export function assetAspects(meta: any, body: string): Record<string, any> {
   return aspects;
 }
 
+/** `projects/P/datasets/D[/tables/T]` -> the REST URL form the bundle uses. */
+export function toBigQueryResourceUrl(name: string): string {
+  return /^projects\/[^/]+\/datasets\/[^/]+(\/tables\/[^/]+)?$/.test(name)
+    ? `https://bigquery.googleapis.com/v2/${name}`
+    : name;
+}
+
 // pushable (as returned by `kcmd pull`) -> clean OKF
 export function fromStaging(content: string, okfKey: string): string {
   const { meta, body } = splitFrontmatter(content);
@@ -360,12 +379,33 @@ export function fromStaging(content: string, okfKey: string): string {
 
   // Key order mirrors reference_agent's _PREFERRED_KEY_ORDER so a round trip is
   // byte-stable against agent-authored files (Measurement C).
+  // The `descriptions` aspect is where Track A's table description lives; on an
+  // ingested entry `entry_source.description` is platform-owned and comes back
+  // null, so without this the description is silently dropped on every pull.
+  const descKey = Object.keys(aspects).find(
+    (k) => k === 'descriptions' || k.endsWith('.descriptions'),
+  );
+  const aspectDescription = descKey ? aspects[descKey]?.description : undefined;
+
   const clean: any = {};
   if (okf.okf_type !== undefined) clean.type = okf.okf_type;
-  if (ce.resource?.name !== undefined) clean.resource = ce.resource.name;
-  if (meta.title !== undefined) clean.title = meta.title;
-  if (meta.description !== undefined) clean.description = meta.description;
-  if (meta.tags !== undefined) clean.tags = meta.tags;
+  // Dataplex returns a BigQuery resource in its bare form
+  // (`projects/P/datasets/D/tables/T`); the bundle writes the REST URL form.
+  // Same resource, two notations — normalise so the round trip is an inverse
+  // rather than a rewrite.
+  if (ce.resource?.name !== undefined) clean.resource = toBigQueryResourceUrl(ce.resource.name);
+  // Prefer what the bundle wrote (the okf aspect) over what the platform
+  // returns (`meta.title` is `entry_source.displayName`, i.e. the native name).
+  const title = okf.title ?? meta.title;
+  if (title !== undefined) clean.title = title;
+  // OURS WINS. `meta.description` is `entry_source.description`, which the
+  // platform populates on some entries — the BigQuery *dataset* carries its own
+  // description, so preferring it silently replaced the bundle's text with
+  // BigQuery's on every pull. The `descriptions` aspect is the copy we wrote.
+  const description = aspectDescription ?? meta.description;
+  if (description !== undefined) clean.description = description;
+  const tags = okf.tags ?? meta.tags;
+  if (tags !== undefined) clean.tags = tags;
   if (okf.status !== undefined) clean.status = okf.status;
   if (okf.generated !== undefined) clean.generated = pick(okf.generated, ['by', 'at']);
   if (okf.verified !== undefined) {

@@ -386,10 +386,11 @@ Material already in hand for it:
 
 - **The projection rule is: always project overview + descriptions + queries,
   and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite
-  `bun kcmd/demo/okf/ownership.test.ts` (26 assertions). Two things outstanding:
-  **pull→push is not content-neutral** (`fromStaging` drops the table
-  description — push from `okf-bundle/`, never from a pulled tree), and **the
-  joins arm of Phase 7 was never run**.
+  `bun kcmd/demo/okf/ownership.test.ts` (26 assertions). **Round trip is now faithful in both directions** — Track A 14/14, Track B
+  39/39 — after teaching `fromStaging` to recover `description` from the
+  `descriptions` aspect and carrying `title`/`tags` on the `okf` aspect (they
+  cannot live on `entry_source`, which is platform-owned for ingested entries).
+  Outstanding: **the joins arm of Phase 7 was never run**.
 
 - **`verified` is doing two incompatible jobs.** It is simultaneously Phase 7's
   *arbitrary* control population (`signoff.py`, every-other-concept) and the

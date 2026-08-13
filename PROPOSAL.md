@@ -176,7 +176,7 @@ So for a custom ADK agent, three things:
 3. Prefer **`lookup_context`** — it is the one call that returns the whole
    projection resolved, glossary terms included.
 
-### B.6 `kcmd pull` — the transport works, our translation does not
+### B.6 `kcmd pull` — FIXED; the round trip is now an inverse
 
 Measured on a full Track A pull against the current catalog.
 
@@ -200,19 +200,17 @@ So the column descriptions and query patterns are **not** lost — they ride in
 the body via `overview`. The loss is four frontmatter fields, and it is our
 shim's gap, not kcmd's.
 
-**Consequence today: never push from a pulled tree.** A pull→push cycle would
-write an empty `description` — and on a `verified` table it writes that into an
-aspect it has frozen. Push from `okf-bundle/` only.
+**Fixed.** `title` and `tags` now ride on the `okf` aspect — they *cannot* live
+on `entry_source`, which is platform-owned for ingested entries — `description`
+is read back from the `descriptions` aspect, and the resource URI is normalised.
+One subtlety worth keeping: the bundle's description must **win over** the
+platform's, because the BigQuery *dataset* carries its own and was silently
+replacing ours on every pull.
 
-**The fix** is bounded: teach `fromStaging` to read `description` from the
-`descriptions` aspect, `tags` from labels, prefer the OKF title over the native
-display name, and normalise the resource URI. This is T4 in
-`okf-review/TESTS.md`, currently the only failing test.
-
-Until then the bundle is **push-only**: authoritative, projectable, but not yet
-re-derivable from the catalog. For version control that is survivable — git is
-the source of truth and the catalog is the projection — but it does mean an
-edit made in the Dataplex UI cannot be pulled back into the bundle.
+Measured: **Track A 14/14 faithful on frontmatter and body; Track B 39
+concepts, `changed=0`.** The bundle is no longer push-only — a catalog edit can
+be pulled back, which is what makes version control real rather than
+aspirational.
 
 ### B.5 The finding that should shape expectations
 
@@ -237,7 +235,6 @@ retrieval the path of least resistance.
    coverage. After (1), so they are reachable when they land.
 3. **Prose "Related concepts" summary in `overview`** — the fallback for
    consumers with no link tool.
-4. **Fix `kcmd pull`** — see B.6. Required before the bundle can be
-   round-tripped rather than only pushed.
+4. ~~Fix `kcmd pull`~~ — **done**, see B.6.
 5. **`log.md`, `stale_after`** — cheap spec conformance.
 6. **`Attested Computation`** — once a consumer-side attester exists.

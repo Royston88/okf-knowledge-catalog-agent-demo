@@ -58,20 +58,28 @@ Live behaviour, verified against the catalog after each push:
 | `userManaged == verified` on 13/13 tables | **passing** |
 | verified content survives a re-scan byte-identical | **passing** (`accounts`) |
 | unverified content is replaced by the scan | **passing** (7 tables) |
-| **pull → push is content-neutral** | **FAILING** — see below |
+| **pull → push is content-neutral** | **PASSING** — Track A 14/14, Track B 39/39 |
 
-## The one real defect
+## Round trip — FIXED, both directions
 
-**`fromStaging` drops the table description on pull.** `verified` survives, so
-ownership round-trips correctly, but `description` does not — these entries'
-`entry_source` is system-owned, so the description lives only inside the
-`descriptions` aspect and nothing reads it back. A pull→push therefore writes an
-*empty* description, and on verified tables it writes it into an aspect it has
-frozen.
+`kcmd`'s transport was never the problem: the staged file it produces carries
+`descriptions`, `queries`, `overview` and `userManaged` intact. Our
+`fromStaging` was discarding four frontmatter fields. Four fixes:
 
-Fix: recover `description` from the `descriptions` aspect the same way the body
-is already recovered from `overview` (Measurement A.1). Until then, push from
-`okf-bundle/` and never from a pulled tree.
+| field | why it was lost | fix |
+|---|---|---|
+| `description` | lives in the `descriptions` aspect; on an ingested entry `entry_source.description` is platform-owned | read it from the aspect — **and prefer ours over the platform's**, since the BigQuery *dataset* has its own description and was overwriting the bundle's |
+| `tags` | `entry_source.labels` is platform-owned on ingested entries — our tags never landed | carry on the `okf` aspect |
+| `title` | `entry_source.displayName` likewise — came back as the native `accounts` | carry on the `okf` aspect |
+| `resource` | Dataplex returns the bare `projects/P/datasets/D/tables/T` form | normalise back to the REST URL form the bundle uses |
+
+`title` and `tags` required extending the `okf` aspect type (now 8 fields).
+Measured result: **Track A 14/14 faithful on frontmatter *and* body; Track B 39
+concepts, `changed=0`.**
+
+The bundle is therefore no longer push-only — an edit made in the catalog can be
+pulled back, which is what makes "OKF as version control" real rather than
+aspirational.
 
 ## Outstanding
 
