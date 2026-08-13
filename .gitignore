@@ -54,3 +54,8 @@ bq-okf-workspace/bundle/
 
 # kcmd OKF demo: throwaway push staging tree
 okf-kb-workspace/.staging/
+
+# Track B workspace catalog is a throwaway copy of okf-bundle, recreated by
+# every push (see HANDOFF 2.7). Tracking it means the source of truth exists
+# twice in git and can silently diverge — which it did.
+okf-kb-workspace/catalog/
