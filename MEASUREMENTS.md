@@ -2012,6 +2012,31 @@ So the plan is **not** "prose instead of native constructs". It is:
 
 The `related` probe link is left in place on `accounts` as a working example.
 
+## Five kcmd defects fixed in `kcmd/src/`, each verified
+
+Previously worked around in the shim and left in the fork; now fixed at source
+so the patches are upstreamable. `kcmd/src/` was pristine until this change.
+
+| # | defect | fix | verified by |
+|---|---|---|---|
+| 1 | `DocumentsLayout.init()` indexed on `entry.name`, which `parseMarkdown` never sets — files were skipped silently and `push` reported success over an empty index | fall back to a path-derived id, as `OkfLayout.deriveEntryName` already does | the **raw, unstaged bundle now indexes 53 entries where it indexed 0** |
+| 2 | the pull path aliases `…global.overview` → `overview`, but both `DocumentsLayout` and `OkfLayout` read only the long key — every concept came back with an empty body | `overviewKeyOf()` accepts both forms, added to both layouts | a short-key aspect is now promoted into the body |
+| 3 | `--validate-only` was accepted, plumbed through `main.ts`, and **never read** — it created every entry it "validated" | `skipWrites = dryRun \|\| validateOnly`, applied to all 9 write guards in `push()` | a probe concept absent from the catalog **was not created** |
+| 4 | EntryLink reconciliation ran **unguarded**; with no `entryLinks` declared the lookup is unfiltered, so every link the bundle did not describe was deleted | `continue` when the manifest declares no link types | the exact config that destroyed 12 `schema-join` links now leaves **24 + 53 intact** |
+| 5 | `package.json` `exports` pointed at `./build/ts/kcmd/index.js`, which this fork does not build | repointed at `./build/ts/tool/libts/index.js` | — |
+
+Defect 1 is the one worth leading with upstream: it means **an unmodified kcmd
+cannot consume a clean OKF bundle at all**, and says "Successfully pushed
+catalog entries" while doing nothing.
+
+**The shim workarounds were kept deliberately.** They are harmless against a
+patched fork and necessary against an unpatched one, so `demo/okf/` still works
+either way.
+
+Re-verified after the patch and rebuild: Track A round trip **14/14 faithful**,
+Track B **`changed=0`**, conformance **0 failures**, offline suite **26 passed**,
+links **24 schema-join + 53 related**.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

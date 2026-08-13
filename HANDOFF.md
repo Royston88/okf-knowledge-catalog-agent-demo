@@ -212,10 +212,11 @@ retain `.staging/` for inspection.
   > `okf-emitter/PROVENANCE.md` are all
   > `c40b1d61fb673d78c08aa1faa4ddeb128aa72d1744d410fe1246d1841f80d8ce`.
   > Re-run both on resume.
-- **The fork's `kcmd/src/` is untouched and should stay that way.** Every fix so
-  far has landed in `kcmd/demo/okf/` (our shim). Two genuine fork defects were
-  found and worked around rather than patched — see §3. If you do patch `src/`,
-  say so loudly in the commit and remember it needs `npm run build:mcp`.
+- **`kcmd/src/` IS NOW PATCHED** — five fork defects fixed in place, on this
+  branch, after being worked around in the shim first. Rebuild with
+  `npm run build:mcp` after touching it (the `build/` tree is gitignored, so a
+  fresh clone must build before push/pull will work). The shim workarounds were
+  deliberately KEPT so it still functions against an unpatched fork.
 - Never push to Royston's `main` — it is **unprotected**, so an accidental push
   would land. Work stays on `v6z-okf-projector`. Push access is confirmed
   (`kenly-ldk`, `push: true`), so `git push -u origin v6z-okf-projector` is fine
@@ -226,7 +227,7 @@ retain `.staging/` for inspection.
 
 ---
 
-## 3. Fork defects found (worked around, not patched)
+## 3. Fork defects found — ALL FIVE NOW FIXED IN `kcmd/src/`
 
 Both are upstream bugs in Royston's fork, both are worth reporting to him, and
 neither is a property of OKF. Full evidence in `MEASUREMENTS.md`.

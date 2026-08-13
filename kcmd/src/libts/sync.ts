@@ -230,6 +230,13 @@ export class CatalogSync {
   }): Promise<SyncResult> {
     const entries = await this._snapshot.listEntries();
 
+    // FIX: `--validate-only` was accepted by main.ts, plumbed through to this
+    // option type, and then never read — so it CREATED every entry it claimed
+    // to be validating. Every write below is already guarded by `dryRun`, so
+    // make validate-only suppress writes the same way; the walk, the loads and
+    // the comparisons still run, which is what validation means.
+    const skipWrites = options?.dryRun || options?.validateOnly;
+
     // Push parents before children. Dataplex `Entry.parent_entry` is IMMUTABLE
     // and is validated to reference an already-existing entry at create time, so
     // any entry whose `resource.parent` points at another entry in this same
@@ -300,7 +307,7 @@ export class CatalogSync {
           entry.name,
         );
         if (exist.status !== 200 || !exist.result) {
-          if (options?.dryRun) {
+          if (skipWrites) {
             console.log(`[DRY-RUN] Create Entry ${entry.name}`);
           } else {
             console.log(
@@ -396,7 +403,7 @@ export class CatalogSync {
           }
 
           if (updateMask.length) {
-            if (options?.dryRun) {
+            if (skipWrites) {
               console.log(
                 `[DRY-RUN] Modify Entry ${entry.name} (updateMask: ${updateMask.join(',')}, aspects: ${aspectKeys.join(',')})`,
               );
@@ -423,6 +430,18 @@ export class CatalogSync {
         }
 
         // Update EntryLinks
+        //
+        // FIX: this block used to run unconditionally. `entryLinkTypes` is
+        // undefined when the manifest declares no `entryLinks`, which makes the
+        // lookup below UNFILTERED — so the reconciler saw every link on the
+        // entry, found none of them in local metadata, and deleted them all.
+        // Measured: a push with no `entryLinks:` destroyed all 12
+        // scan-generated `schema-join` links in a dataset, silently, reporting
+        // success. A manifest that says nothing about links must not manage
+        // links.
+        if (!entryLinkTypes || entryLinkTypes.length === 0) {
+          continue;
+        }
         const localLinks = await this._snapshot._fetchEntryLinks(name);
         const existingLinksRes = await this._catalog.lookupEntryLinks(
           project,
@@ -475,7 +494,7 @@ export class CatalogSync {
             console.log(
               `[DEBUG] No local match found for existing link to ${targetRef} (path: ${sourcePath}). DELETING.`,
             );
-            if (options?.dryRun) {
+            if (skipWrites) {
               console.log(`[DRY-RUN] Delete EntryLink ${existingLink.name}`);
             } else {
               const linkNameParts = existingLink.name.split('/');
@@ -508,7 +527,7 @@ export class CatalogSync {
             console.log(
               `[DEBUG] No existing match found for local link to ${targetRef} (path: ${sourcePath}). CREATING.`,
             );
-            if (options?.dryRun) {
+            if (skipWrites) {
               console.log(
                 `[DRY-RUN] Create EntryLink of type ${localLink.entryLinkType}`,
               );
@@ -619,7 +638,7 @@ export class CatalogSync {
               GLOSSARY_NO_CREATE_NOTICE,
           };
         } else {
-          if (options?.dryRun) {
+          if (skipWrites) {
             console.log(`[DRY-RUN] Update Glossary Term ${name}`);
           } else {
             const res = await this._catalog.updateGlossaryTerm(term);
@@ -670,7 +689,7 @@ export class CatalogSync {
               GLOSSARY_NO_CREATE_NOTICE,
           };
         } else {
-          if (options?.dryRun) {
+          if (skipWrites) {
             console.log(`[DRY-RUN] Update Glossary Category ${name}`);
           } else {
             const res = await this._catalog.updateGlossaryCategory(category);
@@ -699,7 +718,7 @@ export class CatalogSync {
               `Glossary '${name}' does not exist. ` + GLOSSARY_NO_CREATE_NOTICE,
           };
         } else {
-          if (options?.dryRun) {
+          if (skipWrites) {
             console.log(`[DRY-RUN] Update Glossary ${name}`);
           } else {
             const res = await this._catalog.updateGlossary(glossary);
@@ -718,7 +737,7 @@ export class CatalogSync {
     // later in this push and didn't exist when first attempted. Every entry has
     // been created above, so these now resolve (handles cyclic links too, e.g.
     // posts_answers <-> posts_questions).
-    if (deferredLinks.length && !options?.dryRun) {
+    if (deferredLinks.length && !skipWrites) {
       console.log(
         `Retrying ${deferredLinks.length} deferred EntryLink(s) now that all entries exist...`,
       );
