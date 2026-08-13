@@ -367,6 +367,15 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **Two columns are frozen blank by whole-aspect ownership.** `userManaged` is a
+  single bool per aspect — it does not exist per field or per query — so owning
+  `descriptions` means owning every column. `customers.name` and
+  `investors.name` are undocumented in the bundle and the scan can no longer
+  fill them. Fix by adding two descriptions to the bundle (recommended), or see
+  the three options in MEASUREMENTS.md. Also note `accounts` went from 10
+  scan-generated queries to 3 curated ones, and the `job` provenance stamp is
+  dropped on any aspect we take over.
+
 - **`userManaged` is set nowhere, on purpose.** It is a Dataplex field on
   scan-owned aspects (`descriptions`, `queries`), not an OKF concept, and the
   projection writes neither. It becomes mandatory only if the projection starts

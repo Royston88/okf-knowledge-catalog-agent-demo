@@ -1179,6 +1179,78 @@ improvement. The remaining bottleneck is not what the catalog holds, nor what
 its read path returns — it is that the agent does not ask. That is tool-surface
 and prompt design, and no amount of projection fixes it.
 
+## `userManaged` granularity: whole-aspect only, and what that costs
+
+Asked whether ownership can be partial. **It cannot.** From the aspect type
+definitions (`projects/dataplex-types/locations/global/aspectTypes/…`):
+
+```
+Descriptions: record          Queries: record
+  description: string           queries: array
+  fields: array                   query: record
+    field: record                   description: string
+      name: string                  sql: string
+      description: string           source: enum
+      fields: array                 sqlDialect: enum
+  userManaged: bool             userManaged: bool
+  job: record                   job: record
+```
+
+`userManaged` is a **single bool at the root of each aspect**. It does not exist
+on `fields[].field` or on `queries[].query`. So you cannot own one column's
+description and let the scan manage the rest, and you cannot pin one curated
+query while the scan keeps refreshing the others. Taking ownership means taking
+all of it, and inheriting the maintenance.
+
+### What it cost here, measured
+
+**1. Two columns are now permanently blank.** 68 columns across the 13 tables,
+66 documented by the bundle. `customers.name` and `investors.name` were never
+written up by the LLM author, and because `descriptions` is now `userManaged`
+the scan will never fill them. Before ownership they would have been generated.
+
+**2. Query counts: no loss on some tables, real loss on others.** Handed
+`payments` back to the scan (set `userManaged: false`, re-ran its
+DATA_DOCUMENTATION scan) to measure what we displaced:
+
+```
+payments   ours: 6 fields, 3 queries    scan: 6 fields, 3 queries   -> no coverage loss
+accounts   ours: 7 fields, 3 queries    scan: 7 fields, 10 queries  -> 7 fewer queries
+```
+
+The scan's output per table is uneven (18–30 candidate queries in the frozen
+capture, of which the aspect surfaced 3 for `payments` and 10 for `accounts`).
+Whether losing 7 generated queries for 3 curated ones is a loss is a judgement
+call — but it is a silent one, and it only happens on tables where the scan was
+more generous than the author.
+
+**3. The `job` provenance stamp is dropped.** Our write replaces the whole
+aspect, so `job.name` / `job.runTime` — the record of which scan run produced
+the content — becomes null. Nothing then distinguishes "curated" from
+"generated but stale" at the aspect level; that signal now lives only in the
+`okf` aspect's `generated` / `verified` fields.
+
+`payments` and `accounts` were both restored to bundle ownership afterwards and
+verified.
+
+### The three ways to live with it
+
+1. **Document the gaps in the bundle** — the purist option and the cheapest
+   here: two column descriptions. Keeps the bundle genuinely authoritative,
+   which is the whole thesis.
+2. **Merge-on-write** — read the live aspect, overlay bundle fields on top of
+   the scan's, write back `userManaged: true`. No coverage loss, but it freezes
+   scan-generated content *inside* an aspect the bundle claims to own, and
+   destroys the ability to tell curated from generated. **Rejected for this
+   project**: provenance is the point.
+3. **Leave `userManaged: false` and re-push after every scan.** Keeps the scan
+   refreshing what the bundle does not cover, at the cost of a window where the
+   catalog disagrees with the bundle. Consistent with the RESULTS.md framing
+   that OKF survives by being re-projected rather than protected.
+
+Recorded as an open item; option 1 is the recommendation and is two lines of
+prose.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
