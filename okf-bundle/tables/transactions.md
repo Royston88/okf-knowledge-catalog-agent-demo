@@ -68,12 +68,15 @@ SELECT
   t.amount,
   t.merchant_category,
   a.account_id,
-  a.account_type,
-  a.status
+  a.account_type
 FROM
   `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.transactions` AS t
-INNER JOIN
-  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts` AS a
+INNER JOIN (
+  -- accounts carries duplicate loads; de-duplicate before joining or every
+  -- matched transaction is repeated once per surviving account row.
+  SELECT * FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.accounts`
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+) AS a
 ON
   t.account_id = a.account_id
 WHERE

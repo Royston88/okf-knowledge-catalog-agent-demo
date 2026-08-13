@@ -1466,6 +1466,79 @@ gating existed, with the flag as a pure control), but any future re-run of
 Phase 7 now has a confound: flagging changes ownership, which changes what the
 scan may overwrite.
 
+## Completing the bundle: every SQL block validated, three real defects found
+
+The bundle was already structurally complete — 13/13 tables, 68/68 columns,
+query patterns everywhere. "Complete" therefore meant *verified*, not *bigger*.
+
+### Dry-running every SQL block against BigQuery
+
+53 blocks: 40 executable statements and 13 join predicates (wrapped in a
+`SELECT 1 FROM … WHERE <predicate> LIMIT 0` to type-check the column
+references). **Three statements did not run**, and only two of them were known:
+
+| file | defect | status |
+|---|---|---|
+| `tables/payments.md` | `c.first_name`, `c.last_name` — `customers` has neither | recorded in Measurement E, now fixed |
+| `tables/wire_transfers.md` | same invented columns | recorded, now fixed |
+| **`tables/transactions.md`** | **`a.status` — `accounts` has no such column** | **NEW — never previously found** |
+
+Measurement E recorded the invented columns in `payments` and `wire_transfers`
+by reading the prose. `transactions.a.status` had sat there through two review
+passes and a sign-off. **Reading the SQL did not find it; running it did.**
+
+Fixed by replacing the invented columns with the real one (`customers.name`) and
+dropping `a.status`. `transactions` also had a second defect the dry-run cannot
+catch: it joined `accounts` without de-duplicating, so every matched transaction
+was repeated for the 60 double-loaded accounts — a query contradicting the
+hazard its own concept documents. Now de-duplicated in a subquery.
+
+### Two join predicates were not copy-pasteable
+
+The M:N bridge joins emitted two conditions on consecutive lines with no `AND`:
+
+```sql
+accounts.account_id = account_owners.account_id
+account_owners.customer_id = customers.customer_id
+```
+
+Fixed in the **emitter** (`gen_okf.py`) rather than the artifact, so regeneration
+does not undo it, and the same edit applied to the two affected files.
+`generate_models.py` — the read-only copy — is untouched and still hashes
+identically to its source.
+
+### The count the profile got wrong
+
+`accounts.md` asserted *"1,201 unique accounts"*, taken faithfully from a
+`distinct_ratio` of `0.9531746…` (= exactly 1201/1260). The warehouse says
+**1,200**. Corrected, with the discrepancy named in the prose rather than
+silently overwritten, since the profile still reports 1,201.
+
+### Result
+
+**53/53 SQL blocks validate. 0 failures.** All 14 asset-backed concepts signed
+off (`signoff.py --asset-backed`, which flags every concept with a top-level
+`resource:` — the same discriminator the projector uses to split Track A from
+Track B). Live:
+
+```
+14/14 entries carry overview + descriptions + queries, userManaged=True
+80 column descriptions, 40 query patterns
+full column coverage on every table (7/7, 3/3, 8/8, …)
+```
+
+### Two consequences to be honest about
+
+1. **The scan can no longer refresh anything on this dataset.** With all 14
+   owned, every `descriptions` and `queries` aspect is frozen. That is the
+   intended meaning of full sign-off, but it means the bundle is now solely
+   responsible for keeping them current — including when a column is added.
+2. **The 39 joins and metrics still carry the arbitrary every-other-one flags**
+   from `signoff.py`'s original control split. Out of scope for this pass, and
+   inert today (Track B entries are `generic` and have no
+   `descriptions`/`queries` aspects), but they are a claim the bundle has not
+   earned.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

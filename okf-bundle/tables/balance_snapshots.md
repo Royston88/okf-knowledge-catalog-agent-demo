@@ -10,6 +10,9 @@ tags:
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:50:59+00:00'
+verified:
+- by: human:kenly@google.com
+  at: '2026-08-13T00:00:00+00:00'
 sources:
 - id: bq-meta
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/balance_snapshots

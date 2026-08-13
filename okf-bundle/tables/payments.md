@@ -61,8 +61,7 @@ This query joins payments with the [customers](customers.md) table to identify t
 ```sql
 SELECT
   p.customer_id,
-  c.first_name,
-  c.last_name,
+  c.name,
   ROUND(SUM(p.amount), 2) AS total_paid,
   COUNT(p.payment_id) AS payment_count
 FROM
@@ -71,7 +70,7 @@ LEFT JOIN
   `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.customers` AS c
   ON p.customer_id = c.customer_id
 GROUP BY
-  1, 2, 3
+  1, 2
 ORDER BY
   total_paid DESC
 LIMIT 10;

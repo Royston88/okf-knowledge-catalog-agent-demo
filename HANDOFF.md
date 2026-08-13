@@ -420,9 +420,15 @@ Material already in hand for it:
   accounts" came from. Measurement B proved the profile is *reproducible*, not
   *accurate* — it only compared the scanner to itself. Do not key any rule on
   `distinct_ratio`; verify against the warehouse.
-- **Generated SQL invents columns.** `c.first_name`, `c.last_name`, `c.email` in
-  `payments.md` and `wire_transfers.md`; `customers` has none of them. Recorded,
-  **not patched** — patching corrupts Measurement F.
+- ~~**Generated SQL invents columns.**~~ **FIXED.** Dry-running all 53 SQL
+  blocks found the two recorded cases *plus a third nobody had spotted*
+  (`transactions.md` selecting `a.status`, which `accounts` does not have).
+  All 53 blocks now validate against BigQuery. Re-run the check with a dry-run
+  sweep before trusting any future bundle — reading the SQL missed it twice.
+- **All 14 asset-backed concepts are now signed off**, so the scan can no longer
+  refresh `descriptions`/`queries` anywhere in this dataset; the bundle owns
+  them outright. The 39 joins/metrics still carry the arbitrary every-other-one
+  flags from the original control split — inert today, but unearned.
 - **The `index.md` layer has no projection.** Either give the 6 files
   frontmatter, or teach the shim to synthesize directory entries the way
   `OkfLayout` does. Decide at Phase 6; it affects what F reviews.

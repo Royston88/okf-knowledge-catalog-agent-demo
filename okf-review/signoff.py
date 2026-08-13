@@ -18,9 +18,10 @@ distinct count is off by one, one join fails JT2). It is NOT a deep per-concept
 audit of all 53 bodies. Depth is stated in MEASUREMENTS.md; do not read the flag
 as more than "reviewed at Phase 6 depth".
 
-  signoff.py --apply    write the flags
-  signoff.py --status   report the split without changing anything
-  signoff.py --clear    remove every `verified` key (restores the pre-signoff bundle)
+  signoff.py --apply        the original half/half split (Phase 7 control)
+  signoff.py --asset-backed sign off every ASSET-BACKED concept (Track A)
+  signoff.py --status       report without changing anything
+  signoff.py --clear        remove every `verified` key
 """
 from __future__ import annotations
 
@@ -67,11 +68,21 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--apply", action="store_true")
+    g.add_argument("--asset-backed", action="store_true",
+                   help="flag every concept with a top-level `resource:` — the 14 "
+                        "Track A concepts, i.e. everything that projects "
+                        "descriptions/queries onto an ingested @bigquery entry. "
+                        "Leaves the joins and metrics untouched.")
     g.add_argument("--status", action="store_true")
     g.add_argument("--clear", action="store_true")
     a = ap.parse_args()
 
-    decision = plan()
+    if a.asset_backed:
+        # Asset-backed == has a top-level `resource:`; the same discriminator the
+        # projector uses to split Track A from Track B.
+        decision = {p: bool(fm.get("resource")) for p, fm, _ in concepts()}
+    else:
+        decision = plan()
     if a.status:
         from collections import Counter
         per = Counter()
@@ -91,10 +102,10 @@ def main() -> int:
         before = dict(fm)
         if a.clear:
             fm.pop("verified", None)
-        elif decision[p]:
+        elif decision.get(p):
             fm["verified"] = [{"by": ACTOR, "at": AT}]
-        else:
-            fm.pop("verified", None)
+        elif not a.asset_backed:
+            fm.pop("verified", None)   # half/half mode owns both sides of the split
         if fm != before:
             changed += 1
         p.write_text(canonicalize(f"---\n{yaml.safe_dump(fm, sort_keys=False, allow_unicode=True)}---\n\n{body.strip()}\n"))

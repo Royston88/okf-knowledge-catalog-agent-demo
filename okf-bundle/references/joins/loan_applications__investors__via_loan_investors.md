@@ -34,7 +34,7 @@ sources:
 
 ```sql
 loan_applications.application_id = loan_investors.application_id
-loan_investors.investor_id = investors.investor_id
+  AND loan_investors.investor_id = investors.investor_id
 ```
 
 **Double counting.** Traversing the bridge repeats each `loan_applications` row once per related `investors` row (and vice versa). A plain `SUM` over `loan_applications` across this join double counts. The declared treatment is `count_once`: count each loan_application once rather than once per partner.

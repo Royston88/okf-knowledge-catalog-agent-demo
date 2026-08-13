@@ -12,6 +12,9 @@ tags:
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:58:01+00:00'
+verified:
+- by: human:kenly@google.com
+  at: '2026-08-13T00:00:00+00:00'
 sources:
 - id: bq-table-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/wire_transfers
@@ -75,8 +78,7 @@ Identify the top 10 customers by total dollar amount sent via wire transfer, cro
 ```sql
 SELECT
   w.customer_id,
-  c.first_name,
-  c.last_name,
+  c.name,
   COUNT(w.transfer_id) AS total_wires,
   ROUND(SUM(w.amount), 2) AS total_wire_amount
 FROM
@@ -87,8 +89,7 @@ ON
   w.customer_id = c.customer_id
 GROUP BY
   w.customer_id,
-  c.first_name,
-  c.last_name
+  c.name
 ORDER BY
   total_wire_amount DESC
 LIMIT 10;

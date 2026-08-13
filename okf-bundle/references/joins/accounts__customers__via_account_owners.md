@@ -30,7 +30,7 @@ sources:
 
 ```sql
 accounts.account_id = account_owners.account_id
-account_owners.customer_id = customers.customer_id
+  AND account_owners.customer_id = customers.customer_id
 ```
 
 **Double counting.** Traversing the bridge repeats each `accounts` row once per related `customers` row (and vice versa). A plain `SUM` over `accounts` across this join double counts. The declared treatment is `count_once`: count each account once rather than once per partner.

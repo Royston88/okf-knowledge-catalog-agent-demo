@@ -22,7 +22,7 @@ sources:
 The `accounts` table stores records of all financial accounts registered at Cymbal Bank[^bq-metadata]. It acts as a central hub within the [cymbal_bank_v6z_scaffold_demo_copy dataset](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md), covering checking, savings, and credit accounts. The table provides key metrics such as account balances, interest rates, and activation dates.
 
 ### Grain and Batch Updates
-Each row in this table represents the state of a financial account for a specific ingestion batch[^bq-metadata]. The presence of `load_batch_id` indicates that the table handles incremental loads; for example, the primary load consists of 1,200 accounts under batch ID `1`, while a smaller subset of 60 records represents subsequent additions or updates under batch ID `2`[^bq-metadata]. Out of the 1,260 total records, there are 1,201 unique accounts[^bq-metadata]. To retrieve the most up-to-date profile for any account, queries should filter for the highest `load_batch_id` per `account_id`.
+Each row in this table represents the state of a financial account for a specific ingestion batch[^bq-metadata]. The presence of `load_batch_id` indicates that the table handles incremental loads; for example, the primary load consists of 1,200 accounts under batch ID `1`, while a smaller subset of 60 records represents subsequent additions or updates under batch ID `2`[^bq-metadata]. Out of the 1,260 total records, there are 1,200 unique accounts (the KC data profile reports 1,201; the warehouse says 1,200). To retrieve the most up-to-date profile for any account, queries should filter for the highest `load_batch_id` per `account_id`.
 
 ### Key Relationships
 The table is highly connected to other entities across the schema:

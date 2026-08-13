@@ -144,7 +144,7 @@ def _join_docs(spec: dict, at: str) -> dict[str, str]:
                         f"`{entity}` is apportioned across the bridge |")
         body.append("")
         body.append(
-            f"```sql\n{a}.{ak} = {bridge}.{ak}\n{bridge}.{bk} = {b}.{bk}\n```\n\n"
+            f"```sql\n{a}.{ak} = {bridge}.{ak}\n  AND {bridge}.{bk} = {b}.{bk}\n```\n\n"
             f"**Double counting.** Traversing the bridge repeats each `{a}` row once per related "
             f"`{b}` row (and vice versa). A plain `SUM` over `{entity or a}` across this join "
             f"double counts."
