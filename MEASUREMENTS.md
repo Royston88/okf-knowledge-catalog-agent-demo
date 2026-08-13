@@ -738,6 +738,93 @@ touch the aspect at all.
   `descriptions`.** It currently writes only the `okf` aspect, which no scan
   touches, so it is unaffected — but that safety is incidental, not designed.
 
+## Phase 8 — Arm K (OKF bundle via kcmd MCP) vs Arm D (Knowledge Catalog, live)
+
+5 questions × 3 repeats × 2 arms, `gemini-2.5-flash` on Vertex. Every question
+targets a hazard the bundle documents and has a distinct **correct** answer and
+a distinct **naive-trap** answer, so responses are classified, not judged.
+Ground truth computed directly against BigQuery.
+
+Both arms get an identical, deliberately **minimal** system prompt. The
+`bq-kc-agent` scaffold ships a prompt carrying ten hand-written modelling rules
+— fan traps, de-duplication, zero-fill cohorts, SCD2 — which encode exactly the
+knowledge the bundle is meant to supply. Reusing it would have answered the
+questions from the prompt and measured nothing.
+
+| q | hazard | Arm K | Arm D | discriminates |
+|---|---|---|---|---|
+| q1 | duplicate load — count | **2/3** | 1/3 | K > D |
+| q2 | duplicate load — SUM | **3/3** | **0/3** | **K > D, decisively** |
+| q3 | M:N ownership bridge | 3/3 | 3/3 | no |
+| q4 | zero-fill cohort average | **0/3** | **0/3** | no — both fail |
+| q5 | SCD2 current rows | 3/3 | 3/3 | no |
+| | **total** | **11/15** | **7/15** | |
+
+### The plan expected Arm D to win. It lost.
+
+The plan said "Arm D is expected to win and that is not evidence about OKF."
+Arm D had **strictly more capability** — `search_entries`, `lookup_entry`,
+`lookup_context` against the live catalog, versus Arm K's `list-entries` and
+`lookup-entry` with **no search at all** — and still scored lower.
+
+**q2 is the cleanest result in the whole experiment: 3/3 versus 0/3.** Asked for
+the total balance across all accounts, Arm K de-duplicated every time and Arm D
+never did. The bundle's `tables/accounts.md` body states the hazard in prose and
+supplies the `ROW_NUMBER() OVER (PARTITION BY account_id …)` pattern; the live
+catalog's generated `descriptions` aspect does not.
+
+### Why: Arm D had the better tools and kept not using them
+
+**7 of Arm D's 15 runs never touched the catalog at all** — straight to
+`execute_sql`, including both q1/q2 failures in two of three reps. Search being
+available is not the same as search being used. Arm K's tool surface is so thin
+that `list-entries` → `lookup-entry` is the only path to *any* metadata, so the
+model walks it.
+
+The mirror-image evidence on Arm K: **of its 15 runs, 14 called `lookup-entry`
+and the one that did not was a failure** (q1 rep2 — `list-entries` then straight
+to SQL, answering 1260). Correct answers correlate with retrieval, not with the
+arm.
+
+So the honest causal claim is not "OKF is better metadata". It is: **a narrow
+tool surface that forces retrieval beat a rich one that permits skipping it**,
+and the content behind Arm K happened to contain the hazard. Both halves matter,
+and the first half is about MCP ergonomics, not about OKF.
+
+### q4 is a real negative for the bundle
+
+Both arms 0/3 on the zero-fill cohort average (16.67 correct, 18.52 trap — the
+average over accounts that *have* transactions). Neither channel carries the
+hazard: the bundle documents duplicate loads, the M:N bridge and SCD2, but says
+nothing about zero-count denominators. The `bq-kc-agent` scaffold's discarded
+prompt *did* have a rule for it. **A curated bundle only defends against the
+hazards someone curated into it** — that is the ceiling on this whole approach,
+and it showed up on the first question that fell outside the curated set.
+
+### Run 1 measured an empty catalog — the Phase 5 defect, on the read path
+
+The first execution scored Arm K 1/5, and the transcripts explain why: *"the
+`list_entries` function returned an empty list."* Pointing the kcmd MCP server at
+`okf-kb-workspace` (layout `documents`) indexes **zero** of the 59 files, because
+clean OKF files carry no `catalogEntry.name` — the identical defect that was the
+Phase 5 blocker, resurfacing on read. Fixed by giving Arm K a workspace with
+`layout: okf`, whose `OkfLayout` derives names from paths; `list-entries` then
+returns 59 and `lookup-entry` returns the 5,190-character concept including the
+de-duplication guidance. Run 1's transcripts are kept in
+`okf-agent/results_run1_armK_empty_catalog.json`.
+
+**This is the third time one bug has produced a silent, plausible-looking wrong
+answer** — success on an empty push, an empty body on pull, and now a scored
+agent arm reading nothing. Each looked like a result.
+
+### Limits — do not over-read this
+
+n=3 per cell, one model, 5 questions, one dataset, and 4 of 15 Arm K runs and 8
+of 15 Arm D runs varied their tool use between identical repeats. q1 moved
+between correct and trap on both arms across reps. This is directional, not a
+benchmark, and it is consistent with the author variance Measurement E already
+recorded.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

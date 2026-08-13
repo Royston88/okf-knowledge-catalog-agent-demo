@@ -52,7 +52,7 @@ state is git: this branch's commits are the real handoff.
 | 6 — canonical formatter + Measurement F | **done.** Diff goes 53/53 noise → 1 real |
 | 6 — join triage + sign-off | **done.** 12 triaged (1 JT2 reject); 27 flagged / 26 control |
 | 7 — re-scan | **done.** 6 scans re-run, all SUCCEEDED |
-| 8 | not started |
+| 8 — ADK agent, Arm K vs Arm D | **done.** K 11/15, D 7/15 over 3 reps |
 | Measurement F | **taken.** PASS, conditional on the new canonicaliser |
 | Measurement G | **taken.** Survival tracks `userManaged`, not the OKF flag |
 

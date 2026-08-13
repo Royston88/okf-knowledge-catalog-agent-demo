@@ -1,0 +1,25 @@
+# Arm K workspace — the OKF bundle read directly by the kcmd MCP server.
+#
+# `layout: okf` is load-bearing. The default `documents` layout indexes on
+# `catalogEntry.name`, which CLEAN OKF files do not carry, so pointing the MCP
+# server at okf-kb-workspace returns an empty catalog — the same defect that was
+# the Phase 5 blocker, resurfacing on the read path. `OkfLayout` derives the
+# entry name from the file path instead, so it indexes the bundle as authored.
+#
+# `rootDirForLayout(okf)` is `bundle/`, not `catalog/`.
+scope: kb.royston-dev-8253.us.okf_cymbal_v6z
+layout: okf
+snapshot:
+  entries:
+    - dataplex-types.global.generic
+  aspects:
+    - dataplex-types.global.generic
+    - dataplex-types.global.overview
+    - royston-dev-8253.us.okf
+publishing:
+  entries:
+    - dataplex-types.global.generic
+  aspects:
+    - dataplex-types.global.generic
+    - dataplex-types.global.overview
+    - royston-dev-8253.us.okf
