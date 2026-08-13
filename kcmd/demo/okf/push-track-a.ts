@@ -117,6 +117,7 @@ function publishingEntryTypes(): string[] {
 // releaseIfHeld.
 const DESCRIPTIONS_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/descriptions';
 const QUERIES_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/queries';
+const SCHEMA_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/schema';
 
 /**
  * Hand a contested aspect back to the scan.
@@ -154,16 +155,30 @@ async function releaseIfHeld(client: any, entryId: string, label: string): Promi
   return true;
 }
 
-/** The live entry type for an ingested entry, as a `dataplex-types.<loc>.<id>` ref. */
-async function liveEntryType(client: any, entryId: string): Promise<string> {
-  const res = await client.getEntry(project, location, '@bigquery', entryId);
-  if (!res.result) {
-    throw new Error(`Cannot read entry type for ${entryId} (HTTP ${res.status}). ` +
+/**
+ * The live entry type (as a `dataplex-types.<loc>.<id>` ref) and the entry's
+ * real column list, read from its own `schema` aspect.
+ *
+ * The columns feed the completeness gate: claiming `descriptions` freezes it,
+ * so an owned concept that omits a column would blank it permanently. Taking
+ * the list from the catalog rather than the bundle means the gate checks
+ * against ground truth.
+ */
+async function liveEntryInfo(
+  client: any,
+  entryId: string,
+): Promise<{ type: string; columns: string[] }> {
+  const res = await client.getEntry(project, location, '@bigquery', entryId, [SCHEMA_TYPE]);
+  if (res.status !== 200 || !res.result) {
+    throw new Error(`Cannot read entry ${entryId} (HTTP ${res.status}). ` +
       `Track A only writes to entries Dataplex has already ingested.`);
   }
   const parts = String(res.result.entryType).split('/');
-  const loc = parts[3], id = parts[5];
-  return `${BUILTIN_TYPE_PROJECT}.${loc}.${id}`;
+  const type = `${BUILTIN_TYPE_PROJECT}.${parts[3]}.${parts[5]}`;
+  const schema: any = Object.entries(res.result.aspects ?? {})
+    .find(([k]) => k.endsWith('.schema'))?.[1];
+  const columns: string[] = (schema?.data?.fields ?? []).map((f: any) => f.name);
+  return { type, columns };
 }
 
 const allowed = publishingEntryTypes();
@@ -191,7 +206,7 @@ for (const sub of ['tables', 'datasets']) {
     const rel = `${sub}/${file}`;
     const mapped = localNameFor(rel);
     if (!mapped) continue;
-    const entryType = await liveEntryType(catalogClient, mapped.entryId);
+    const { type: entryType, columns } = await liveEntryInfo(catalogClient, mapped.entryId);
     if (!allowed.includes(entryType)) {
       throw new Error(
         `Entry ${mapped.entryId} has type ${entryType}, which is NOT in ` +
@@ -207,7 +222,7 @@ for (const sub of ['tables', 'datasets']) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(
       dest,
-      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true),
+      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true, columns, rel),
     );
     console.log(`  ${rel} -> ${mapped.name}  [${entryType}]`);
     n++;

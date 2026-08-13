@@ -367,6 +367,14 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **The test design was rewritten for the `verified` ⇄ `userManaged` coupling —
+  see `okf-review/TESTS.md`.** The original Measurement G 2×2 is unreachable now
+  that the projector derives one variable from the other. Layer 1 records the
+  platform facts that must NOT be re-run; Layer 2 is seven policy tests, of
+  which T1/T2/T5/T6 are satisfied, T3 partial, **T4 (pull→push safety) is
+  FAILING**, and **T7 (the joins arm) was never started**. Offline suite:
+  `bun kcmd/demo/okf/ownership.test.ts` (20 assertions).
+
 - **`verified` is doing two incompatible jobs.** It is simultaneously Phase 7's
   *arbitrary* control population (`signoff.py`, every-other-concept) and the
   *authorisation* signal gating catalog ownership. A control wants to be

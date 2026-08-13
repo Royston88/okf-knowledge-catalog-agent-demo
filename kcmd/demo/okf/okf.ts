@@ -95,6 +95,8 @@ export function toStaging(
   entryName: string,
   entryType: string = ENTRY_TYPE,
   withAssetAspects = false,
+  realColumns?: string[],
+  label?: string,
 ): string {
   const { meta, body } = splitFrontmatter(content);
   if (!meta) {
@@ -118,7 +120,7 @@ export function toStaging(
     aspects[GENERIC_ASPECT_KEY] = { type: meta.type, system: 'okf' };
   }
   if (withAssetAspects) {
-    Object.assign(aspects, assetAspects(meta, body));
+    Object.assign(aspects, assetAspects(meta, body, realColumns, label ?? entryName));
   }
   staged.catalogEntry = {
     name: entryName,
@@ -259,16 +261,78 @@ export function queryPatterns(body: string): Array<{ sql: string; description: s
  * not a config value — it is COMPUTED from `verified` at projection time, which
  * is correct if Knowledge Catalog is one projection target among several.
  */
-export function assetAspects(meta: any, body: string): Record<string, any> {
+export class OwnershipError extends Error {}
+
+/**
+ * Is this concept authorised to take over the contested aspects?
+ *
+ * Two conditions, both deliberate:
+ *   `verified` non-empty        — a human vouched for it
+ *   `status` not draft/deprecated — a draft should not take over the UI even if
+ *                                   someone signed it, and a deprecated concept
+ *                                   should not hold the platform's description
+ *                                   hostage after it stops being maintained
+ */
+export function isOwned(meta: any): boolean {
+  const vouched = Array.isArray(meta?.verified) && meta.verified.length > 0;
+  const status = String(meta?.status ?? '').toLowerCase();
+  return vouched && status !== 'draft' && status !== 'deprecated';
+}
+
+/**
+ * The `descriptions` + `queries` aspects for an asset-backed concept.
+ *
+ * OWNERSHIP IS GATED, and that is the whole point. These two aspects are
+ * CONTESTED — the DATA_DOCUMENTATION scan wants them, and `userManaged` decides
+ * who wins. Claiming them means FREEZING them, so we claim only what a human
+ * vouched for. Unverified concepts still project their body to `overview` and
+ * their signal to `okf`, both uncontested; they simply do not override the scan
+ * where the scan is the owner.
+ *
+ * `userManaged` therefore lives nowhere — not in the bundle, not in config. It
+ * is COMPUTED here, which is correct if Knowledge Catalog is one projection
+ * target among several rather than the system of record.
+ *
+ * COMPLETENESS IS A HARD GATE. Because claiming freezes the aspect, an owned
+ * concept that omits a column blanks that column permanently — the scan can no
+ * longer fill it. So a concept that is authorised but incomplete is REFUSED,
+ * loudly, rather than being projected into a worse state than the scan's.
+ * `realColumns` comes from the entry's own `schema` aspect; pass undefined to
+ * skip the check (Track B, or any entry with no schema).
+ */
+export function assetAspects(
+  meta: any,
+  body: string,
+  realColumns?: string[],
+  label = 'concept',
+): Record<string, any> {
   const aspects: Record<string, any> = {};
-  const owned = Array.isArray(meta.verified) && meta.verified.length > 0;
-  if (!owned) {
+  if (!isOwned(meta)) {
     return aspects;
   }
   const fields = schemaFields(body);
+  if (realColumns && realColumns.length) {
+    const documented = new Set(fields.map((f) => f.name));
+    const missing = realColumns.filter((c) => !documented.has(c));
+    if (missing.length) {
+      throw new OwnershipError(
+        `${label} is verified (status=${meta.status ?? 'unset'}) but does not document ` +
+        `${missing.length} of its ${realColumns.length} columns: ${missing.join(', ')}.\n` +
+        `  Claiming \`descriptions\` freezes it, so those columns would be blank forever — ` +
+        `the scan could no longer fill them. Document them, or drop \`verified\` and let the ` +
+        `scan keep managing this table.`,
+      );
+    }
+    const unknown = fields.filter((f) => !realColumns.includes(f.name)).map((f) => f.name);
+    if (unknown.length) {
+      throw new OwnershipError(
+        `${label} documents ${unknown.length} column(s) that do not exist: ${unknown.join(', ')}.`,
+      );
+    }
+  }
   if (meta.description || fields.length) {
     aspects[DESCRIPTIONS_KEY] = {
-      userManaged: owned,
+      userManaged: true,
       ...(meta.description ? { description: meta.description } : {}),
       ...(fields.length ? { fields } : {}),
     };
@@ -276,7 +340,7 @@ export function assetAspects(meta: any, body: string): Record<string, any> {
   const patterns = queryPatterns(body);
   if (patterns.length) {
     aspects[QUERIES_KEY] = {
-      userManaged: owned,
+      userManaged: true,
       queries: patterns.map((q) => ({
         sql: q.sql,
         description: q.description,
