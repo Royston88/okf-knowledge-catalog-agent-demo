@@ -51,3 +51,6 @@ bq-okf-workspace/bundle/
 # Ignore local evaluation folder
 /eval/
 
+
+# kcmd OKF demo: throwaway push staging tree
+okf-kb-workspace/.staging/

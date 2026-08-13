@@ -39,8 +39,12 @@ let n = 0;
 for (const file of listMd(catalogDir)) {
   const rel = path.relative(catalogDir, file);
   const dest = path.join(stagingDir, 'catalog', rel);
+  // The entry id is the bundle-relative path minus `.md`, POSIX-separated —
+  // the same derivation the fork's OkfLayout uses. toStaging stamps it onto
+  // `catalogEntry.name`, without which the documents layout indexes nothing.
+  const entryName = rel.replace(/\\/g, '/').replace(/\.md$/, '');
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest, toStaging(fs.readFileSync(file, 'utf8'), okfKey));
+  fs.writeFileSync(dest, toStaging(fs.readFileSync(file, 'utf8'), okfKey, entryName));
   n++;
 }
 console.log(`staged ${n} concept file(s) -> ${stagingDir}`);

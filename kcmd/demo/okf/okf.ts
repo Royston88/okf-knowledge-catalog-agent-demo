@@ -25,6 +25,14 @@ const SIGNAL_KEYS = ['okf_type', 'generated', 'sources', 'verified', 'status', '
 // so it rides on the okf aspect as `okf_type` and the entry itself is generic.
 const ENTRY_TYPE = 'dataplex-types.global.generic';
 
+// Dataplex REQUIRES the aspect that corresponds to an entry's type to be
+// present on create: an entry of type `…/aspectTypes/generic` without a
+// `dataplex-types.global.generic` aspect is rejected with
+//   400 "Missing required Aspect(s): …/aspectTypes/generic".
+// The fork's own OkfLayout stamps the same aspect (with `type`/`system`) on
+// every index entry it synthesizes; concepts need it for the same reason.
+const GENERIC_ASPECT_KEY = 'dataplex-types.global.generic';
+
 export function splitFrontmatter(content: string): Split {
   const lines = content.split(/\r?\n/);
   if (lines[0] !== '---') {
@@ -56,7 +64,25 @@ function pick(obj: any, keys: string[]): any {
 }
 
 // clean OKF -> pushable (signal moved into catalogEntry / okf aspect)
-export function toStaging(content: string, okfKey: string): string {
+//
+// `entryName` is the entry id the concept is indexed and pushed under — the
+// bundle-relative path without its `.md` suffix (`tables/accounts`). It is
+// REQUIRED, and the reason is the Phase 5 blocker:
+//
+//   DocumentsLayout.init() indexes on `entry.name` and nothing else
+//   (`if (entry && entry.name) this._index.set(entry.name, localPath)`), while
+//   `parseMarkdown` reconstructs the entry as `metadata.catalogEntry ?? {}` and
+//   never derives a name from the file path. toStaging used to emit only
+//   `catalogEntry.resource.name` (a BigQuery resource URI, not an entry name),
+//   so every one of the 59 staged files parsed fine, indexed as nothing, and
+//   `push` reported success over an empty index.
+//
+// A bare multi-segment id is correct here: `KnowledgeBaseSource.serviceName`
+// strips the `<namespace>/<project>/<location>/` prefix only when present and
+// otherwise treats the whole name as the entry id, so `tables/accounts` maps to
+// `<entryGroup>/entries/tables/accounts`. This mirrors what the fork's own
+// `OkfLayout.deriveEntryName` does for x-kcmd-less files.
+export function toStaging(content: string, okfKey: string, entryName: string): string {
   const { meta, body } = splitFrontmatter(content);
   if (!meta) {
     return content;
@@ -75,8 +101,10 @@ export function toStaging(content: string, okfKey: string): string {
   // type explicitly reproduces upstream's effective behaviour.
   staged.type = ENTRY_TYPE;
   staged.catalogEntry = {
+    name: entryName,
     resource: { name: meta.resource },
     aspects: {
+      [GENERIC_ASPECT_KEY]: { type: meta.type, system: 'okf' },
       [okfKey]: pick(
         {
           okf_type: meta.type,
