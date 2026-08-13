@@ -1774,7 +1774,58 @@ description sits in a **contested** aspect and survives only because we set the
 flag; a term is uncontested by construction. That is a real durability
 difference and it costs nothing to obtain.
 
-### The one that actually matters: identity and reuse
+### CORRECTION: the reuse demo used a semantically wrong example
+
+The probe attached `avg-monthly-balance` to `balance_snapshots.balance` **and**
+`accounts.balance` to show that one term can serve many columns. The mechanism
+claim is true. **The example was wrong**: `accounts.balance` is a current
+point-in-time balance and `balance_snapshots.balance` is an end-of-month
+historical one. They do not share the concept "average monthly balance", and the
+term was attached to a column of a table that had just been signed off —
+precisely the unreviewed-content-frozen-into-place failure this work keeps
+warning about. Attachment removed.
+
+### Where reuse is actually real here, and it is not metrics
+
+Columns recurring across tables in this schema:
+
+```
+customer_id     x8   account_owners, accounts, customer_segment_history, customers,
+                     loan_applications, payments, support_tickets, wire_transfers
+account_id      x4   account_owners, accounts, balance_snapshots, transactions
+amount          x4   loan_applications, payments, transactions, wire_transfers
+segment         x2   customer_segment_history, customers
+balance         x2   accounts, balance_snapshots
+```
+
+**Genuine shared concepts:** `customer_id`, `account_id`, `segment` — entity
+identifiers and an enumerated dimension. `segment` is the cleanest case: both
+columns hold the same retail/premier/private enumeration, so one "Customer
+Segment" term with the value list, pointed at from both, is exactly what a
+glossary is for.
+
+**Traps:** `amount` ×4 and `balance` ×2 share a *column name*, not a concept —
+a loan principal, a payment, a transaction and a wire amount are four different
+things. Reuse is decided by meaning, not by name collision.
+
+**So the reuse argument does not support metrics-as-terms.** A metric is
+typically computed from one column of one table; there is nothing to share.
+
+### The argument for metrics-as-terms that does survive: attachment
+
+Not reuse — *visibility from the column*. Measured earlier: `search_entries`
+already finds our Track B `generic` metric concepts, so a metric is already
+searchable without a glossary. What the generic concept cannot do is **show up
+when an agent looks at the table**, because nothing links the two — the
+table→concept discovery gap recorded above, for which no other channel works
+(`related` unreadable, `schema-join` unconsumed).
+
+A `definition` link closes exactly that gap: the metric renders inline on the
+column in `lookup_context`. That is the benefit, and it is worth stating
+precisely, because it is a *different and narrower* claim than the reuse one it
+replaces.
+
+### The remaining structural difference: identity
 
 A description is an *attribute of a column*. A term is an *entity that columns
 point at*. Measured: the same `avg-monthly-balance` term now renders on two
