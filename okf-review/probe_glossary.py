@@ -19,7 +19,11 @@ DATAPLEX_TYPES_NUM="655216118709"; LOCATION="us"
 DATASET="cymbal_bank_v6z_scaffold_demo_copy"; TABLE="balance_snapshots"; COLUMN="balance"
 GLOSSARY_ID="okf-metric-probe"; TERM_ID="avg-monthly-balance"
 DEFINITION_LINK_TYPE=f"projects/{DATAPLEX_TYPES_NUM}/locations/global/entryLinkTypes/definition"
-LINK_ID=f"kcglossary-{TABLE}-{COLUMN}-{TERM_ID}".replace("_","-").lower()
+# One term, many columns: the probe attaches the SAME term to two tables, which
+# is the property a column description structurally cannot have.
+ATTACHMENTS=[("balance_snapshots","balance"),("accounts","balance")]
+def link_id(tbl,col): return f"kcglossary-{tbl}-{col}-{TERM_ID}".replace("_","-").lower()
+LINK_ID=link_id(TABLE,COLUMN)
 _ref=dp.EntryLink.EntryReference
 
 def entry_name():
@@ -61,8 +65,10 @@ def setup():
 def teardown():
     bg=dp.BusinessGlossaryServiceClient(); cc=dp.CatalogServiceClient()
     parent=f"projects/{PROJECT_NUMBER}/locations/{LOCATION}/entryGroups/@bigquery"
-    for fn,arg,label in [(cc.delete_entry_link,f"{parent}/entryLinks/{LINK_ID}","link"),
-                         (bg.delete_glossary_term,bg.glossary_term_path(BQ_PROJECT,LOCATION,GLOSSARY_ID,TERM_ID),"term")]:
+    for tbl,col in ATTACHMENTS:
+        try: cc.delete_entry_link(name=f"{parent}/entryLinks/{link_id(tbl,col)}"); print("deleted link",tbl,col)
+        except exceptions.NotFound: print("link absent",tbl,col)
+    for fn,arg,label in [(bg.delete_glossary_term,bg.glossary_term_path(BQ_PROJECT,LOCATION,GLOSSARY_ID,TERM_ID),"term")]:
         try: fn(name=arg); print("deleted",label)
         except exceptions.NotFound: print(label,"absent")
     try:

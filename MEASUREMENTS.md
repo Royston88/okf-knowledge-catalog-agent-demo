@@ -1747,6 +1747,59 @@ unconsumed. A join stays a `generic` concept.
 > `balance_snapshots.balance` and will show in the UI and in `lookup_context`.
 > Remove with `python okf-review/probe_glossary.py --teardown`.
 
+## Glossary term vs column description — measured, not assumed
+
+They overlap more than expected. Two guesses were wrong.
+
+| | column description | glossary term + `definition` link |
+|---|---|---|
+| **is it its own object?** | no — a string inside the `descriptions` aspect | **yes** — a `glossary-term` entry with its own name, uid and lifecycle |
+| **reuse across columns/tables** | impossible — 1:1 with the column | **yes, measured** — one term attached to `balance_snapshots.balance` *and* `accounts.balance`, one definition rendered on both |
+| **independently searchable** | **yes** (surprise) | **yes** |
+| **scan-owned?** | **yes** — needs `userManaged: true` or the next scan destroys it | **no** — `GlossaryTerm` has no `userManaged` field at all; no scan writes terms |
+| **reaches the BQ CA API** | yes (v7) | yes (v7 FU7) |
+| **reaches an MCP agent** | `lookup_context`, and `lookup_entry` at `view=ALL` | `lookup_context`, and `search_entries` directly |
+
+### The two things I would have got wrong
+
+**1. Column descriptions ARE independently searchable.** Searching a phrase that
+appears *only* in a column description —`"end of the snapshot month"` — returned
+the owning `bigquery-table` entry. Discoverability is therefore **not** a
+differentiator; the search index reaches inside the `descriptions` aspect.
+
+**2. The term needs no ownership flag.** `GlossaryTerm`'s fields are
+`name, uid, display_name, description, create_time, update_time, labels, parent`
+— there is no `userManaged`, because no scan generates glossary terms. A column
+description sits in a **contested** aspect and survives only because we set the
+flag; a term is uncontested by construction. That is a real durability
+difference and it costs nothing to obtain.
+
+### The one that actually matters: identity and reuse
+
+A description is an *attribute of a column*. A term is an *entity that columns
+point at*. Measured: the same `avg-monthly-balance` term now renders on two
+different tables' `balance` columns, from a single definition. Change it once
+and both move. With descriptions the same sentence has to be written twice and
+can drift.
+
+That is the argument for modelling **metrics** as terms: a metric like
+"average monthly balance" is a business concept that several tables may expose,
+and it wants one definition. It is also the argument against modelling
+**per-column facts** as terms — "the first day of the calendar month for which
+the snapshot is recorded" is genuinely about that one column and belongs in its
+description.
+
+### The rule this suggests
+
+- **column description** — what this column *is*, here. One place, one meaning.
+  Contested, so `userManaged` matters.
+- **glossary term** — a business concept that outlives any single column. Shared,
+  uncontested, separately searchable.
+
+Our bundle already splits along that line: `tables/*.md` `# Schema` rows are
+descriptions; `references/metrics/*.md` are the reusable concepts. The mapping
+falls out — metrics become terms, schema rows stay descriptions.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
