@@ -180,18 +180,25 @@ const QUERIES_KEY = 'dataplex-types.global.queries';
 export function schemaFields(body: string): Array<{ name: string; description: string }> {
   const out: Array<{ name: string; description: string }> = [];
   let inSection = false;
+  let pastSeparator = false;
   for (const line of body.split(/\r?\n/)) {
     if (/^#\s/.test(line)) {
       inSection = /^#\s+Schema\s*$/i.test(line);
+      pastSeparator = false;
       continue;
     }
     if (!inSection || !line.trim().startsWith('|')) continue;
     const cells = line.split('|').slice(1, -1).map((c) => c.trim());
     if (cells.length < 2) continue;
-    if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;              // separator
+    // The header row is the one BEFORE the `|:---|` separator. Detect it
+    // structurally rather than by keyword: an earlier version skipped any first
+    // cell matching /^(field|column|name)$/i, which silently ate every column
+    // literally called `name` — two of them here — and made the bundle look
+    // incomplete when it was not.
+    if (cells.every((c) => /^:?-{2,}:?$/.test(c))) { pastSeparator = true; continue; }
+    if (!pastSeparator) continue;
     const name = cells[0].replace(/[`*]/g, '').trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) continue;                 // header / prose
-    if (/^(field|field name|column|column name|name)$/i.test(name)) continue;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) continue;                 // prose row
     const description = cells[cells.length - 1];
     if (description) out.push({ name, description });
   }

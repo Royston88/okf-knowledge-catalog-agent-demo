@@ -1398,6 +1398,74 @@ un-flagging hands them back at the next scan. That is intended, and it makes the
 trust tier operational rather than decorative — but it must be documented, since
 a reviewer signing off on prose is also, now, changing what the platform shows.
 
+## Correction: the "undocumented columns" were a parser bug, not an authoring gap
+
+Three claims recorded above are **wrong**, all from one defect, and they are
+corrected here rather than edited away.
+
+`schemaFields()` skipped any row whose first cell matched
+`/^(field|field name|column|column name|name)$/i`. That was meant to drop the
+markdown header row. It also dropped **every column literally called `name`** —
+and there are exactly two: `customers.name` and `investors.name`.
+
+Fixed by detecting the header structurally instead of by keyword: a markdown
+table's header is the row *before* the `|:---|` separator, so only rows after a
+separator are accepted.
+
+| claim | as recorded | actually |
+|---|---|---|
+| field descriptions in the bundle | 66 | **68** |
+| columns undocumented by the author | 2 (`customers.name`, `investors.name`) | **0** |
+| "two columns permanently frozen blank" | a real cost of whole-aspect ownership | **never true** — a parser bug |
+| "`investors` went 2→3 fields: the scan filled a gap the author skipped" | an emergent benefit of gating | **wrong inference** — our count was short by the bug; the scan simply had its own 3 |
+
+Verified after the fix: **68 claimed / 68 real columns, 0 invented, 0
+undocumented**, and after a re-push, **0 frozen-blank columns on the six
+bundle-owned tables** (7/7, 6/6, 8/8, 8/8, 6/6, 5/5).
+
+The granularity finding above still stands on its own terms — `userManaged` is
+whole-aspect, ownership does freeze what it claims, and the `job` provenance
+stamp is still dropped. What is retracted is the *evidence of harm*: the bundle
+was complete all along, so whole-aspect ownership cost nothing here.
+
+**This is the seventh silent-plausible-success in this project, and the first
+one I introduced myself.** A conservative-looking guard clause removed real data
+and left a total that looked reasonable — 66 of 68 is exactly the kind of number
+nobody audits.
+
+## The sign-off flag is doing two incompatible jobs
+
+Surfaced by being asked what "a human claimed that table" meant. It meant
+`verified: [{by: human:kenly@google.com, at: …}]` — written by `signoff.py`
+using a deterministic **every-other-concept** rule (`i % 2 == 0`). No human
+reviewed `customers` column by column.
+
+That was defensible when the flag was **only** a Phase 7 control: the population
+was chosen to be *arbitrary and uncorrelated with content*, precisely so a
+survival difference could be attributed to the flag rather than to the producer.
+
+It is no longer only that. The same flag now **gates catalog ownership**, so an
+arbitrary every-other-one split decides which six tables' descriptions and
+suggested queries the platform shows to users. A control population and a
+production authorisation signal have opposite requirements — one wants to be
+uncorrelated with merit, the other wants to be *exactly* correlated with it.
+
+Options, none applied:
+
+1. **Separate the signals** — keep `verified` for genuine sign-off and gate
+   ownership on it, and use a different, explicitly experimental marker for the
+   Phase 7 control population. Cleanest; costs a re-run of the control.
+2. **Earn the flags** — actually review the six owned tables and let the other
+   seven stay unflagged. Makes the claim true, and the split stops being
+   balanced across provenance classes, which weakens Phase 7's control.
+3. **Accept it and document loudly** — the current state, which is fine for a
+   mechanism proof and wrong for anything real.
+
+Recorded as an open item. It does not invalidate Measurement G (taken before
+gating existed, with the flag as a pure control), but any future re-run of
+Phase 7 now has a confound: flagging changes ownership, which changes what the
+scan may overwrite.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

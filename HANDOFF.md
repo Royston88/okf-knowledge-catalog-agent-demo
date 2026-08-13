@@ -367,6 +367,14 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **`verified` is doing two incompatible jobs.** It is simultaneously Phase 7's
+  *arbitrary* control population (`signoff.py`, every-other-concept) and the
+  *authorisation* signal gating catalog ownership. A control wants to be
+  uncorrelated with merit; an authorisation wants to be exactly correlated. Fine
+  for a mechanism proof, wrong for anything real — separate the two signals, or
+  earn the flags. Also note any future Phase 7 re-run now has a confound:
+  flagging changes ownership, which changes what the scan may overwrite.
+
 - **The Track A pull is lossy: `fromStaging` drops the table description.**
   These entries' `entry_source` is system-owned, so the bundle's `description`
   lives only inside the `descriptions` aspect, and `fromStaging` maps back only
@@ -378,7 +386,10 @@ Material already in hand for it:
   the bundle is authoritative only for signed-off concepts, which contradicts
   the full-replace semantics in Measurement D. A decision, not an oversight.
 
-- **Two columns are frozen blank by whole-aspect ownership.** `userManaged` is a
+- ~~**Two columns are frozen blank by whole-aspect ownership.**~~ **RETRACTED —
+  it was a parser bug.** `schemaFields` blacklisted any column called `name`.
+  Fixed; the bundle documents 68/68 columns and no owned table has a gap. The
+  granularity constraint itself still holds. Original text: ** `userManaged` is a
   single bool per aspect — it does not exist per field or per query — so owning
   `descriptions` means owning every column. `customers.name` and
   `investors.name` are undocumented in the bundle and the scan can no longer
