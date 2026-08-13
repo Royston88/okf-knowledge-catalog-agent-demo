@@ -51,9 +51,10 @@ state is git: this branch's commits are the real handoff.
 | Track A — `okf` aspect onto `@bigquery` entries | **done.** 14/14 entries carry it |
 | 6 — canonical formatter + Measurement F | **done.** Diff goes 53/53 noise → 1 real |
 | 6 — join triage + sign-off | **done.** 12 triaged (1 JT2 reject); 27 flagged / 26 control |
-| 7, 8 | not started |
+| 7 — re-scan | **done.** 6 scans re-run, all SUCCEEDED |
+| 8 | not started |
 | Measurement F | **taken.** PASS, conditional on the new canonicaliser |
-| Measurement G | not taken |
+| Measurement G | **taken.** Survival tracks `userManaged`, not the OKF flag |
 
 The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
 classes (`generate_models/okf` × 39, `reference_agent/gemini-3.5-flash` × 14).

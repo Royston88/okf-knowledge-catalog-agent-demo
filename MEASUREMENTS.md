@@ -668,6 +668,76 @@ per-concept audit of all 53 bodies, and the flag should not be read as more than
 "reviewed at Phase 6 depth". Recording that here matters more than the flag
 does: an unearned trust signal is worse than none.
 
+## Phase 7 / Measurement G — curated content survives iff `userManaged` is set
+
+Reframed, as Track A required: the plan watched a `<!-- curated:v1 -->` sentinel
+inside `overview`, but the `@bigquery` entries have **no `overview` aspect at
+all**. The scan writes `descriptions` and `queries`. So G was pointed at
+`descriptions`, with **`userManaged`** — Knowledge Catalog's own "a scan may
+overwrite this" marker — as the variable under test. Testing the custom `okf`
+aspect instead would have been vacuous: no scan owns a custom aspect type.
+
+Design: a 2×2 crossing `userManaged` with the OKF `verified` flag, plus two
+untouched tables, so survival can be attributed to one and not the other. All
+six DATA_DOCUMENTATION scans were re-run and all six jobs reported SUCCEEDED.
+
+| table | OKF `verified` | `userManaged` | aspect rewritten | sentinel survived |
+|---|---|---|---|---|
+| `accounts` | **FLAGGED** | false | yes | **NO** |
+| `balance_snapshots` | control | false | yes | **NO** |
+| `customers` | **FLAGGED** | **true** | no | **YES** |
+| `account_owners` | control | **true** | no | **YES** |
+| `transactions` | FLAGGED | false | yes | *(not curated)* |
+| `wire_transfers` | control | false | yes | *(not curated)* |
+
+### Three findings, in order of how much they matter
+
+**1. `userManaged: true` is honoured, and it is the only thing that is.**
+Survival tracks `userManaged` perfectly across all four curated cells and is
+**completely uncorrelated with the OKF `verified` flag** — a flagged concept
+with `userManaged: false` was destroyed, an unflagged one with `userManaged:
+true` was preserved. The OKF trust tier is an *annotation*; it confers no
+protection inside Knowledge Catalog. Anyone reading `verified: [{by: human:…}]`
+as "this is safe from the pipeline" is wrong.
+
+**2. Writing curated content does NOT set `userManaged`. That is a silent
+data-loss trap.** The first probe wrote a curated description without touching
+the flag: the write was accepted, the sentinel landed, and `userManaged` stayed
+`false`. Nothing warned. The content then survived until the next scan and was
+gone — no error, no conflict, no version. A human editing a description through
+any path that does not explicitly set `userManaged` has written something with
+an invisible expiry date.
+
+**3. A protected aspect keeps its ORIGINAL job stamp, which is how you can tell
+it was skipped.** `customers` and `account_owners` still carry
+`runTime: 2026-08-12T20:26:50Z` and `20:24:45Z` after a successful
+2026-08-13T01:11 scan, while the four unprotected tables all advanced to the new
+run time. The scan did not merely decline to overwrite the text — it did not
+touch the aspect at all.
+
+> This nearly produced a wrong answer. The first pass of the verifier inferred
+> "did a scan run?" from whether `run_time` changed, which reports the two
+> *protected* tables as "no rescan — inconclusive". The stale stamp is evidence
+> **of** protection, not of a skipped scan. Ground truth has to come from the
+> job state, which is why `measure_g.py` now records the re-scanned set
+> explicitly.
+
+### What this constrains
+
+- **Measurement B's drift floor did not need to be invoked.** B warned that a
+  third of joins vanish between runs, so G must not read a changed link as flag
+  failure. G avoided the problem entirely by measuring an aspect the scan
+  deterministically owns, on a per-table basis, with an explicit control.
+- **For OKF-as-source-of-truth this is a mixed result, and the mixed part is
+  fine.** The projection cannot protect what it writes — but it does not need
+  to. The bundle is authoritative and re-pushing restores it, and Follow-up 9
+  (v7) established that every consumed channel is live. The honest statement is:
+  *OKF survives re-scan by being re-projected, not by being protected.* Any
+  claim that the trust tier hardens content against the pipeline is false.
+- **Track A's projection should set `userManaged: true` if it ever writes
+  `descriptions`.** It currently writes only the `okf` aspect, which no scan
+  touches, so it is unaffected — but that safety is incidental, not designed.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
