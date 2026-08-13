@@ -5,7 +5,7 @@ cold is here. Read this, then `MEASUREMENTS.md` for results and
 `okf-emitter/PROVENANCE.md` for the copied-generator story.
 
 - **Branch:** `v6z-okf-projector` in `okf-knowledge-catalog-agent-demo` (a private
-  submodule of `agentic-data-cloud-demo`). HEAD `6234a52`.
+  submodule of `agentic-data-cloud-demo`). HEAD `7ad3ce8`.
 - **Approved plan:** `/home/user/.claude/plans/glittery-tumbling-kettle.md`
 - **Goal:** prove the mechanism — can an OKF bundle be the source of truth, with
   kcmd projecting it into Knowledge Catalog, and an ADK agent reading it back?
@@ -48,8 +48,9 @@ state is git: this branch's commits are the real handoff.
 | Measurement A — round-trip loss | **taken.** 3 losses named |
 | Measurement C — round-trip fidelity | **taken.** Byte-unstable, semantically clean |
 | Measurement D — extended trust tier | **taken. PASS**, all tiers |
-| Track A — `okf` aspect onto `@bigquery` entries | **not started** — next task, see §4.1 |
-| 6, 7, 8 | not started |
+| Track A — `okf` aspect onto `@bigquery` entries | **done.** 14/14 entries carry it |
+| 6 — review + sign-off | **not started** — next task, see §4.1 |
+| 7, 8 | not started |
 | Measurements F, G | not taken |
 
 The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
@@ -229,25 +230,7 @@ around in `fromStaging`.
 
 In order. Definitions are in the plan; these are the deltas.
 
-### 4.1 Track A projection — NEXT
-
-The `okf` aspect onto the 13 `@bigquery` entries. Smoke test 1 (Phase 3) already
-proved the write is accepted and reads back intact, and Measurement D proved the
-extended fields survive. What is missing is the mapper and the run:
-
-- map `tables/<t>.md` → the `@bigquery` entry name for that table in
-  `cymbal_bank_v6z_scaffold_demo_copy`;
-- handle the **project-ID-in / project-NUMBER-out** key asymmetry (write
-  `royston-dev-8253.us.okf`, read back `404799090046.us.okf`) — `fromStaging`
-  already has the suffix-matching helper to copy;
-- these are *ingested* entries, so `manifest.source.ingestedEntries` is true and
-  no synthetic index entries may be created (see `OkfLayout.init`).
-
-Note this is the projection that actually matters for the agent story: Track B's
-EntryGroup holds abstract concepts, but an analyst's tooling looks at the
-BigQuery entries.
-
-### 4.2 Phase 6 — review and sign-off
+### 4.1 Phase 6 — review and sign-off — NEXT
 
 Measurement F (is the diff reviewable), `join_triage.yaml` against JT1–JT4,
 sign-off `verified: [{by: human:<id>}]` on ~half the concepts, flag off on the
@@ -257,9 +240,42 @@ rest (that split is the control — **do not flag everything**).
 > bundle is ~100% YAML-serializer churn (0/53 files byte-identical, all
 > semantically clean bar one). Canonically format the bundle first — re-emit
 > through the same writer after each pull, or pin a shared YAML style — or F
-> will be measuring noise. The mechanics of that formatter are unbuilt.
+> will be measuring noise. The mechanics of that formatter are unbuilt; building
+> it is the first task of this phase.
+
+Sign-off writes go into the bundle and then project with the existing
+`push.ts` / `push-track-a.ts`. Measurement D already proved `verified` survives
+both directions, so this phase is authoring and review, not mechanism.
+
+### 4.2 Track A — DONE
+
+`kcmd/demo/okf/push-track-a.ts` + `bq-okf-workspace/catalog.yaml`. The `okf`
+aspect is on 14/14 `@bigquery` entries. Run it with:
+
+```bash
+cd bq-okf-workspace
+export GOOGLE_APPLICATION_CREDENTIALS=/home/user/.config/gcloud/admin--kenly-lakehouse-dev-1.json
+export CLOUDSDK_COMPUTE_REGION=us
+OKF_PROJECT=royston-dev-8253 OKF_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z \
+  OKF_BQ_DATASET=cymbal_bank_v6z_scaffold_demo_copy \
+  ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push-track-a.ts
+```
+
+Scope was kept to the `okf` aspect alone (`publishing.aspects`), leaving
+Dataplex's generated content untouched as a Phase 7 control.
 
 ### 4.3 Phase 7 — re-scan and Measurement G
+
+> **Track A found that G's target does not exist as planned.** The `@bigquery`
+> entries have **no `overview` aspect at all** — absent, not empty. The Phase 2
+> DATA_DOCUMENTATION scan wrote `descriptions` and `queries` instead, both
+> carrying **`userManaged: false`**. That flag, not a sentinel, is how Knowledge
+> Catalog marks content a re-scan may overwrite (same guard as the v7
+> relationships work). **Decide before running G:** write the sentinel into
+> `descriptions` and test whether that flips `userManaged` to true and protects
+> it — or accept that the custom `okf` aspect, which no scan owns, is trivially
+> safe and therefore not worth measuring. The second reading makes G vacuous, so
+> take the first.
 
 Re-run the Phase 2 capture; judge on the `<!-- curated:v1 -->` sentinel,
 **never** prose similarity: Measurement B already showed the generator rewrites
@@ -336,9 +352,10 @@ kc-capture/            frozen rich KC snapshot (profile/, insights/, relationshi
 okf-emitter/           copied generator + spec + gen_okf.py + PROVENANCE.md
 okf-author/            author_bundle.py — KCBigQuerySource (profile -> the author)
 kcmd/demo/okf/         ported shim: okf.ts, config.ts, push.ts, pull.ts, setup.ts,
-                       okf-aspect.json (extended). ALL our fixes live here.
+                       push-track-a.ts, okf-aspect.json. ALL our fixes live here.
 kcmd/src/              the fork, UNMODIFIED. Two known defects, see §3.
-okf-kb-workspace/      Track B workspace (catalog.yaml written by setup.ts)
-MEASUREMENTS.md        B, E, A, C, D, the Phase 5 resolution, the original blocker
+okf-kb-workspace/      Track B workspace (EntryGroup concepts)
+bq-okf-workspace/      Track A workspace (okf aspect on @bigquery entries)
+MEASUREMENTS.md        B, E, A, C, D, Track A, the Phase 5 resolution + original blocker
 HANDOFF.md             this file
 ```
