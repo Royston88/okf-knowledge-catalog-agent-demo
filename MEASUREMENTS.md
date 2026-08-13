@@ -1023,6 +1023,65 @@ three independent failure points, and they need three different fixes:
 *actually requested* (tool-surface design or prompting). Fixing any one leaves
 the others intact — 6/15 → 8/15 is what fixing exactly one looks like.
 
+## Where `userManaged` is set: nowhere in this pipeline, deliberately
+
+Asked directly, and worth pinning down because Measurement G made the flag look
+load-bearing when it is actually out of scope for what we write.
+
+### It is not an OKF field, and should not become one
+
+OKF's signal layer is `okf_type`, `generated`, `sources`, `verified`, `status`,
+`stale_after`. There is no `userManaged`, and adding one would be a category
+error: it is a **Dataplex-native field on Dataplex's own aspects**, describing
+who owns an aspect's content, not a property of the knowledge. Measurement G
+established that `verified` and `userManaged` are **orthogonal** — a
+`verified` concept with `userManaged: false` was destroyed by a re-scan.
+Collapsing them would encode a protection guarantee OKF does not have.
+
+### In Knowledge Catalog, Dataplex sets it — to `false` — and we never touch it
+
+Live across all 14 Track A entries:
+
+```
+descriptions.userManaged = False   (14/14)
+queries.userManaged      = False   (14/14)
+okf aspect present       = True    (14/14)
+overview body present    = True    (14/14)
+```
+
+Nothing in the projection writes the flag. The only code that ever set it is
+`okf-review/measure_g.py`, the Measurement G harness, which set it `true` on two
+tables and reverted them afterwards.
+
+### Why the projection does not need it
+
+`userManaged` governs only the aspects the DATA_DOCUMENTATION scan **owns** —
+`descriptions` and `queries`. Track A writes `okf` (a custom aspect type no scan
+owns) and `overview` (which that scan does not write). Verified directly: the
+4,395-character overview survived a successful re-scan at `userManaged: false`,
+unchanged. So the flag is irrelevant to everything the projection currently
+touches, and the correct number of places to set it is zero.
+
+### When it WOULD become mandatory
+
+The moment the projection writes `descriptions` or `queries`. Then
+`userManaged: true` is not optional — Measurement G showed unprotected content
+in those aspects is destroyed by the next scan with no error. It would also need
+somewhere to live: the natural home is the **projector's** publishing config
+(a per-aspect "we own this" declaration in `catalog.yaml`), not the OKF bundle,
+because it describes the projection's relationship to the catalog rather than
+the knowledge itself.
+
+> **A caveat that matters more than the flag.** If the goal is consumption by
+> the **BigQuery Conversational Analytics API** rather than by an MCP agent,
+> neither target helps. The parent repo's v7 investigation found the CA API
+> consumes BigQuery's own **table and column descriptions**, and does **not**
+> consume the Dataplex `overview`, `descriptions` or `queries` aspects at all.
+> That is a different channel entirely — the BQ schema, where `userManaged` has
+> no meaning. Not re-verified here; see `v7_iceberg_catalog_agent/RESULTS.md`.
+> Our Phase 8 result is about an MCP/ADK agent reading Dataplex, and does not
+> transfer to the CA path.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

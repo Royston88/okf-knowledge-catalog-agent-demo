@@ -367,6 +367,14 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **`userManaged` is set nowhere, on purpose.** It is a Dataplex field on
+  scan-owned aspects (`descriptions`, `queries`), not an OKF concept, and the
+  projection writes neither. It becomes mandatory only if the projection starts
+  writing those aspects — and then it belongs in `catalog.yaml`'s publishing
+  config, not the bundle. Note also that the BQ CA API consumes **BigQuery**
+  table/column descriptions, not any Dataplex aspect (v7 finding), so the
+  Phase 8 result does not transfer to the CA path.
+
 - ~~**The two producers disagree on dedup direction.**~~ **RESOLVED by query.**
   Batch 2 is a pure re-load: all 60 overlapping accounts are byte-identical on
   every non-batch column, so first-wins and latest-wins return the same rows and
