@@ -1656,6 +1656,97 @@ ends, and it rides in `overview`/`descriptions`, which we already own and which
 That is the missing step: a projector translates addresses, and ours currently
 copies them verbatim. Recorded as the recommended fix; not implemented.
 
+## Glossary probe: the `definition` link IS readable by an MCP agent — via `lookup_context`
+
+Created `okf-metric-probe` / term `avg-monthly-balance` in `royston-dev-8253` (us),
+attached to `balance_snapshots.balance` by a `definition` EntryLink, using the
+API shape from v7's `publish_catalog_metadata.py`. Reproducible and reversible:
+`okf-review/probe_glossary.py [--teardown]`.
+
+### 1. Can an agent find the term? **Yes.**
+
+| probe | result |
+|---|---|
+| `search_entries("average monthly balance")` | **finds it** — display name and full description, incl. "semi-additive" |
+| `search_entries("avg-monthly-balance")` | **finds it** |
+| `lookup_entry(term, view=ALL)` | **returns it** with the full description |
+
+Both queries also return our Track B `generic` metric concept, so the two
+representations are found side by side.
+
+### 2. Can it find the `definition` link? **Yes — but only through one tool.**
+
+| tool | link visible? |
+|---|---|
+| `lookup_entry(table, view=ALL)` | **NO** — 10,864 chars, no link, no term |
+| `lookup_context(table)` | **YES** |
+
+`lookup_context` — *"rich metadata regarding one or more data assets along with
+their relationships"* — resolves the link and renders the term **inline on the
+column**:
+
+```yaml
+ - name: balance
+   type: FLOAT
+   description: The total balance of the account at the end of the snapshot month.
+   mode: NULLABLE
+   terms: 'Average Monthly Balance; Average end-of-month account balance. AVG over
+     balance_snapshots.balance, which is semi-additive: average it across months,
+     never SUM it.'
+```
+
+It takes `resources`, not `entry`, and requires the full
+`projects/…/entryGroups/…/entries/…` form — a BigQuery resource path is rejected.
+
+**`lookup_context` also returns everything else we project**: the `overview`
+body, the schema with our column descriptions, and `sampleQueries`. It is the
+one tool that returns the whole projection resolved. 34,541 chars against
+`lookup_entry`'s 10,864 at `view=ALL`.
+
+### 3. This corrects what was recorded last section
+
+The claim *"every structural relationship channel in Knowledge Catalog is so far
+unreadable by the agents that would need it"* is **too strong**. It holds for
+`schema-join` (v7: not consumed by CA) and for `related` (no tool reads it), but
+**`definition` is readable** — the same channel v7 found is the one thing the CA
+API consumes. It is the exception on both consumer paths, not just CA's.
+
+The qualifier that survives: it is readable **only via `lookup_context`**, and
+Phase 8's Arm D called that tool in a minority of runs. Availability still is not
+retrieval.
+
+### 4. What kcmd would need to map a metric → term + link
+
+All primitives already exist:
+
+| need | exists? |
+|---|---|
+| create glossary / term | `gcp/dataplex.ts::createGlossary`, `createGlossaryTerm` |
+| create the `definition` link | `gcp/dataplex.ts::createEntryLink`, used twice in `sync.ts` |
+| serialize a term | `snapshot.ts::toServiceGlossaryTerm` / `toLocalGlossaryTerm` |
+| a glossary as a source | `sources/glossary.ts` |
+| link type alias | `definition` in `resourcealias.ts` |
+| manifest plumbing | `snapshotConfig.entryLinks`, `publishingConfig.entryLinks` |
+
+And the metric concept already carries its target column — the body has a
+key/value table with `| Table | [balance_snapshots](…) |`, `` | `column` |
+`balance` | `` and `` | `period` | `snapshot_month` | ``, parseable with the same
+markdown-table reader `schemaFields` already uses.
+
+So the mapping is: `references/metrics/<t>__<m>.md` → a glossary term
+(`display_name` = title, `description` = description) + a `definition` EntryLink
+from `<table entry>` `Schema.<column>` to the term. Nothing new is required from
+Dataplex or from kcmd — only wiring in our shim.
+
+**Joins have no equivalent.** There is no native join entry type (probed:
+`join`, `metric`, `measure`, `dimension` all absent; `glossary-term`,
+`data-product`, `looker-explore` present), and `schema-join` is measured
+unconsumed. A join stays a `generic` concept.
+
+> **LIVE RESOURCE.** The probe glossary is still attached to
+> `balance_snapshots.balance` and will show in the UI and in `lookup_context`.
+> Remove with `python okf-review/probe_glossary.py --teardown`.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

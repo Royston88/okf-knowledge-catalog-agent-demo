@@ -461,6 +461,7 @@ All in `royston-dev-8253`. Nothing else in the project was modified.
 | BigQuery dataset | `cymbal_bank_v6z_scaffold_demo_copy` (US, 13 tables) |
 | Dataplex EntryGroup | `okf_cymbal_v6z` (location `us`) — **now holds 54 entries** |
 | Dataplex AspectType | `okf` (location `us`) — extended with `verified`/`status`/`stale_after` |
+| Glossary `okf-metric-probe` (us) | **probe, still live** — term `avg-monthly-balance` attached to `balance_snapshots.balance`. `python okf-review/probe_glossary.py --teardown` |
 | DataScans (27, `us-central1`) | `kc-prof-v6z-scaffold-copy-*` (13), `kc-doc-v6z-scaffold-copy-*` (13), `kc-rel-v6z-scaffold-copy` (1) |
 
 The Phase 3 smoke-test aspect written to `…/tables/accounts` **was deleted**;
