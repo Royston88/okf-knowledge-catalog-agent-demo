@@ -425,9 +425,12 @@ Material already in hand for it:
   (`transactions.md` selecting `a.status`, which `accounts` does not have).
   All 53 blocks now validate against BigQuery. Re-run the check with a dry-run
   sweep before trusting any future bundle — reading the SQL missed it twice.
-- **All 14 asset-backed concepts are now signed off**, so the scan can no longer
-  refresh `descriptions`/`queries` anywhere in this dataset; the bundle owns
-  them outright. The 39 joins/metrics still carry the arbitrary every-other-one
+- **All 14 asset-backed concepts are now signed off**, so the scan no longer
+  refreshes `descriptions`/`queries` anywhere in this dataset — but everything
+  else still does: `schema`/`storage`/`bigquery-*` track BigQuery, profile
+  results still refresh, and `schema-join` EntryLinks are entirely untouched
+  (no link has ever had `userManaged` set). The scans still run and succeed;
+  the doc scan computes fresh content and declines to write it. The 39 joins/metrics still carry the arbitrary every-other-one
   flags from the original control split — inert today, but unearned.
 - **The `index.md` layer has no projection.** Either give the 6 files
   frontmatter, or teach the shim to synthesize directory entries the way

@@ -1539,6 +1539,57 @@ full column coverage on every table (7/7, 3/3, 8/8, …)
    `descriptions`/`queries` aspects), but they are a claim the bundle has not
    earned.
 
+## Correction: "the scan can no longer refresh anything" is too broad
+
+It refreshes plenty. What it no longer refreshes is **two aspects**.
+
+Triggered all three scan families against `accounts` after full sign-off —
+`kc-prof-…-accounts` (DATA_PROFILE), `kc-doc-…-accounts` (table
+DATA_DOCUMENTATION) and `kc-rel-…` (dataset-scope, the relationship scan). **All
+three SUCCEEDED.** Then fingerprinted every aspect on the entry:
+
+```
+bigquery-policy  unchanged      descriptions  unchanged   <- frozen by userManaged
+bigquery-table   unchanged      queries       unchanged   <- frozen by userManaged
+schema           unchanged      overview      unchanged
+storage          unchanged      okf           unchanged
+
+entry updateTime: 2026-08-13T09:59:17.585737Z  ->  2026-08-13T09:59:17.585737Z
+```
+
+Identical to the microsecond. So: **the scans still run, still succeed, still
+cost their compute — and the documentation scan computes fresh content and then
+declines to write it.**
+
+### What is actually frozen, and what is not
+
+| channel | who writes it | state now |
+|---|---|---|
+| `descriptions` (table + column docs) | table DATA_DOCUMENTATION scan | **FROZEN** — bundle-owned |
+| `queries` (suggested SQL) | table DATA_DOCUMENTATION scan | **FROZEN** — bundle-owned |
+| `overview` | nobody but us | bundle-owned, uncontested |
+| `okf` | nobody but us | bundle-owned, custom type |
+| `schema`, `storage`, `bigquery-table`, `bigquery-policy` | derived from BigQuery itself | **still live** — track the table, not the scan |
+| DATA_PROFILE results | the 13 profile scans | **still refresh** — and note there is no `data-profile` aspect on these entries at all in this configuration; the results live on the scan job |
+| `schema-join` EntryLinks | dataset-scope DATA_DOCUMENTATION scan | **still refresh** — `userManaged` was never set on any link, so relationship inference is entirely untouched |
+
+That last row matters twice over: it is why the Phase 7 joins arm is still a
+meaningful experiment, and it is why Measurement B's drift floor (a third of
+joins vanishing between runs) is still live behaviour on this dataset.
+
+### The practical consequence
+
+Adding a column to a table would update `schema` automatically — it is derived
+from BigQuery — but `descriptions.fields` would gain nothing, because the bundle
+owns it and the scan may not touch it. The new column would sit undescribed
+until someone adds it to the bundle. **Reasoned, not tested**: verifying it
+means an `ALTER TABLE ADD COLUMN` on the copy dataset.
+
+There is also a standing cost worth naming: the 13 table documentation scans now
+do their LLM work and discard it. Disabling them would save that, at the price
+of losing the ability to release a table and have the scan repopulate it —
+which is exactly the mechanism the `verified: false` path depends on.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
