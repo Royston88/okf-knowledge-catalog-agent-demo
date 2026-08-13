@@ -335,6 +335,52 @@ each pull, or pin a shared YAML style), and it is a **tooling** requirement, not
 evidence against the model. Recorded here so F is not run against a diff that is
 99% noise.
 
+## Measurement D — the extended trust tier survives projection: PASS
+
+Tests our own schema extension. `verified`, `status` and `stale_after` are OKF
+v0.2 fields the shipped aspect schema omits; `okf-aspect.json` adds them and
+`SIGNAL_KEYS` carries them. Nothing had ever exercised them — the bundle has
+`status: stable` on 39 concepts and **zero** `verified` or `stale_after`.
+
+A matrix was injected into a scratch copy of the bundle (the bundle itself was
+not mutated — Phase 6's sign-off is a deliberate separate step, and editing it
+here would corrupt Measurement F), pushed, pulled, and compared.
+
+| Concept | Tier under test | Result |
+|---|---|---|
+| `tables/accounts` | human-reviewed: `status: draft` + `verified: [human:…]` + `stale_after` | **PASS** all three |
+| `tables/customers` | machine-confirmed: single non-human `verified` actor | **PASS** |
+| `tables/payments` | 2-element `verified` array (machine **then** human) + `stale_after` | **PASS**, order preserved |
+| `references/joins/accounts__transactions` | `status: deprecated` | **PASS** |
+| `tables/calendar` | control — no `verified` key at all | **PASS**, absent both sides |
+
+Everything that matters here holds: all three fields survive; the record array
+survives with **cardinality and order intact**; non-default `status` values
+(`draft`, `deprecated`) survive, not just the `stable` the bundle already had;
+and **absence survives as absence** — the unverified tier does not come back as
+an empty array, which is what makes "no key = unverified" a usable distinction
+rather than an ambiguity.
+
+So the v0.2 trust tier was blocked by tooling, exactly like the Phase 3 finding
+about Track A. Knowledge Catalog stores it fine once the aspect type declares it.
+
+### The okf aspect write is a full replace, not a merge
+
+Found while restoring the catalog afterwards. Re-pushing the clean bundle — in
+which those concepts have no `verified` and no `stale_after` — **removed** the
+injected values rather than leaving them in place:
+
+```
+tables/accounts:  status=None  verified=None  stale_after=None
+references/joins/accounts__transactions:  status='stable'  ...   # its own value, restored
+```
+
+This is the behaviour OKF-as-source-of-truth needs: the bundle wins, and a field
+deleted from the bundle is deleted from the catalog. It also means the projection
+cannot be used to *augment* an entry incrementally — anything not in the bundle
+at push time is gone. Worth stating plainly in RESULTS.md, since it is the whole
+argument for keeping the bundle authoritative.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
