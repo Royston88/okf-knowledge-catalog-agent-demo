@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history
 title: Customer Segment History
-description: Historical log of customer tier assignments (retail, premier, private)
-  over time using a Slowly Changing Dimension (SCD) Type 2 structure.
+description: Historical log of customer tier assignments (retail, premier, private) over time using a
+  Slowly Changing Dimension (SCD) Type 2 structure.
 tags:
 - customer-segmentation
 - scd-type-2
@@ -14,8 +14,8 @@ generated:
   at: '2026-08-12T20:52:28+00:00'
 sources:
 - id: bq-metadata
-  title: BigQuery Table Metadata and Schema
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history
+  title: BigQuery Table Metadata and Schema
 ---
 
 The `customer_segment_history` table resides within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset and stores the historical progression of customer loyalty and service tier assignments over time. Structured as a Slowly Changing Dimension (SCD) Type 2 table[^bq-metadata], it enables historical auditing and point-in-time reporting of customer tier statuses (such as retail, premier, or private). The table contains 827 rows of historical segment shifts[^bq-metadata], facilitating trend analysis on tier progression and retention.

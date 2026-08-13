@@ -2,8 +2,8 @@
 type: BigQuery Dataset
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy
 title: Cymbal Bank Scaffold Demo (Copy)
-description: A simulated retail banking dataset modeling customers, accounts, transactions,
-  and loans for testing the OKF projector mechanism.
+description: A simulated retail banking dataset modeling customers, accounts, transactions, and loans
+  for testing the OKF projector mechanism.
 tags:
 - financial-data
 - demo-dataset

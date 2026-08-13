@@ -12,9 +12,9 @@ generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:59:24+00:00'
 sources:
-- title: BigQuery Table Metadata and Data Profile
+- id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/transactions
-  id: bq-metadata
+  title: BigQuery Table Metadata and Data Profile
 ---
 
 The `transactions` table contains transaction-level ledger records tracking financial transactions made by account holders within the [Cymbal Bank dataset](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md).[^bq-metadata] The grain of this table is one row per individual transaction. The table contains approximately 20,000 records spanning a temporal range from 2023 through 2026, capturing a comprehensive history of customer purchasing activities and utility payments.

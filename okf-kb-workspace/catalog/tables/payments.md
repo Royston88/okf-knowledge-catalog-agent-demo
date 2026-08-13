@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments
 title: Payments
-description: A ledger of customer payment transactions across multiple channels (ACH,
-  card, Zelle, wire, and check).
+description: A ledger of customer payment transactions across multiple channels (ACH, card, Zelle, wire,
+  and check).
 tags:
 - payments
 - transaction-ledger

@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_investors
 title: Loan Investors
-description: A junction table that records the financial allocation and participation
-  tier of institutional investors in loan applications.
+description: A junction table that records the financial allocation and participation tier of institutional
+  investors in loan applications.
 tags:
 - loans
 - investors

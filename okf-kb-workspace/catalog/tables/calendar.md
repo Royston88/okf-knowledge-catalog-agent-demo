@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/calendar
 title: Calendar
-description: A standard reference dimension table containing calendar and fiscal date
-  attributes from May 1, 2023, through April 30, 2026.
+description: A standard reference dimension table containing calendar and fiscal date attributes from
+  May 1, 2023, through April 30, 2026.
 tags:
 - reference
 - dimension

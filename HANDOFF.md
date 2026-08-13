@@ -49,9 +49,11 @@ state is git: this branch's commits are the real handoff.
 | Measurement C — round-trip fidelity | **taken.** Byte-unstable, semantically clean |
 | Measurement D — extended trust tier | **taken. PASS**, all tiers |
 | Track A — `okf` aspect onto `@bigquery` entries | **done.** 14/14 entries carry it |
-| 6 — review + sign-off | **not started** — next task, see §4.1 |
+| 6 — canonical formatter + Measurement F | **done.** Diff goes 53/53 noise → 1 real |
+| 6 — join triage + sign-off | **not started** — next task, see §4.1 |
 | 7, 8 | not started |
-| Measurements F, G | not taken |
+| Measurement F | **taken.** PASS, conditional on the new canonicaliser |
+| Measurement G | not taken |
 
 The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
 classes (`generate_models/okf` × 39, `reference_agent/gemini-3.5-flash` × 14).
@@ -230,22 +232,51 @@ around in `fromStaging`.
 
 In order. Definitions are in the plan; these are the deltas.
 
-### 4.1 Phase 6 — review and sign-off — NEXT
+### 4.1 Phase 6, part 2 — join triage + sign-off — NEXT
 
-Measurement F (is the diff reviewable), `join_triage.yaml` against JT1–JT4,
-sign-off `verified: [{by: human:<id>}]` on ~half the concepts, flag off on the
-rest (that split is the control — **do not flag everything**).
+Part 1 (the canonical formatter and Measurement F) is **done** — see below.
+What remains:
 
-> **Measurement C changes how F must be run.** A raw `git diff` of a pulled
-> bundle is ~100% YAML-serializer churn (0/53 files byte-identical, all
-> semantically clean bar one). Canonically format the bundle first — re-emit
-> through the same writer after each pull, or pin a shared YAML style — or F
-> will be measuring noise. The mechanics of that formatter are unbuilt; building
-> it is the first task of this phase.
+1. **`join_triage.yaml` against JT1–JT4.** Note Measurement B already found
+   that **JT3 (grain mismatch, `snapshot_month -> cal_date`, month vs day) is
+   absent from this capture** — the triage list is per-capture. Do not
+   manufacture it; record which JT cases the capture actually presents.
+2. **Sign-off.** Write `verified: [{by: human:<id>, at: …}]` onto ~half the
+   concepts and leave the rest unflagged. **That split is the control — do not
+   flag everything**, or Phase 7 has nothing to compare against. Record which
+   half and why.
+3. Resolve the two open content items at sign-off (dedup direction, invented
+   columns) — see "Open items carried forward".
 
-Sign-off writes go into the bundle and then project with the existing
-`push.ts` / `push-track-a.ts`. Measurement D already proved `verified` survives
-both directions, so this phase is authoring and review, not mechanism.
+Mechanism is already proven: Measurement D showed `verified` survives both
+directions, and Measurement F showed the sign-off diff will be reviewable.
+This part is authoring and judgement, not plumbing.
+
+**After any authoring pass, run the canonicaliser** — `reference_agent` writes
+non-canonical frontmatter every time:
+
+```bash
+python okf-review/canonicalize.py --write okf-bundle
+python okf-review/canonicalize.py --check okf-bundle
+```
+
+### 4.1b Phase 6, part 1 — canonical formatter + Measurement F — DONE
+
+`okf-review/canonicalize.py`. The bundle is now canonical (27 files
+reformatted, 0 semantic changes). Measurement F passes: the round-trip diff
+goes from 53/53 files of pure serializer noise to **1** file, which is the
+genuine duplicate-tag loss, plus the 6 known-unprojectable `index.md` files.
+
+The canonical style is a *choice* — the two producers disagreed — and the
+reasoning is in the tool's docstring. Two levels of key order were needed;
+top-level alone left 11 files of `sources[]` nested-order noise.
+
+Review a round trip with:
+
+```bash
+python okf-review/canonicalize.py --diff okf-bundle <pulled-tree>
+python okf-review/canonicalize.py --selftest   # guards reference_agent key-order drift
+```
 
 ### 4.2 Track A — DONE
 
@@ -351,6 +382,7 @@ okf-bundle/            THE SOURCE OF TRUTH — 53 concepts, 6 indexes
 kc-capture/            frozen rich KC snapshot (profile/, insights/, relationships.json)
 okf-emitter/           copied generator + spec + gen_okf.py + PROVENANCE.md
 okf-author/            author_bundle.py — KCBigQuerySource (profile -> the author)
+okf-review/            canonicalize.py — the review surface (Measurement F)
 kcmd/demo/okf/         ported shim: okf.ts, config.ts, push.ts, pull.ts, setup.ts,
                        push-track-a.ts, okf-aspect.json. ALL our fixes live here.
 kcmd/src/              the fork, UNMODIFIED. Two known defects, see §3.

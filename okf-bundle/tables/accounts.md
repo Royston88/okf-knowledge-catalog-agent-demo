@@ -2,8 +2,7 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/accounts
 title: Accounts
-description: Core table containing checking, savings, and credit accounts managed
-  by Cymbal Bank.
+description: Core table containing checking, savings, and credit accounts managed by Cymbal Bank.
 tags:
 - core
 - accounts

@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 payments"
+title: customers → payments
 description: One customer made many payments rows, joined on customer_id.
 tags:
 - join

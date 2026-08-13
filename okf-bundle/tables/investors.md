@@ -11,8 +11,8 @@ generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:53:36+00:00'
 sources:
-- resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors
-  id: bq-metadata
+- id: bq-metadata
+  resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors
   title: BigQuery Table Metadata and Data Profile
 ---
 

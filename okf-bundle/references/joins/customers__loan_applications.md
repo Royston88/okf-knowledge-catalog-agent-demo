@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 loan_applications"
+title: customers → loan_applications
 description: One customer applied_for many loan_applications rows, joined on customer_id.
 tags:
 - join

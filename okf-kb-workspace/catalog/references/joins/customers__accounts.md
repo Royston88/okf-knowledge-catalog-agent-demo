@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 accounts"
+title: customers → accounts
 description: One customer owns many accounts rows, joined on customer_id.
 tags:
 - join

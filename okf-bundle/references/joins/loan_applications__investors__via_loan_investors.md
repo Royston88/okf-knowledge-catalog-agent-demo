@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "loan_applications \u2194 investors (via loan_investors)"
+title: loan_applications ↔ investors (via loan_investors)
 description: loan_applications and investors are many-to-many; loan_investors is the bridge that resolves
   them.
 tags:

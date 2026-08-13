@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "accounts \u2194 customers (via account_owners)"
+title: accounts ↔ customers (via account_owners)
 description: accounts and customers are many-to-many; account_owners is the bridge that resolves them.
 tags:
 - join

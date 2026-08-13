@@ -2,8 +2,7 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_applications
 title: Loan Applications
-description: Encompasses the application pipeline and lifecycle dates for bank loan
-  products.
+description: Encompasses the application pipeline and lifecycle dates for bank loan products.
 tags:
 - loans
 - applications

@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 customers (referrer)"
+title: customers → customers (referrer)
 description: One customer referred_by many customers rows, joined on referred_by.
 tags:
 - join

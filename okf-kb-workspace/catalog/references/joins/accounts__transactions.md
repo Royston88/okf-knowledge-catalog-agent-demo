@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "accounts \u2192 transactions"
+title: accounts → transactions
 description: One account has_txn many transactions rows, joined on account_id.
 tags:
 - join

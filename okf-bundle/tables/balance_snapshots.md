@@ -11,9 +11,9 @@ generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:50:59+00:00'
 sources:
-- title: BigQuery Table Metadata
-  id: bq-meta
+- id: bq-meta
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/balance_snapshots
+  title: BigQuery Table Metadata
 ---
 
 The `balance_snapshots` table contains monthly end-of-month financial balance records for accounts in the Cymbal Bank system, located in the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-meta]. Each record stores the total balance of a specific bank account at the end of a given calendar month, enabling historical trend analysis and monthly financial reporting. While detailed transactional activity is tracked in the [transactions](transactions.md) table, this snapshot table provides pre-computed records that allow analysts to perform historical queries without reconstructing balances from individual transaction ledgers.

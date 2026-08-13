@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments
 title: Payments
-description: A ledger of customer payment transactions across multiple channels (ACH,
-  card, Zelle, wire, and check).
+description: A ledger of customer payment transactions across multiple channels (ACH, card, Zelle, wire,
+  and check).
 tags:
 - payments
 - transaction-ledger
@@ -12,9 +12,9 @@ generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:56:18+00:00'
 sources:
-- resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments
+- id: bq-metadata
+  resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments
   title: BigQuery Table Metadata and Data Profile
-  id: bq-metadata
 ---
 
 The `payments` table is a ledger of outgoing or incoming payment transactions initiated by customers within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. The grain of this table is one row per individual payment transaction, uniquely identified by a near-unique `payment_id`[^bq-metadata]. The dataset captures a historical range of 8,000 payments spanning from early 2024 through mid-2026[^bq-metadata].

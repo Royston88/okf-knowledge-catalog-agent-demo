@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 support_tickets"
+title: customers → support_tickets
 description: One customer opened many support_tickets rows, joined on customer_id.
 tags:
 - join

@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/wire_transfers
 title: Wire Transfers
-description: Logs outbound international wire transfers initiated by customers, specifying
-  transfer amounts, dates, and country corridors.
+description: Logs outbound international wire transfers initiated by customers, specifying transfer amounts,
+  dates, and country corridors.
 tags:
 - transactions
 - payments

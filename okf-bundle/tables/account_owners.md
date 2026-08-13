@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners
 title: Account Owners
-description: A junction table establishing the ownership mapping and roles between
-  customers and bank accounts.
+description: A junction table establishing the ownership mapping and roles between customers and bank
+  accounts.
 tags:
 - account-ownership
 - junction-table
@@ -14,8 +14,8 @@ generated:
   at: '2026-08-12T20:49:48+00:00'
 sources:
 - id: bq-metadata
-  title: BigQuery Table Metadata for account_owners
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners
+  title: BigQuery Table Metadata for account_owners
 ---
 
 The `account_owners` table functions as a junction (many-to-many resolved mapping) table within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. It maps the relationship between [customers](customers.md) and their bank [accounts](accounts.md)[^bq-metadata]. Each row represents a unique association between a specific customer and an account, defined by their respective IDs and the nature of their ownership.

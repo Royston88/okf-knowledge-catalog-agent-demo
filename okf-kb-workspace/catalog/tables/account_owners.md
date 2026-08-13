@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners
 title: Account Owners
-description: A junction table establishing the ownership mapping and roles between
-  customers and bank accounts.
+description: A junction table establishing the ownership mapping and roles between customers and bank
+  accounts.
 tags:
 - account-ownership
 - junction-table

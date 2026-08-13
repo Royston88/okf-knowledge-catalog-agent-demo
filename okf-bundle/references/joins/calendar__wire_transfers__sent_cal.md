@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "calendar \u2192 wire_transfers (sent_cal)"
+title: calendar → wire_transfers (sent_cal)
 description: One calendar_day wire_sent_on many wire_transfers rows, joined on sent_date.
 tags:
 - join

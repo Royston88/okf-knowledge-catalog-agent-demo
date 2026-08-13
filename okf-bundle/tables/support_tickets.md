@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/support_tickets
 title: Support Tickets
-description: A table containing support ticket records created by customers across
-  various communication channels, tracking creation dates and priorities.
+description: A table containing support ticket records created by customers across various communication
+  channels, tracking creation dates and priorities.
 tags:
 - support
 - operations
@@ -14,8 +14,8 @@ generated:
   at: '2026-08-12T20:56:54+00:00'
 sources:
 - id: support-tickets-meta
-  title: BigQuery Metadata for support_tickets
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/support_tickets
+  title: BigQuery Metadata for support_tickets
 ---
 
 The `support_tickets` table stores operational records of support requests and customer service queries submitted by clients. This table is a part of the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^support-tickets-meta]. The grain of the table is one row per unique support ticket, with a total volume of 1,500 tickets recorded[^support-tickets-meta].

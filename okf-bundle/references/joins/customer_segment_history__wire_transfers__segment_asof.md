@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customer_segment_history \u2192 wire_transfers (segment_asof)"
+title: customer_segment_history → wire_transfers (segment_asof)
 description: One segment_version segment_at_wire many wire_transfers rows, joined on customer_id.
 tags:
 - join

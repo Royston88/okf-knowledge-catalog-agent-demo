@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customers
 title: Customers
-description: Contains demographic, geographic, and account segment profiles for Cymbal
-  Bank customers, including referral connections.
+description: Contains demographic, geographic, and account segment profiles for Cymbal Bank customers,
+  including referral connections.
 tags:
 - customers
 - demographics

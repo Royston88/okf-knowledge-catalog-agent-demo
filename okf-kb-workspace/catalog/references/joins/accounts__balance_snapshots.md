@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "accounts \u2192 balance_snapshots"
+title: accounts → balance_snapshots
 description: One account snapshotted many balance_snapshots rows, joined on account_id.
 tags:
 - join

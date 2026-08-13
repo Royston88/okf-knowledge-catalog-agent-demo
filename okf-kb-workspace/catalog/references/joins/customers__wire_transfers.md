@@ -1,6 +1,6 @@
 ---
 type: Join
-title: "customers \u2192 wire_transfers"
+title: customers → wire_transfers
 description: One customer sent many wire_transfers rows, joined on customer_id.
 tags:
 - join

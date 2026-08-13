@@ -444,6 +444,81 @@ taking.** Recorded here rather than decided, because it changes what G means.
 Both aspects survived the Track A push intact, which also confirms the
 publishing filter does what it claims.
 
+## Measurement F — is the projection diff reviewable? Yes, but only with a tool that did not exist
+
+F asks whether a human can review what the projection round trip produces. The
+answer turns entirely on canonical formatting, which is why Measurement C
+flagged it as a prerequisite.
+
+| | files differing | what a reviewer sees |
+|---|---|---|
+| raw `diff` | **53 / 53** | 100% YAML-serializer churn. Unreviewable. |
+| canonical `diff` | **1 / 53** | the one genuine loss, and nothing else |
+
+The single surviving difference is the duplicate-tag collapse already named in
+Measurement A.3 — `[join, one-to-many, customers, customers]` returning three
+tags. Plus the 6 `index.md` files, which report as *only in bundle* because they
+do not project at all (A.2). **Both are real findings, and after
+canonicalisation they are the only things in the diff.** That is the pass.
+
+### Building the canonicaliser: `okf-review/canonicalize.py`
+
+Two things had to be settled, and only the first was mechanical.
+
+**1. The canonical style is a choice, not a discovery.** The bundle's two
+producers disagree, so there was no existing convention to adopt:
+
+| producer | width | allow_unicode |
+|---|---|---|
+| `okf-emitter/gen_okf.py::_fm` | 100 | False |
+| `reference_agent` `OKFDocument.serialize` | 80 (default) | True |
+
+| candidate | files reformatted | titles left holding `\uXXXX` |
+|---|---|---|
+| gen_okf (w=100, escaped) | 11 | 13 |
+| agent (w=80, unicode) | 20 | 0 |
+| **chosen (w=100, unicode)** | **24** | **0** |
+
+The chosen style reformats the most files and is still right, *because F is a
+question about human legibility*: 13 join concepts are titled
+`customers → customers (referrer)`, and gen_okf's style renders that
+`"customers \u2192 customers (referrer)"` for a quarter of the bundle. A wider
+wrap also means editing one word of a `description` rewraps fewer lines, so a
+later diff shows the edit rather than the reflow. Reformatting is a one-time
+cost; legibility is permanent.
+
+**2. Top-level key order was not enough.** Ordering only the frontmatter keys
+left **12** differing files. Eleven of them differed on nothing but the key
+order *inside* `sources[]` list items: the round trip returns `id, resource,
+title` (that is `fromStaging`'s `pick` order) while `reference_agent` emitted
+whatever order the model happened to produce. Canonicalising one level down —
+`sources` → `(id, resource, title)`, `generated`/`verified` → `(by, at)` — took
+12 to 1. Without that step F would have reported a 12-file diff of which 11
+were noise, and the noise would have looked like content.
+
+### The bundle is now canonical, and the reformat changed nothing
+
+`--write` over `okf-bundle/`: **27 files reformatted, 51 insertions / 53
+deletions, 0 semantic changes** — verified by parsing every touched file at
+`HEAD` and in the working tree and comparing frontmatter-as-data plus stripped
+body. The tool is idempotent (`--check` clean immediately after `--write`) and
+has a `--selftest` that fails if `reference_agent`'s `_PREFERRED_KEY_ORDER`
+drifts from the copy embedded here.
+
+### What this constrains
+
+- **"Is OKF-as-source-of-truth reviewable?" — yes, conditionally.** The diff is
+  clean and the signal is exactly the real losses. But out of the box it is
+  100% noise; the review surface only exists because a canonicaliser was built
+  for it. That belongs in the RESULTS.md cost column next to the two fork
+  defects, not in the win column.
+- **Canonicalisation is a required post-authoring step, not a tidy-up.**
+  `reference_agent` writes non-canonical frontmatter every time it authors, so
+  Phase 6 sign-off and any future authoring pass must run `--write` afterwards
+  or the next diff is noisy again.
+- Phase 6's sign-off edits can now be reviewed as a diff, which is what makes
+  the half-flagged/half-unflagged control legible.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

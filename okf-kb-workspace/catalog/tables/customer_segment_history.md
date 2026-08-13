@@ -2,8 +2,8 @@
 type: BigQuery Table
 resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history
 title: Customer Segment History
-description: Historical log of customer tier assignments (retail, premier, private)
-  over time using a Slowly Changing Dimension (SCD) Type 2 structure.
+description: Historical log of customer tier assignments (retail, premier, private) over time using a
+  Slowly Changing Dimension (SCD) Type 2 structure.
 tags:
 - customer-segmentation
 - scd-type-2
