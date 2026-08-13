@@ -1890,6 +1890,58 @@ Our bundle already splits along that line: `tables/*.md` `# Schema` rows are
 descriptions; `references/metrics/*.md` are the reusable concepts. The mapping
 falls out — metrics become terms, schema rows stay descriptions.
 
+## Which EntryLink types an agent can actually read — all three tested
+
+Direct answer to "keep everything as a custom entry type and link with tables?"
+**Measured: the link would be unreadable.**
+
+| link type | target allowed | created? | readable by an agent? |
+|---|---|---|---|
+| `related` | any entry | **yes** (undirected — both refs `UNSPECIFIED`; `SOURCE`/`TARGET` is rejected) | **NO.** Invisible to all 24 tools, `lookup_context` included |
+| `definition` | **glossary term ONLY** | generic target **rejected**: *"Entry … is invalid for the specified Entry Link Type"* | **YES** — `lookup_context` renders it inline on the column as `terms:` |
+| `schema-join` | table ↔ table | yes | not consumed as a join hint (v7 FU5) |
+
+The `related` test was thorough: `get_entry_link` confirms the link exists
+server-side (`type: related`), and `lookup_context` on the table still does not
+mention the target after 75s. `lookup_context` *does* have a `relatedResources`
+section — it contains the parent **dataset**, i.e. ancestry, not EntryLinks.
+
+**So type choice cannot fix discoverability.** Keeping concepts as `generic` is
+fine for storage, but the only readable link mechanism requires the target to be
+a **glossary term**. There is no readable link from a table to a `generic`
+concept, whatever we call it.
+
+### That leaves exactly two channels that reach an agent
+
+1. **Glossary term + `definition` link** — measured working, but constrains the
+   shape: a term attached to a column. Fits metrics and shared vocabulary; does
+   not fit a join.
+2. **The table entry's own aspects** (`overview`, `descriptions`) — which we
+   already own, and which **both** `lookup_context` *and*
+   `lookup_entry(view=ALL)` return.
+
+Channel 2 needs no links, no new types and no unread mechanisms, and it is the
+one the q4 evidence points at: the agent **did** fetch the `accounts` table
+concept on all three reps. Had the zero-fill rule been in that document, it
+would have been read. It was one `lookup-entry` away, in a document the agent
+never thought to ask for.
+
+### The plan this implies
+
+**Emit a "Related concepts" section into each table concept**, listing that
+table's joins and metrics — each with its one-line description *and* its catalog
+entry name. The description means the agent often needs no second call; the
+entry name makes the second call possible when it does.
+
+- Serves **both** arms from one change: Arm K reads the bundle (relative links
+  already resolve there), Arm D reads the same text via `overview`.
+- No catalog features, no new entry types, no links.
+- Cost is duplication — but both sides are emitted from one `spec.yaml`, so the
+  copies cannot drift from each other.
+
+Glossary terms stay a **second, optional** layer for the genuinely shared
+vocabulary (`segment`, `customer_id`), where reuse is real.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

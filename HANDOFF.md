@@ -374,9 +374,12 @@ Material already in hand for it:
   no reference. Dataplex EntryLinks (`related`, `schema-join`) would model it
   and kcmd already has the plumbing — **but the dataplex MCP toolbox exposes 24
   tools and none of them reads entry links**, so it would be invisible to an
-  agent. Recommended fix: have the projector rewrite relative paths into catalog
-  entry names, so the body carries references an agent can hand to
-  `lookup_entry`. Not implemented.
+  agent. **Measured conclusion:** type choice cannot fix this. `related` links are
+  created fine and are invisible to all 24 tools including `lookup_context`;
+  `definition` links ARE readable but only accept a **glossary term** target
+  (a generic entry is rejected). So the fix is to put a "Related concepts"
+  section (one-line description + catalog entry name) into each TABLE concept,
+  which both arms already fetch. Not implemented.
 
 - **The projection rule is: always project overview + descriptions + queries,
   and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite
