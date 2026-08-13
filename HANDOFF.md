@@ -374,12 +374,15 @@ Material already in hand for it:
   no reference. Dataplex EntryLinks (`related`, `schema-join`) would model it
   and kcmd already has the plumbing — **but the dataplex MCP toolbox exposes 24
   tools and none of them reads entry links**, so it would be invisible to an
-  agent. **Measured conclusion:** type choice cannot fix this. `related` links are
-  created fine and are invisible to all 24 tools including `lookup_context`;
-  `definition` links ARE readable but only accept a **glossary term** target
-  (a generic entry is rejected). So the fix is to put a "Related concepts"
-  section (one-line description + catalog entry name) into each TABLE concept,
-  which both arms already fetch. Not implemented.
+  agent. **Measured conclusion (revised):** `CatalogServiceClient.lookup_entry_links`
+  traverses entry → links and returns `related`, `schema-join` and `definition`
+  alike. Earlier notes calling these channels "unreadable" were scoped to the
+  *prebuilt dataplex MCP toolbox*, which has no link tool — not to Knowledge
+  Catalog. A **custom ADK agent** can traverse them with a small function tool.
+  So: emit `related` links from each table to its joins/metrics (primary,
+  structured), keep a prose summary in `overview` as the no-link-tool fallback,
+  and use glossary `definition` links only for genuinely shared vocabulary.
+  Not implemented; a working `related` probe link exists on `accounts`.
 
 - **The projection rule is: always project overview + descriptions + queries,
   and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite

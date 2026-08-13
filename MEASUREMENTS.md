@@ -1942,6 +1942,76 @@ entry name makes the second call possible when it does.
 Glossary terms stay a **second, optional** layer for the genuinely shared
 vocabulary (`segment`, `customer_id`), where reuse is real.
 
+## MAJOR CORRECTION: entry links ARE traversable — `lookup_entry_links`
+
+Three sections above conclude that structural relationship channels are
+"unreadable by the agents that would need it". **That conclusion was
+wrong-scoped, three times.** It is true of the *prebuilt dataplex MCP toolbox*.
+It is false of Knowledge Catalog.
+
+`CatalogServiceClient.lookup_entry_links(name=<location>, entry=<entry>)` exists
+and traverses **from an entry to its links**. Measured on `accounts`:
+
+```
+schema-join  schema-join-4f575415-…
+schema-join  schema-join-61983f7f-…
+schema-join  schema-join-d3b7eed3-…
+schema-join  schema-join-703d1538-…
+related      okf-related-accounts-avgtxns
+               -> references/metrics/accounts__avg_txns_per_account
+```
+
+and on `balance_snapshots` it returns the `definition` link complete with
+`path=Schema.balance`. Request fields: `name`, `entry`, `entry_mode`,
+`entry_link_types` (so it can be filtered by type), `page_size`, `page_token`.
+
+The REST discovery document only lists `entryLinks.create/patch/get/delete` under
+`entryGroups`, which is what made this look absent — `lookupEntryLinks` hangs off
+the *location*, not the entry group, and I stopped looking after the 404 on
+`GET …/entryGroups/@bigquery/entryLinks`.
+
+### What this changes
+
+| consumer | can it traverse table → concept? |
+|---|---|
+| prebuilt dataplex MCP toolbox (24 tools) | **no** — no link tool; `lookup_context` surfaces only `definition` (as `terms:`) and ancestry |
+| BQ CA API | no (v7: `schema-join` not consumed) |
+| **custom ADK agent** | **YES** — a function tool wrapping `lookup_entry_links` is a few lines |
+
+Since the consumer here is **not restricted to BQ CA** and may be a custom ADK
+agent, the structural channels are viable after all, and the earlier
+recommendation was built on a false constraint.
+
+### Revised recommendation
+
+**Keeping every concept as a `generic` entry and linking it to its tables with
+`related` is a sound architecture** — measured working end to end. It beats the
+prose fallback on two counts: it is structured rather than duplicated text, and
+it covers **joins**, which the glossary route cannot express.
+
+The channels now rank by consumer reach, not by whether they work at all:
+
+| channel | structured? | toolbox | custom ADK | BQ CA |
+|---|---|---|---|---|
+| `related` link, generic concepts | yes | no | **yes** | no |
+| `definition` link, glossary terms | yes | **yes** | **yes** | **yes** |
+| `overview` / `descriptions` prose | no | **yes** | **yes** | partial* |
+
+\* v7: BQ CA consumes BigQuery's own table/column descriptions, not the Dataplex
+aspects.
+
+So the plan is **not** "prose instead of native constructs". It is:
+
+1. **`related` links from each table to its joins and metrics** — the primary
+   structural channel, plus a `lookup_entry_links` tool in the ADK agent. This
+   is the answer to the discovery gap, and it is what was asked about.
+2. **Keep the prose summary in `overview`** as the fallback that reaches
+   consumers with no link tool, and because it costs one emitter change.
+3. **Glossary terms only for genuinely shared vocabulary** (`segment`,
+   `customer_id`) — the one channel that reaches all three consumers.
+
+The `related` probe link is left in place on `accounts` as a working example.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
