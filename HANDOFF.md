@@ -101,11 +101,29 @@ export CLOUDSDK_COMPUTE_REGION=us     # per-invocation; mutates no gcloud config
 ```
 
 The kcmd subprocess also prints `Your active configuration is:
-[student-01--qwiklabs-…]`. That is `ApiContext.default()` shelling out to gcloud
-and reading the globally active config; it is **noise**, not a routing bug —
-identity comes from the ADC file above and the target from `catalog.yaml`'s
-`scope:`. Every entry it wrote landed in `royston-dev-8253`, verified by
-`list_entries`.
+[student-01--qwiklabs-…]`.
+
+> **CORRECTION — an earlier version of this file called that line "noise". It is
+> not.** `ApiContext.default()` shells out to gcloud and mints its bearer token
+> from the **globally active gcloud config's account**, which on this
+> workstation is `kenly@gcp.altostrat.com`, *not* the
+> `admin@kenly.altostrat.com` in `GOOGLE_APPLICATION_CREDENTIALS`. The ADC file
+> governs the **Python** clients only. So two different identities have been
+> writing to this catalog, and the kcmd one depends on whichever config happens
+> to be active — exactly the coupling CLAUDE.md rule 3 forbids, and exactly what
+> `demo/okf/config.ts`'s own PORT NOTE warned about for project/location while
+> missing it for the token.
+>
+> **Set the token explicitly.** `push-track-a.ts` now refuses to run without it:
+>
+> ```bash
+> export KCMD_ACCESS_TOKEN=$(gc admin--royston-dev-8253 gcloud auth print-access-token)
+> ```
+>
+> (`ApiContext.fromEnv()` prefers `KCMD_ACCESS_TOKEN` over gcloud.) The target
+> project/location still come from `catalog.yaml`'s `scope:`, and every entry
+> written did land in `royston-dev-8253`, verified by `list_entries` — the
+> destination was never wrong, only the identity was accidental.
 
 ### 2.3 Vertex model availability
 

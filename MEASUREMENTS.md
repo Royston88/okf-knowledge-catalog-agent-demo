@@ -825,6 +825,60 @@ between correct and trap on both arms across reps. This is directional, not a
 benchmark, and it is consistent with the author variance Measurement E already
 recorded.
 
+## Two Track A defects found on review (both fixed)
+
+Neither changed a published result — Track A still has the `okf` aspect on
+14/14 entries and the entry types are still the native
+`bigquery-table` / `bigquery-dataset` — but both were latent and both are the
+same failure mode as everything else here: silent.
+
+### 1. The entry type was hardcoded, and BigQuery has more than two
+
+`push-track-a.ts` mapped `tables/*.md -> dataplex-types.global.bigquery-table`
+by hand. That is right only because this dataset holds 13 `BASE TABLE`s and
+nothing else; BigQuery entries can equally be `bigquery-view`, `bigquery-model`
+or `bigquery-routine`, and a view would have been stamped `bigquery-table`.
+
+**No new entry types were ever defined** — those constants are the *aliases for
+the native Knowledge Catalog types* Dataplex had already assigned at ingest, and
+the live entries confirm they are unchanged. The defect is that the shim was
+*asserting* a type the catalog could simply be asked for.
+
+Why the type must be there at all: `snapshot.ts:446` uses it as a **publishing
+filter** — an entry whose `type` is absent from `catalog.yaml`'s
+`publishing.entries` is dropped and `push` still reports success. Precisely the
+Phase 5 blocker's mechanism, so a wrong type loses entries quietly.
+
+Fixed by reading the live `entryType` per entry and normalising it. That
+normalisation is itself load-bearing: the service returns the built-in types
+qualified by project **NUMBER** (`655216118709.global.bigquery-table`) while the
+allowlist is written with the project **ID** alias
+(`dataplex-types.global.…`) — the same ID/number asymmetry the Phase 3 smoke
+test found on aspect keys. Comparing the raw form would have dropped all 14.
+The script now also **throws** if a derived type is not in the allowlist,
+converting a silent drop into a loud error.
+
+### 2. The kcmd CLI was authenticating as the wrong identity
+
+`ApiContext.default()` mints its bearer token from the **globally active gcloud
+config's account** — `kenly@gcp.altostrat.com` on this workstation — not from
+the `admin@kenly.altostrat.com` in `GOOGLE_APPLICATION_CREDENTIALS`, which
+governs the Python clients only. So every `kcmd push` in this work ran as an
+identity nobody chose, and it worked only because that account happens to have
+access.
+
+An earlier revision of `HANDOFF.md` §2.2 explicitly dismissed the
+`Your active configuration is: [student-01--qwiklabs-…]` line as "noise, not a
+routing bug". **That was wrong**, and it is corrected there now. `config.ts`'s
+own PORT NOTE had caught this for project and location and missed it for the
+token.
+
+The destination was never at risk — that comes from `catalog.yaml`'s `scope:`,
+and all writes landed in `royston-dev-8253`. Only the identity was accidental,
+and on a workstation where the active config points at an unrelated project it
+would have failed confusingly rather than safely. `push-track-a.ts` now refuses
+to run unless `KCMD_ACCESS_TOKEN` is set explicitly.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
