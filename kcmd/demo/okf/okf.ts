@@ -82,7 +82,19 @@ function pick(obj: any, keys: string[]): any {
 // otherwise treats the whole name as the entry id, so `tables/accounts` maps to
 // `<entryGroup>/entries/tables/accounts`. This mirrors what the fork's own
 // `OkfLayout.deriveEntryName` does for x-kcmd-less files.
-export function toStaging(content: string, okfKey: string, entryName: string): string {
+//
+// `entryType` defaults to the generic Dataplex type used for Track B's
+// standalone concepts. Track A projects onto entries that Dataplex has ALREADY
+// ingested (`@bigquery` tables and datasets), whose type is fixed and must be
+// echoed back rather than overwritten with `generic` — so it passes the real
+// one. The `generic` aspect is emitted only for generic entries, since it is
+// required exactly when the entry type requires it.
+export function toStaging(
+  content: string,
+  okfKey: string,
+  entryName: string,
+  entryType: string = ENTRY_TYPE,
+): string {
   const { meta, body } = splitFrontmatter(content);
   if (!meta) {
     return content;
@@ -99,12 +111,15 @@ export function toStaging(content: string, okfKey: string, entryName: string): s
   // with `type: undefined` and `push` skipped every one of them while still
   // reporting "Successfully pushed catalog entries". Setting the Dataplex entry
   // type explicitly reproduces upstream's effective behaviour.
-  staged.type = ENTRY_TYPE;
+  staged.type = entryType;
+  const aspects: any = {};
+  if (entryType === ENTRY_TYPE) {
+    aspects[GENERIC_ASPECT_KEY] = { type: meta.type, system: 'okf' };
+  }
   staged.catalogEntry = {
     name: entryName,
     resource: { name: meta.resource },
-    aspects: {
-      [GENERIC_ASPECT_KEY]: { type: meta.type, system: 'okf' },
+    aspects: Object.assign(aspects, {
       [okfKey]: pick(
         {
           okf_type: meta.type,
@@ -116,7 +131,7 @@ export function toStaging(content: string, okfKey: string, entryName: string): s
         },
         SIGNAL_KEYS,
       ),
-    },
+    }),
   };
   return render(staged, body);
 }

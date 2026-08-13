@@ -381,6 +381,69 @@ cannot be used to *augment* an entry incrementally — anything not in the bundl
 at push time is gone. Worth stating plainly in RESULTS.md, since it is the whole
 argument for keeping the bundle authoritative.
 
+## Track A — the okf aspect on the ingested `@bigquery` entries: 14/14
+
+The projection that actually matters for the agent story. Track B's EntryGroup
+holds abstract concepts in a side catalog; Track A attaches the signal layer to
+the BigQuery entries an analyst's tooling already looks at.
+
+`kcmd/demo/okf/push-track-a.ts` maps the 14 asset-backed concepts
+(`tables/*.md` + `datasets/*.md` — joins and metrics have no ingested entry to
+attach to) onto `BigQueryDatasetSource`'s local names,
+`bigquery/<project>/<dataset>/<table>`, and pushes through the same shim.
+
+**Result: the `okf` aspect is present on 14/14 `@bigquery` entries**, carrying
+`okf_type`, `generated.by`, `generated.at` and `sources`. Phase 3's smoke test
+proved one write by hand; this is the whole set, projected from the bundle.
+
+Two things the mapping had to respect, both different from Track B:
+
+- **The entry type is fixed by ingestion and must be echoed back.** These are
+  `bigquery-table` / `bigquery-dataset`, not `generic`. `toStaging` grew an
+  `entryType` parameter, and it emits the `generic` *aspect* only for `generic`
+  entries — that aspect is required exactly when the type requires it.
+- **`ingestedEntries` is true**, so no synthetic index entries may be created.
+
+### Scope decision: the okf aspect only, nothing else
+
+`catalog.yaml`'s `publishing.aspects` lists only `royston-dev-8253.us.okf`. The
+concept body is deliberately **not** written into these entries, so whatever
+Dataplex generated for them is left exactly as the Phase 2 scan produced it —
+an untouched control for Phase 7, which has to tell "the re-scan overwrote
+curated content" apart from "the content was never there".
+
+### Finding that changes Phase 7: there is no `overview` aspect here at all
+
+The plan assumes curated content lives in `overview` and that Measurement G
+watches a `<!-- curated:v1 -->` sentinel inside it. On these entries **`overview`
+does not exist** — it is absent from the aspect map, not merely empty. What the
+Phase 2 DATA_DOCUMENTATION scan actually wrote is two different aspects:
+
+```
+accounts aspect keys: bigquery-policy, bigquery-table, descriptions,
+                      okf, queries, schema, storage
+```
+
+- `655216118709.global.descriptions` — the generated table description, stamped
+  with the producing scan (`kc-doc-v6z-scaffold-copy-accounts`, run
+  2026-08-12T20:24:45Z)
+- `655216118709.global.queries` — the generated suggested SQL
+
+Both carry **`userManaged: false`**. That flag, not the sentinel, is the real
+mechanism Measurement G is about: it is how Knowledge Catalog marks content a
+re-scan is free to overwrite. (It is the same `userManaged` guard the v7
+relationships work ran into.)
+
+So Phase 7 needs a decision before it can run: put the sentinel in
+`descriptions` and see whether writing it flips `userManaged` to true and
+thereby protects it, or accept that the `okf` aspect — a custom aspect type, one
+no scan owns — is trivially safe and therefore not an interesting test. **The
+second reading makes G nearly vacuous, so the first is the measurement worth
+taking.** Recorded here rather than decided, because it changes what G means.
+
+Both aspects survived the Track A push intact, which also confirms the
+publishing filter does what it claims.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
