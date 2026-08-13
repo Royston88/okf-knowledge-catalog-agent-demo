@@ -953,6 +953,76 @@ catalog is not enough if the default read path omits it.* A "FULL" view that
 withholds the field a human would consider the whole point is a trap, and it is
 invisible — the call succeeds and returns a plausible-looking entry.
 
+## Forcing `view=ALL` — Arm Dall, and the two failures it separates
+
+Follow-up to the finding that the dataplex toolbox's `lookup_entry` withholds
+the concept body at its default view. **Can it be forced?** Yes, deterministically.
+
+### How
+
+An ADK `before_tool_callback` that rewrites the argument before the call:
+
+```python
+ENTRY_VIEW_ALL = 4   # Dataplex EntryView.ALL
+
+def _force_full_view(tool, args, tool_context):
+    if tool.name == "lookup_entry" and args.get("view") != ENTRY_VIEW_ALL:
+        args["view"] = ENTRY_VIEW_ALL
+    return None        # None = no override, proceed with the mutated args
+```
+
+This works because ADK hands the callback **the same dict** it later passes to
+the tool (`flows/llm_flows/functions.py:577` → `:589`), so an in-place mutation
+is what actually reaches the server. Verified by spying on the callback: the
+model called `lookup_entry` with **no `view` at all**, and the callback set it.
+
+Instructing the model to pass `view=4` in the prompt would not be equivalent —
+it is a request, not a guarantee, and the whole point is that the default is
+wrong. For a non-ADK consumer the equivalent is to stop using
+`--prebuilt dataplex` and supply a `--configs` tool file binding `view: 4`
+(untested here).
+
+### What it bought
+
+| arm | q1 | q2 | q3 | q4 | q5 | total |
+|---|---|---|---|---|---|---|
+| Arm K — bundle via kcmd | 2/3 | **3/3** | 3/3 | 0/3 | 3/3 | **11/15** |
+| Arm D — pre-enrichment | 1/3 | 0/3 | 3/3 | 0/3 | 3/3 | 7/15 |
+| Arm D — enriched catalog, default view | 0/3 | **0/3** | 3/3 | 0/3 | 3/3 | 6/15 |
+| **Arm Dall — enriched, `view=ALL` forced** | 0/3 | **2/3** | 3/3 | 0/3 | 3/3 | **8/15** |
+
+**q2 went 0/3 → 2/3, and the within-arm correlation is exact:**
+
+```
+rep0  lookup_entry called, view forced  -> correct
+rep1  lookup_entry NOT called           -> trap
+rep2  lookup_entry called, view forced  -> correct
+```
+
+Every run that actually reached the entry with `view=ALL` got it right. The one
+that trapped never called the tool. So the view was genuinely the blocker on
+that question, and forcing it is a real fix — not a prompt nudge that happened
+to help.
+
+### The two failures are now cleanly separated
+
+**1. Legibility — fixed.** The body was on the entry and the default read path
+withheld it. One forced argument recovers it, and q2 is the proof.
+
+**2. Retrieval — untouched, and now the dominant failure.** q1 is **0/3 across
+all three D variants**, and the tool trace is identical every time:
+`tools=['execute_sql']`. The model never consults the catalog for "how many
+accounts are there?", so no amount of fixing what `lookup_entry` returns can
+help — it is not called. Arm K's advantage on q1 survives for the same reason it
+always did: its tool surface offers no way to answer without listing entries
+first.
+
+**The generalisable claim.** Getting knowledge to an agent through a catalog has
+three independent failure points, and they need three different fixes:
+*published* (Track A), *returned by the default read path* (the view), and
+*actually requested* (tool-surface design or prompting). Fixing any one leaves
+the others intact — 6/15 → 8/15 is what fixing exactly one looks like.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

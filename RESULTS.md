@@ -140,10 +140,24 @@ versus 18,171.
 So the claim that survives is: *Arm K's `lookup-entry` returns the whole concept
 and Arm D's returns a summary with the prose stripped out.* The two arms were
 never reading comparable content, even once both were pointed at the same text.
-The generalisable lesson is not about OKF — **publishing knowledge to a catalog
-is worth nothing if the default read path omits it**, and a "FULL" view that
-withholds the field a human would consider the point is a trap that fails
-silently.
+
+**Forcing the view confirms it.** A fourth arm (`Dall`) forces `view=4 (ALL)` on
+every `lookup_entry` via an ADK `before_tool_callback` — deterministic, not a
+prompt request. **q2 goes 0/3 → 2/3, and both successes are exactly the runs
+that called the tool; the failure never called it.** Overall 6/15 → 8/15.
+
+That splits the problem into three independent failure points, each needing a
+different fix:
+
+1. **Published** — the knowledge must be on the entry (Track A).
+2. **Returned** — the default read path must not withhold it (the view).
+3. **Requested** — the agent must actually call the tool (tool-surface design).
+
+Fixing exactly one moved the score by two. q1 stayed **0/3 across every D
+variant** with the trace `tools=['execute_sql']` every time: the catalog is
+never consulted, so nothing about what it returns can matter. **Retrieval, not
+content, is now the dominant failure** — and it is the one thing OKF cannot
+address.
 
 **And q4 is a genuine negative: both arms 0/3.** Neither channel carries the
 zero-fill-cohort hazard, because nobody curated it into the bundle. A curated

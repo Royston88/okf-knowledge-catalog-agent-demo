@@ -5,9 +5,19 @@ NOT A CONTEST. The plan says so and the measurement bears it out: the two arms d
 not have comparable tool surfaces, so a score difference is not evidence about
 OKF. Report the confound, do not bury it.
 
-  Arm K tools: list-entries, lookup-entry, modify-entry   (kcmd MCP — NO SEARCH)
-  Arm D tools: the prebuilt dataplex toolbox              (search_entries,
-               lookup_entry, search_aspect_types, get_data_profile, …)
+  Arm K    tools: list-entries, lookup-entry, modify-entry  (kcmd MCP — NO SEARCH)
+  Arm D    tools: the prebuilt dataplex toolbox             (search_entries,
+                  lookup_entry, search_aspect_types, …)
+  Arm Dall tools: identical to Arm D, but every `lookup_entry` call is FORCED to
+                  `view=4 (ALL)` by a before_tool_callback.
+
+WHY Dall EXISTS. `lookup_entry`'s `view` defaults to `2 (FULL)`, and Dataplex's
+FULL means "all required aspects and the KEYS of non-required aspects". The
+concept body lives in `overview`, which is not required, so the default view
+returns its key and withholds its content — 3,619 chars against 18,171 at
+`view=4 (ALL)`. Arm D was structurally unable to read the enrichment projected
+onto the entries it was querying. Dall isolates that: same server, same prompt,
+same catalog, one argument forced.
 
 Arm K can only enumerate and fetch by exact name; Arm D can search semantically.
 That is a property of the two MCP servers, not of the metadata behind them.
@@ -62,6 +72,27 @@ def execute_sql(sql_query: str) -> dict:
         return {"status": "error", "message": str(e)}
 
 
+# Dataplex EntryView.ALL. `lookup_entry` defaults to FULL (2), which returns
+# non-required aspects as keys only — so the `overview` body never reaches the
+# model. Forcing the argument is deterministic; instructing the model to pass it
+# is not.
+ENTRY_VIEW_ALL = 4
+_FORCED: list[str] = []
+
+
+def _force_full_view(tool, args, tool_context):  # noqa: ANN001
+    """before_tool_callback: rewrite the args in place, then let the call run.
+
+    ADK hands the callback the SAME dict it later passes to the tool
+    (`flows/llm_flows/functions.py`), so mutating it here is what actually
+    reaches the server. Returning None means "no override, proceed".
+    """
+    if tool.name == "lookup_entry" and args.get("view") != ENTRY_VIEW_ALL:
+        args["view"] = ENTRY_VIEW_ALL
+        _FORCED.append(tool.name)
+    return None
+
+
 def build_agent(arm: str):
     from google.adk.agents import Agent
     from google.adk.models import Gemini
@@ -85,7 +116,7 @@ def build_agent(arm: str):
                   "--workspace", str(ROOT / "okf-agent" / "armk-workspace")],
             env=env,
         )
-    elif arm == "D":
+    elif arm in ("D", "Dall"):
         # The prebuilt dataplex toolbox reads its target from DATAPLEX_PROJECT /
         # DATAPLEX_LOCATION and refuses to start without the former. Point it at
         # the copy, in the catalog location where the @bigquery entries live —
@@ -103,12 +134,14 @@ def build_agent(arm: str):
     toolset = McpToolset(connection_params=StdioConnectionParams(
         server_params=params, timeout=120.0))
     return Agent(name=f"arm_{arm}", model=Gemini(model=MODEL),
-                 instruction=INSTRUCTION, tools=[toolset, execute_sql])
+                 instruction=INSTRUCTION, tools=[toolset, execute_sql],
+                 before_tool_callback=_force_full_view if arm == "Dall" else None)
 
 
-async def ask(arm: str, question: str) -> tuple[str, list[str]]:
+async def ask(arm: str, question: str) -> tuple[str, list[str], int]:
     from google.adk.runners import InMemoryRunner
     from google.genai import types
+    _FORCED.clear()
     runner = InMemoryRunner(agent=build_agent(arm), app_name="okf_phase8")
     s = await runner.session_service.create_session(app_name="okf_phase8", user_id="u")
     text, calls = "", []
@@ -121,7 +154,7 @@ async def ask(arm: str, question: str) -> tuple[str, list[str]]:
                 calls.append(p.function_call.name)
             if getattr(p, "text", None):
                 text += p.text
-    return text, calls
+    return text, calls, len(_FORCED)
 
 
 NUM = re.compile(r"ANSWER:\s*\$?(-?[\d,]+(?:\.\d+)?)")
@@ -159,15 +192,16 @@ async def main() -> int:
       for arm in a.arms.split(","):
         for q in qs:
             try:
-                text, calls = await ask(arm, q["question"])
+                text, calls, forced = await ask(arm, q["question"])
                 verdict, value = classify(text, float(q["correct"]), float(q["trap"]))
                 err = None
             except Exception as e:  # noqa: BLE001
-                text, calls, verdict, value = "", [], "error", None
+                text, calls, forced, verdict, value = "", [], 0, "error", None
                 err = f"{type(e).__name__}: {e}"[:300]
             print(f"rep{rep} arm {arm} {q['id']}: {verdict:9s} value={value} "
-                  f"tools={sorted(set(calls))}{' ERR='+err if err else ''}")
+                  f"forced={forced} tools={sorted(set(calls))}{' ERR='+err if err else ''}")
             results.append(dict(rep=rep, arm=arm, id=q["id"], verdict=verdict, value=value,
+                                forced_view_calls=forced,
                                 tools=sorted(set(calls)), n_tool_calls=len(calls),
                                 error=err, text=(text or "")[-1200:]))
             pathlib.Path(a.out).write_text(json.dumps(results, indent=2))
