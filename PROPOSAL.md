@@ -28,12 +28,30 @@ implemented yet except where marked **done**.
 Result: 13 + 26 + 3 + 1 + 1 = **44 reference concepts**, plus 14 asset-backed =
 **58**. Three new types, full coverage, no construct left unrepresented.
 
-### A.1 Why new types are cheap
+### A.1 These are OUR types, not OKF types
 
-§4.1: type values are **not centrally registered**; producers SHOULD pick
-descriptive values and consumers MUST tolerate unknown types. `Join` and
-`Metric` are already outside the spec's example list. `Grain Rule`,
-`Hierarchy` and `Derived Table` are equally legitimate.
+To be exact, because the table above can read otherwise. OKF v0.2 names **no**
+type registry. §4.1 gives *example values* — `BigQuery Table`,
+`BigQuery Dataset`, `API Endpoint`, `Metric`, `Playbook`, `Reference`,
+`Attested Computation` — then says:
+
+> Type values are **not** registered centrally. Producers SHOULD pick values
+> that are descriptive and self-explanatory; consumers MUST tolerate unknown
+> types gracefully.
+
+So of the four types in our bundle today:
+
+| type | count | status |
+|---|---|---|
+| `BigQuery Table` | 13 | spec example |
+| `BigQuery Dataset` | 1 | spec example |
+| `Metric` | 26 | spec example |
+| **`Join`** | 13 | **ours — producer-defined** |
+
+`Grain Rule`, `Hierarchy` and `Derived Table` would be **ours** too, on exactly
+the same footing as `Join`, which we already invented and which has caused no
+trouble. Conformance (§11) requires only that `type` be present and non-empty —
+it does not constrain the value.
 
 ### A.2 Why these three and not more
 
@@ -126,9 +144,13 @@ different document.
 **Do not emit `schema-join`** — the scan owns it, and v7 measured it is not
 consumed as a join hint.
 
-**Emit `definition` links only for genuinely shared vocabulary** — `segment`,
-`customer_id`, `account_id`. Reuse is decided by *meaning*, not by column-name
-collision: `amount` ×4 and `balance` ×2 are traps.
+**Do not emit `definition` links / glossary terms.** Decided: the link layer is
+`related` only. The trade-off, stated so it is not rediscovered later —
+`definition` was the one channel reaching *all three* consumers (prebuilt
+toolbox, custom ADK agent, BQ CA), so dropping it makes discovery
+**custom-ADK-only**. That is coherent given the intended consumer, but if a BQ
+CA agent is ever pointed at this dataset it will see the aspects and no
+concepts. The glossary probe has been torn down.
 
 kcmd already has every primitive: `createEntryLink`, `createGlossary`,
 `createGlossaryTerm`, `toServiceGlossaryTerm`, `sources/glossary.ts`, the
@@ -141,7 +163,7 @@ Reach differs sharply by consumer, and this is the part most easily got wrong:
 | channel | prebuilt dataplex toolbox | custom ADK agent | BQ CA API |
 |---|---|---|---|
 | `overview` / `descriptions` | yes (`lookup_context`; `lookup_entry` only at `view=ALL`) | yes | no — CA reads **BigQuery's own** descriptions |
-| `definition` → glossary term | yes (`lookup_context`, inline as `terms:`) | yes | **yes** |
+| `definition` → glossary term | yes | yes | **yes** |
 | `related` → concept | **no link tool** | **yes** — `lookup_entry_links` | no |
 
 So for a custom ADK agent, three things:
@@ -153,6 +175,44 @@ So for a custom ADK agent, three things:
    `before_tool_callback` is deterministic where a prompt instruction is not.
 3. Prefer **`lookup_context`** — it is the one call that returns the whole
    projection resolved, glossary terms included.
+
+### B.6 `kcmd pull` — the transport works, our translation does not
+
+Measured on a full Track A pull against the current catalog.
+
+**kcmd's side is complete.** The staged file kcmd produces is 11,669 chars and
+contains `descriptions`, `queries`, `overview`, `userManaged` and the column
+descriptions. Nothing is missing from KC → local.
+
+**Our `fromStaging` then discards most of the frontmatter.** What survives:
+
+| | result |
+|---|---|
+| **body** | **byte-identical** — 4,445 = 4,445 chars, incl. `# Schema` and `# Common query patterns` |
+| `type`, `sources` | same |
+| `verified`, `generated` | same values, timestamp rendered differently |
+| `description` | **LOST** — it lives in the `descriptions` aspect, which `fromStaging` does not read |
+| `tags` | **LOST** — they became `entry_source.labels` and are not mapped back |
+| `title` | **DIFFERS** — `Accounts` → `accounts`, the native display name |
+| `resource` | **DIFFERS** — `https://bigquery.googleapis.com/v2/…` → `projects/…` |
+
+So the column descriptions and query patterns are **not** lost — they ride in
+the body via `overview`. The loss is four frontmatter fields, and it is our
+shim's gap, not kcmd's.
+
+**Consequence today: never push from a pulled tree.** A pull→push cycle would
+write an empty `description` — and on a `verified` table it writes that into an
+aspect it has frozen. Push from `okf-bundle/` only.
+
+**The fix** is bounded: teach `fromStaging` to read `description` from the
+`descriptions` aspect, `tags` from labels, prefer the OKF title over the native
+display name, and normalise the resource URI. This is T4 in
+`okf-review/TESTS.md`, currently the only failing test.
+
+Until then the bundle is **push-only**: authoritative, projectable, but not yet
+re-derivable from the catalog. For version control that is survivable — git is
+the source of truth and the catalog is the projection — but it does mean an
+edit made in the Dataplex UI cannot be pulled back into the bundle.
 
 ### B.5 The finding that should shape expectations
 
@@ -177,7 +237,7 @@ retrieval the path of least resistance.
    coverage. After (1), so they are reachable when they land.
 3. **Prose "Related concepts" summary in `overview`** — the fallback for
    consumers with no link tool.
-4. **Glossary terms** for shared vocabulary — the only channel reaching all
-   three consumers.
+4. **Fix `kcmd pull`** — see B.6. Required before the bundle can be
+   round-tripped rather than only pushed.
 5. **`log.md`, `stale_after`** — cheap spec conformance.
 6. **`Attested Computation`** — once a consumer-side attester exists.
