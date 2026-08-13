@@ -791,15 +791,54 @@ tool surface that forces retrieval beat a rich one that permits skipping it**,
 and the content behind Arm K happened to contain the hazard. Both halves matter,
 and the first half is about MCP ergonomics, not about OKF.
 
-### q4 is a real negative for the bundle
+### q4 — RETRACTED: it was curated, and simply never retrieved
 
-Both arms 0/3 on the zero-fill cohort average (16.67 correct, 18.52 trap — the
-average over accounts that *have* transactions). Neither channel carries the
-hazard: the bundle documents duplicate loads, the M:N bridge and SCD2, but says
-nothing about zero-count denominators. The `bq-kc-agent` scaffold's discarded
-prompt *did* have a rule for it. **A curated bundle only defends against the
-hazards someone curated into it** — that is the ceiling on this whole approach,
-and it showed up on the first question that fell outside the curated set.
+**Recorded here originally as "neither channel carries the hazard … a curated
+bundle only defends against the hazards someone curated into it." That is
+false.** `references/metrics/accounts__avg_txns_per_account.md` states it
+exactly:
+
+> description: Average number of transactions per account across ALL accounts,
+> **including accounts with zero transactions**.
+>
+> **Ratio — compute numerator and denominator separately, then divide. Never
+> average a ratio.** | `numerator` `transactions.count` | `denominator`
+> `accounts.count` | plus the de-duplication precondition.
+
+That is precisely the correct answer (20000/1200 = 16.6667), and both arms
+scored 0/3 anyway. Arm K called `lookup-entry` on **all three** q4 reps — and
+across **every** result file, **zero** responses mention a metric concept. It
+fetched the *table* concept and never the *metric* concept.
+
+So q4 is not a coverage failure. It is the **table→concept discovery gap**,
+measured: the knowledge existed, in a concept the agent could have fetched by
+name, and it fetched a different document. The ceiling is not "what someone
+curated" — it is "what is reachable from where the agent starts."
+
+## Spec coverage: what OKF represents of `spec.yaml`, and what it drops
+
+`generate_models.py` (LookML + graph) reads **all 11** spec constructs.
+`gen_okf.py` reads 7 and emits concepts for **2**.
+
+| spec construct | count | OKF today |
+|---|---|---|
+| `relationships` + `bridges` | 11 + 2 | **13 `Join` concepts** |
+| `measures` | 26 | **26 `Metric` concepts** |
+| `dedup` | 1 | prose only, inside Join/Metric bodies |
+| `m2n` | 2 | prose only |
+| `snapshots` | 1 | prose only |
+| `accumulating` | 1 | **not read** |
+| `hierarchies` | 1 | **not read** |
+| `unpivot` | 1 | **not read** |
+| `columns` | 68 | **not read** — `reference_agent` authors these instead |
+
+Unused OKF features: **`log.md`** (§9, bundle history) absent; `stale_after`
+**0/53**; `status` only ever `stable`; concept types limited to
+`BigQuery Dataset`, `BigQuery Table`, `Metric`, `Join`. §4.1 is explicit that
+type values are **not centrally registered** and consumers must tolerate unknown
+ones, so new types are cheap and legitimate.
+
+
 
 ### Run 1 measured an empty catalog — the Phase 5 defect, on the read path
 

@@ -173,10 +173,13 @@ OKF cannot address. Three consecutive improvements to what the catalog holds
 and how it is read produced no measurable agent gain, because the agent does not
 ask in 24 of 30 attempts on the questions that need it.
 
-**And q4 is a genuine negative: both arms 0/3.** Neither channel carries the
-zero-fill-cohort hazard, because nobody curated it into the bundle. A curated
-bundle defends only against the hazards someone curated into it, and the ceiling
-appeared on the first question outside the curated set.
+**q4 was 0/3 on both arms, and the reason is not what it first looked like.**
+The hazard *is* curated — `metrics/accounts__avg_txns_per_account` says
+"including accounts with zero transactions" and gives numerator and
+denominator. Arm K called `lookup-entry` on all three reps and never fetched
+it; no response in any run mentions a metric concept. The knowledge was
+present, addressable, and unreached. **The ceiling is not what someone
+curated — it is what is reachable from where the agent starts.**
 
 ---
 
