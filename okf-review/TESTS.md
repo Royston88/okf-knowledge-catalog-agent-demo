@@ -1,154 +1,91 @@
-# Test design — after the `verified` ⇄ `userManaged` coupling
+# Test design — the projection rule
 
-The original Measurement G crossed `userManaged` with `verified` as **independent**
-variables. They are no longer independent: the projector computes one from the
-other, so three of that 2×2's four cells are now unreachable. This redesigns the
-tests around what is actually true.
-
-## The ownership rule under test
+## The rule, and it is the whole rule
 
 ```
-owned(concept) ==  verified is non-empty
-               AND status not in {draft, deprecated}
-               AND every real column is documented      <- hard gate, refuses if not
-
-owned      -> descriptions + queries written with userManaged: true   (frozen)
-not owned  -> the claim is RELEASED (userManaged: false); the scan resumes
-always     -> okf + overview written regardless                       (uncontested)
+the bundle always projects   overview + descriptions + queries
+userManaged                  = whether the concept is `verified`
 ```
 
-`userManaged` is stored nowhere. It is derived at push time — correct if
-Knowledge Catalog is one projection target rather than the system of record.
+Verified content is frozen against the DATA_DOCUMENTATION scan. Unverified
+content is still projected, just left unprotected, so the next scan replaces it.
+The bundle is always the source; sign-off is what makes the catalog stop
+second-guessing it.
 
----
+One asymmetry, and it is Dataplex's, not a design choice: **`overview` has no
+`userManaged` field** — the aspect type is `content`/`links`/`contentType` only.
+It needs none, because the scan does not write `overview` at all (measured). So
+the flag applies to `descriptions` and `queries`, the two contested aspects.
+
+`userManaged` is stored nowhere — not in the bundle, not in config. It is
+computed at push time, which is correct if Knowledge Catalog is one projection
+target among several rather than the system of record.
 
 ## Layer 1 — platform facts. Established; do NOT re-run.
 
-These are properties of Dataplex, already measured, and independent of our
-policy. Re-running them costs scans and proves nothing new.
+Properties of Dataplex, already measured, independent of our policy.
 
 | # | fact | evidence |
 |---|---|---|
-| P1 | `userManaged: true` prevents the DATA_DOCUMENTATION scan overwriting an aspect | Measurement G |
+| P1 | `userManaged: true` prevents the scan overwriting an aspect | Measurement G |
 | P2 | `userManaged: false` ⇒ the scan overwrites, silently, no error | Measurement G |
-| P3 | The scan only touches aspects it **owns**; `overview` and `okf` survive regardless of the flag | Measurement G extension |
-| P4 | A protected aspect keeps its **original** `job` stamp — a stale stamp is evidence *of* protection, not of a skipped scan | Measurement G |
-| P5 | Omitting an aspect from a push is a **no-op**, not a release | measured while building the release path |
-| P6 | Writing curated content does **not** set `userManaged` — the platform never infers it | Measurement G probe |
+| P3 | The scan only touches aspects it **owns**; `overview` and `okf` survive regardless | Measurement G extension |
+| P4 | A protected aspect keeps its **original** `job` stamp — a stale stamp is evidence *of* protection | Measurement G |
+| P5 | Omitting an aspect from a push is a no-op, not a release — so always write both, with the flag | measured |
+| P6 | Writing content never makes the platform infer `userManaged` | Measurement G probe |
 
-## Layer 2 — policy tests. These are the redesign.
+## Layer 2 — the projection rule
 
-The unit under test is now **the projector**, not the platform. Each test is a
-state transition or an invariant.
-
-### T1 — Claim. `unverified → verified` takes ownership.
-Add `verified` to an unverified concept → push → assert `userManaged: true`,
-content equals the bundle → re-run that table's scan → assert byte-identical.
-**Fails if** the projector does not claim, or the scan overwrites anyway.
-
-### T2 — Release. `verified → unverified` hands it back.
-Remove `verified` → push → assert `userManaged: false` and content untouched →
-re-run the scan → assert scan-generated content returns.
-**Fails if** the claim goes stale (which it did, before the release path existed
-— see P5). This is the test that catches the whole class of "we stopped claiming
-but never told the catalog".
-
-### T3 — Idempotence. Pushing an unchanged bundle changes nothing.
-Push twice → assert no ownership flapping and no content delta. Guards against a
-release/claim loop where each push undoes the last.
-
-### T4 — Round-trip safety. `pull → push` must be ownership- **and** content-neutral.
-**Currently FAILS, and the coupling makes it worse.** `verified` does survive a
-Track A pull, so ownership is preserved — but `description` does not, so a
-pull→push writes an *empty* description into an aspect it has frozen. Owned
-tables are exactly the ones this damages.
-Fix before this can pass: recover `description` from the `descriptions` aspect in
-`fromStaging`, symmetrically to how the body is already recovered from
-`overview` (Measurement A.1).
-
-### T5 — Completeness gate. An incomplete concept cannot be claimed.
-Remove one column row from a verified concept's `# Schema` table → push must
-**fail loudly**, naming the column. Also: documenting a column that does not
-exist must fail.
-**Why it exists:** claiming freezes the aspect, so an owned-but-incomplete
-concept blanks a column permanently. Implemented as a hard gate against the
-entry's own `schema` aspect — ground truth, not the bundle's word.
-
-### T6 — Status gate. `draft` and `deprecated` do not own.
-Set `status: draft` on a verified concept → push → assert released. Same for
-`deprecated`. A draft should not take over the UI merely because someone signed
-it; a deprecated concept should not hold the description hostage.
-
-### T7 — Joins. **Outstanding from the original Phase 7 and still not run.**
-The plan's arms 3 and 4 — "joins kept (`userManaged: true`) preserved" and
-"joins deleted, re-created by the generator" — were never executed. Nothing in
-this work has touched an entry link. `join_triage.yaml` records the verdicts
-(11 keep, 1 JT2 reject) and `user_managed_set: false` for all 12, written before
-deletion as the plan requires; the deletion never happened.
-This is the natural analogue of T1/T2 one level down, at the `schema-join`
-EntryLink rather than the aspect, and it should follow the same
-claim/release/rescan shape.
-
----
-
-## Status
-
-| test | state | evidence |
-|---|---|---|
-| T1 Claim | **satisfied** | 6 verified tables took `userManaged: true` with bundle content; a re-scan of `accounts` left description, all 7 fields and all 3 queries byte-identical |
-| T2 Release | **satisfied** | 7 unverified tables released; their scans re-run; scan-generated content returned. `userManaged` matches `okf.verified` on 13/13 |
-| T3 Idempotence | **partial** | a second push reported `released 0` and changed nothing. Not yet asserted mechanically |
-| T4 Round-trip safety | **FAILING** | `verified` survives a pull; `description` does not. Needs the `fromStaging` fix first |
-| T5 Completeness gate | **satisfied** | `ownership.test.ts`, offline, incl. missing-column and phantom-column cases |
-| T6 Status gate | **satisfied** | `ownership.test.ts`, offline, incl. case-insensitivity |
-| T7 Joins | **not started** | nothing in this work has touched an entry link |
-
-Run the offline suite with:
+Offline, no catalog, no scans:
 
 ```bash
 kcmd/node_modules/.bin/bun kcmd/demo/okf/ownership.test.ts
 ```
 
-20 assertions, no catalog access, no scans. It also carries a regression test for
-the header-detection bug that ate every column literally called `name`.
+**26 assertions**, covering:
 
-The live tests (T1–T4, T7) need pushes and scans and are not yet a harness; T1
-and T2 are satisfied by the transitions performed during this work rather than
-by a re-runnable script.
+- `userManaged` tracks `verified` on both aspects, including the empty-array case
+- content is projected either way — `verified` decides *protection*, not presence
+- the body parsers (a column literally called `name` is not eaten; all 8
+  `customers` columns; query patterns extracted)
+- all 13 tables project both aspects with the expected flag
 
----
+Live behaviour, verified against the catalog after each push:
 
-## The control, and why `verified` can no longer be it
+| check | state |
+|---|---|
+| all three aspects present on all 14 entries | **passing** |
+| `userManaged == verified` on 13/13 tables | **passing** |
+| verified content survives a re-scan byte-identical | **passing** (`accounts`) |
+| unverified content is replaced by the scan | **passing** (7 tables) |
+| **pull → push is content-neutral** | **FAILING** — see below |
 
-Phase 7's control population was `signoff.py`'s deterministic every-other-concept
-split. That was sound while `verified` was **inert** — the population was
-*deliberately arbitrary* so a survival difference could be attributed to the flag
-rather than the producer.
+## The one real defect
 
-It is unusable now. `verified` is an authorisation signal that decides what the
-platform shows users, so an arbitrary split would be choosing, at random, whose
-descriptions are curated. A control wants to be uncorrelated with merit; an
-authorisation wants to be exactly correlated.
+**`fromStaging` drops the table description on pull.** `verified` survives, so
+ownership round-trips correctly, but `description` does not — these entries'
+`entry_source` is system-owned, so the description lives only inside the
+`descriptions` aspect and nothing reads it back. A pull→push therefore writes an
+*empty* description, and on verified tables it writes it into an aspect it has
+frozen.
 
-**Resolution: a separate, experiment-only marker.**
+Fix: recover `description` from the `descriptions` aspect the same way the body
+is already recovered from `overview` (Measurement A.1). Until then, push from
+`okf-bundle/` and never from a pulled tree.
 
-```yaml
-x-experiment:
-  run: phase7-r2
-  arm: control | treatment
-```
+## Outstanding
 
-- `x-` prefixed, matching the precedent OKF sets for `x-kcmd`: consumers ignore
-  unknown keys, so the file stays spec-valid.
-- **The projector must ignore it entirely.** It carries no ownership meaning; a
-  test asserting that is worth having, because the failure mode is an experiment
-  marker quietly changing production behaviour.
-- `verified` reverts to meaning only what it says. The six currently-owned tables
-  should be genuinely reviewed, or unflagged.
+**The joins arm of the original Phase 7 was never run.** The plan's arms 3 and 4
+— "joins kept (`userManaged: true`) preserved" and "joins deleted, re-created by
+the generator" — remain untouched; nothing in this work has modified an entry
+link. `join_triage.yaml` holds the verdicts (11 keep, 1 JT2 reject) written
+before deletion as the plan requires. The deletion never happened.
 
-## Confound to declare on any Phase 7 re-run
+## A note on the control
 
-Measurement G's result stands — it was taken *before* gating existed, with the
-flag inert and a clean control. But it can no longer be reproduced as designed:
-flagging a concept now changes ownership, which changes what the scan may
-overwrite. Any re-run measures the policy, not the platform, and must say so.
+Measurement G used `signoff.py`'s arbitrary every-other-concept split as its
+control, which was sound while `verified` was inert. It no longer is: the same
+flag now decides what the platform shows. G's result stands (taken before the
+coupling existed) but cannot be reproduced as designed. Any re-run needs a
+separate, experiment-only marker — `x-experiment`, on the precedent OKF sets
+with `x-kcmd` — that the projector ignores.

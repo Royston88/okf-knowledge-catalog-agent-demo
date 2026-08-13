@@ -367,13 +367,12 @@ Material already in hand for it:
 
 ### Open items carried forward
 
-- **The test design was rewritten for the `verified` ⇄ `userManaged` coupling —
-  see `okf-review/TESTS.md`.** The original Measurement G 2×2 is unreachable now
-  that the projector derives one variable from the other. Layer 1 records the
-  platform facts that must NOT be re-run; Layer 2 is seven policy tests, of
-  which T1/T2/T5/T6 are satisfied, T3 partial, **T4 (pull→push safety) is
-  FAILING**, and **T7 (the joins arm) was never started**. Offline suite:
-  `bun kcmd/demo/okf/ownership.test.ts` (20 assertions).
+- **The projection rule is: always project overview + descriptions + queries,
+  and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite
+  `bun kcmd/demo/okf/ownership.test.ts` (26 assertions). Two things outstanding:
+  **pull→push is not content-neutral** (`fromStaging` drops the table
+  description — push from `okf-bundle/`, never from a pulled tree), and **the
+  joins arm of Phase 7 was never run**.
 
 - **`verified` is doing two incompatible jobs.** It is simultaneously Phase 7's
   *arbitrary* control population (`signoff.py`, every-other-concept) and the
@@ -389,10 +388,6 @@ Material already in hand for it:
   `okf` and `overview`. A pull→push cycle blanks one field per table (fields and
   queries survive, being re-derived from the body). Fix symmetrically to
   Measurement A.1 — recover `description` from the `descriptions` aspect.
-- **`verified` is deliberately NOT mapped to `userManaged`.** Ownership is
-  unconditional; 7 unflagged tables are owned anyway. Mapping them would mean
-  the bundle is authoritative only for signed-off concepts, which contradicts
-  the full-replace semantics in Measurement D. A decision, not an oversight.
 
 - ~~**Two columns are frozen blank by whole-aspect ownership.**~~ **RETRACTED —
   it was a parser bug.** `schemaFields` blacklisted any column called `name`.

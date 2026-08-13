@@ -40,7 +40,7 @@
 import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { toStaging, splitFrontmatter } from './okf';
+import { toStaging } from './okf';
 import { okfKey, kcmdMain, project, location } from './config';
 
 const BQ_DATASET = process.env.OKF_BQ_DATASET;
@@ -110,75 +110,15 @@ function publishingEntryTypes(): string[] {
   return out;
 }
 
-// `getEntry`'s aspect filter takes FULL RESOURCE NAMES, not the dotted alias.
-// Passing the alias returns HTTP 400 — and, because the aspect map on a failed
-// response is simply empty, a naive caller reads that as "nothing is held" and
-// releases nothing while reporting success. Measured; hence the status check in
-// releaseIfHeld.
-const DESCRIPTIONS_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/descriptions';
-const QUERIES_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/queries';
-const SCHEMA_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/schema';
-
-/**
- * Hand a contested aspect back to the scan.
- *
- * Ownership is DECLARATIVE: a concept with `verified` claims `descriptions` and
- * `queries`; one without does not. But dropping an aspect from the push payload
- * is a NO-OP, not a release — measured: kcmd only writes the aspects present in
- * the staged entry and never deletes the ones it omits. So a concept that loses
- * its `verified` flag would keep a stale `userManaged: true` claim forever.
- *
- * This flips the flag back to false in place, leaving the content alone. The
- * next DATA_DOCUMENTATION run then regenerates it, which is the point: the scan
- * resumes managing what no human has vouched for.
- */
-async function releaseIfHeld(client: any, entryId: string, label: string): Promise<boolean> {
-  const res = await client.getEntry(project, location, '@bigquery', entryId,
-                                    [DESCRIPTIONS_TYPE, QUERIES_TYPE]);
-  if (res.status !== 200 || !res.result) {
-    throw new Error(`Cannot read contested aspects for ${label}: HTTP ${res.status}`);
-  }
-  const aspects = res.result.aspects ?? {};
-  const held = Object.entries(aspects).filter(
-    ([k, v]: [string, any]) => /\.(descriptions|queries)$/.test(k) && v?.data?.userManaged === true,
-  );
-  if (!held.length) return false;
-  const entry: any = { name: res.result.name, aspects: {} };
-  for (const [k, v] of held as Array<[string, any]>) {
-    entry.aspects[k] = { aspectType: v.aspectType, data: { ...v.data, userManaged: false } };
-  }
-  const upd = await client.updateEntry(entry, ['aspects'], Object.keys(entry.aspects));
-  if (upd.status !== 200) {
-    throw new Error(`Failed to release ${label}: HTTP ${upd.status}`);
-  }
-  console.log(`  ${label}: released ${Object.keys(entry.aspects).length} aspect(s) back to the scan`);
-  return true;
-}
-
-/**
- * The live entry type (as a `dataplex-types.<loc>.<id>` ref) and the entry's
- * real column list, read from its own `schema` aspect.
- *
- * The columns feed the completeness gate: claiming `descriptions` freezes it,
- * so an owned concept that omits a column would blank it permanently. Taking
- * the list from the catalog rather than the bundle means the gate checks
- * against ground truth.
- */
-async function liveEntryInfo(
-  client: any,
-  entryId: string,
-): Promise<{ type: string; columns: string[] }> {
-  const res = await client.getEntry(project, location, '@bigquery', entryId, [SCHEMA_TYPE]);
+/** The live entry type, as a `dataplex-types.<loc>.<id>` ref. */
+async function liveEntryInfo(client: any, entryId: string): Promise<{ type: string }> {
+  const res = await client.getEntry(project, location, '@bigquery', entryId);
   if (res.status !== 200 || !res.result) {
     throw new Error(`Cannot read entry ${entryId} (HTTP ${res.status}). ` +
       `Track A only writes to entries Dataplex has already ingested.`);
   }
   const parts = String(res.result.entryType).split('/');
-  const type = `${BUILTIN_TYPE_PROJECT}.${parts[3]}.${parts[5]}`;
-  const schema: any = Object.entries(res.result.aspects ?? {})
-    .find(([k]) => k.endsWith('.schema'))?.[1];
-  const columns: string[] = (schema?.data?.fields ?? []).map((f: any) => f.name);
-  return { type, columns };
+  return { type: `${BUILTIN_TYPE_PROJECT}.${parts[3]}.${parts[5]}` };
 }
 
 const allowed = publishingEntryTypes();
@@ -196,8 +136,7 @@ if (!token) {
 const catalogClient = new kcmd.dataplex.CatalogClient(
   new kcmd.gcp.ApiContext(project, location, token));
 
-let n = 0, released = 0;
-const toRelease: Array<{ entryId: string; label: string }> = [];
+let n = 0;
 for (const sub of ['tables', 'datasets']) {
   const dir = path.join(bundleDir, sub);
   if (!fs.existsSync(dir)) continue;
@@ -206,7 +145,7 @@ for (const sub of ['tables', 'datasets']) {
     const rel = `${sub}/${file}`;
     const mapped = localNameFor(rel);
     if (!mapped) continue;
-    const { type: entryType, columns } = await liveEntryInfo(catalogClient, mapped.entryId);
+    const { type: entryType } = await liveEntryInfo(catalogClient, mapped.entryId);
     if (!allowed.includes(entryType)) {
       throw new Error(
         `Entry ${mapped.entryId} has type ${entryType}, which is NOT in ` +
@@ -215,14 +154,11 @@ for (const sub of ['tables', 'datasets']) {
         `the concept.`);
     }
     const src = fs.readFileSync(path.join(bundleDir, rel), 'utf8');
-    if (!splitFrontmatter(src).meta?.verified) {
-      toRelease.push({ entryId: mapped.entryId, label: rel });
-    }
     const dest = path.join(stagingCatalog, `${mapped.name}.md`);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(
       dest,
-      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true, columns, rel),
+      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true),
     );
     console.log(`  ${rel} -> ${mapped.name}  [${entryType}]`);
     n++;
@@ -230,12 +166,6 @@ for (const sub of ['tables', 'datasets']) {
 }
 console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}`);
 
-// Release BEFORE the push, so a concept that just lost its `verified` flag is
-// handed back in the same run that stops claiming it.
-for (const r of toRelease) {
-  if (await releaseIfHeld(catalogClient, r.entryId, r.label)) released++;
-}
-console.log(`unverified concepts: ${toRelease.length} (released ${released} stale claim(s))`);
 
 cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
                 { cwd: stagingDir, stdio: 'inherit' });
