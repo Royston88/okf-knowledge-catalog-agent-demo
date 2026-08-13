@@ -72,6 +72,21 @@ console.log(`staged ${n} concept file(s) -> ${stagingDir} ` +
 const args = ['push', ...process.argv.slice(2)];
 cp.execFileSync('node', [kcmdMain, ...args], { cwd: stagingDir, stdio: 'inherit' });
 
+// RELINK AFTER EVERY PUSH — BOTH TRACKS NEED THIS.
+// kcmd reconciles EntryLinks against the local bundle and deletes what it does
+// not find there. A `related` link touches BOTH a table entry and a concept
+// entry, so Track B's push (which owns the concept entries) deletes them just
+// as Track A's does — measured: a Track B push alone took 53 links down to 14.
+// Set OKF_BQ_DATASET to enable; skipped with a warning when it is absent, since
+// Track B is otherwise usable without knowing the BigQuery dataset.
+if (process.env.OKF_BQ_DATASET) {
+  const { reconcileRelatedLinks } = await import('./link-concepts');
+  await reconcileRelatedLinks();
+} else {
+  console.warn('OKF_BQ_DATASET unset — skipping `related` link reconciliation. ' +
+               'Any table<->concept links this push deleted stay deleted.');
+}
+
 // Keep .staging on request so a failed push can be inspected.
 if (!process.env.OKF_KEEP_STAGING) {
   fs.rmSync(stagingDir, { recursive: true, force: true });

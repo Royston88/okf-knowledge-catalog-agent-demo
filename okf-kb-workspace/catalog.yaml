@@ -1,3 +1,12 @@
+# entryLinks IS LOAD-BEARING, AND OMITTING IT IS DESTRUCTIVE.
+# `kcmd push` unconditionally reconciles EntryLinks on every entry it touches
+# (sync.ts ~425, no guard). It calls lookupEntryLinks with the types listed
+# HERE as the filter — and when the list is absent the lookup is UNFILTERED, so
+# every link the local bundle does not describe is deleted. Measured: a push
+# with no `entryLinks:` destroyed all 12 scan-generated `schema-join` links in
+# this dataset, silently.
+# Listing `related` narrows the blast radius to the link type we own; the scan's
+# schema-join links are then invisible to the reconciler and survive.
 scope: kb.royston-dev-8253.us.okf_cymbal_v6z
 snapshot:
   entries:
@@ -6,6 +15,8 @@ snapshot:
     - dataplex-types.global.generic
     - dataplex-types.global.overview
     - royston-dev-8253.us.okf
+  entryLinks:
+    - related
 publishing:
   entries:
     - dataplex-types.global.generic
@@ -13,3 +24,5 @@ publishing:
     - dataplex-types.global.generic
     - dataplex-types.global.overview
     - royston-dev-8253.us.okf
+  entryLinks:
+    - related

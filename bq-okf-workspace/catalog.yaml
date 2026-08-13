@@ -22,6 +22,15 @@
 #
 # Every aspect listed under publishing must also appear under snapshot, or kcmd
 # refuses the push.
+# entryLinks IS LOAD-BEARING, AND OMITTING IT IS DESTRUCTIVE.
+# `kcmd push` unconditionally reconciles EntryLinks on every entry it touches
+# (sync.ts ~425, no guard). It calls lookupEntryLinks with the types listed
+# HERE as the filter — and when the list is absent the lookup is UNFILTERED, so
+# every link the local bundle does not describe is deleted. Measured: a push
+# with no `entryLinks:` destroyed all 12 scan-generated `schema-join` links in
+# this dataset, silently.
+# Listing `related` narrows the blast radius to the link type we own; the scan's
+# schema-join links are then invisible to the reconciler and survive.
 scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
 layout: documents
 snapshot:
@@ -33,6 +42,8 @@ snapshot:
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries
     - royston-dev-8253.us.okf
+  entryLinks:
+    - related
 publishing:
   entries:
     - dataplex-types.global.bigquery-dataset
@@ -42,3 +53,5 @@ publishing:
     - dataplex-types.global.overview
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries
+  entryLinks:
+    - related

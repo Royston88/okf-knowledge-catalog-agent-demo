@@ -170,6 +170,18 @@ console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}`);
 cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
                 { cwd: stagingDir, stdio: 'inherit' });
 
+// RELINK AFTER EVERY PUSH — NOT OPTIONAL.
+// `kcmd push` reconciles EntryLinks against the local bundle (sync.ts ~425) and
+// deletes any it does not find there. Our `related` links live in the catalog,
+// not in the bundle, so a push removes them every time. Measured: 53 -> 40.
+// Running the reconciler here means a push can never leave the link layer in a
+// half-deleted state. (`catalog.yaml` lists `related` under snapshot AND
+// publishing entryLinks, which narrows the reconciler to our own link type so
+// the scan's schema-join links are no longer collateral — measured: without
+// that, a push destroyed all 12 of them.)
+const { reconcileRelatedLinks } = await import('./link-concepts');
+await reconcileRelatedLinks();
+
 if (!process.env.OKF_KEEP_STAGING) {
   fs.rmSync(stagingDir, { recursive: true, force: true });
 }
