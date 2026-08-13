@@ -153,11 +153,25 @@ different fix:
 2. **Returned** — the default read path must not withhold it (the view).
 3. **Requested** — the agent must actually call the tool (tool-surface design).
 
-Fixing exactly one moved the score by two. q1 stayed **0/3 across every D
-variant** with the trace `tools=['execute_sql']` every time: the catalog is
-never consulted, so nothing about what it returns can matter. **Retrieval, not
-content, is now the dominant failure** — and it is the one thing OKF cannot
-address.
+Two further interventions followed — the projector took ownership of
+`descriptions` and `queries` as well (66 column descriptions, 37 query
+patterns, `userManaged: true`, verified to survive a re-scan) — and the agent
+score did not move. Pooled over 75 D-family runs the pattern is unambiguous:
+
+```
+score tracks the RETRIEVAL rate, not the content
+  Arm K      11/15 correct,  lookup called 14/15
+  D family  6-8/15 correct,  lookup called 1-5/15
+
+on q1+q2, the questions only the catalog can settle:
+  called lookup_entry:      2 correct /  6   (33%)
+  did NOT call:             1 correct / 24   ( 4%)
+```
+
+**Retrieval, not content, is the dominant failure** — and it is the one thing
+OKF cannot address. Three consecutive improvements to what the catalog holds
+and how it is read produced no measurable agent gain, because the agent does not
+ask in 24 of 30 attempts on the questions that need it.
 
 **And q4 is a genuine negative: both arms 0/3.** Neither channel carries the
 zero-fill-cohort hazard, because nobody curated it into the bundle. A curated

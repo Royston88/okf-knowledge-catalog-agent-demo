@@ -10,9 +10,18 @@
 # somewhere to go — `overview` is EMPTY on these entries (Measurement G found it
 # absent, not merely blank), so nothing is being displaced.
 #
-# It does not collide with the DATA_DOCUMENTATION scan either: that scan writes
-# `descriptions` and `queries`, which are deliberately NOT published from here
-# and so remain scan-owned.
+# `descriptions` and `queries` ARE scan-owned, and the bundle now takes
+# ownership of them too — written with `userManaged: true`, without which
+# Measurement G showed the next scan destroys them silently. Verified: a
+# successful re-scan afterwards left them byte-identical.
+#
+# This buys UI correctness and ownership, NOT agent reach: overview,
+# descriptions and queries are all non-required aspects, and Dataplex's default
+# `view=FULL` returns non-required aspects as keys only. All three need
+# `view=ALL` to be read.
+#
+# Every aspect listed under publishing must also appear under snapshot, or kcmd
+# refuses the push.
 scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
 layout: documents
 snapshot:
@@ -21,6 +30,8 @@ snapshot:
     - dataplex-types.global.bigquery-table
   aspects:
     - dataplex-types.global.overview
+    - dataplex-types.global.descriptions
+    - dataplex-types.global.queries
     - royston-dev-8253.us.okf
 publishing:
   entries:
@@ -29,3 +40,5 @@ publishing:
   aspects:
     - royston-dev-8253.us.okf
     - dataplex-types.global.overview
+    - dataplex-types.global.descriptions
+    - dataplex-types.global.queries

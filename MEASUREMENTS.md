@@ -1082,6 +1082,103 @@ the knowledge itself.
 > Our Phase 8 result is about an MCP/ADK agent reading Dataplex, and does not
 > transfer to the CA path.
 
+## kcmd now owns `descriptions` and `queries` — what that bought, and what it did not
+
+Requested: the projector should manage the scan-owned aspects too, not just
+`okf` and `overview`.
+
+### Built
+
+`assetAspects()` maps each concept body onto the two aspects:
+
+| target | source in the concept | result |
+|---|---|---|
+| `descriptions.description` | frontmatter `description` | 13/13 tables |
+| `descriptions.fields[]` | the `# Schema` markdown table | **66 column descriptions** |
+| `queries.queries[]` | `# Common query patterns` — `### N. Title` + fenced SQL | **37 query patterns** |
+
+Both written with **`userManaged: true`**, which Measurement G made mandatory:
+without it the next scan destroys them silently. **Verified after the change —
+a successful re-scan of `accounts` left description, all 7 fields and all 3
+queries byte-identical.**
+
+Two things the bundle's own inconsistency forced:
+
+- **The schema tables have two layouts.** The LLM author emitted
+  `| Field | Type | Description |` with backticked names for some tables and
+  `| Field Name | Type | Mode | Description |` with bold names for others. A
+  parser assuming column 3 produced **zero** fields for 4 of 13 tables while
+  looking like it worked. It now takes first cell / last cell and strips either
+  emphasis marker.
+- **Field names were checked against `INFORMATION_SCHEMA`.** 66 claimed, **0
+  invented**, 2 real columns left undocumented (`customers.name`,
+  `investors.name`). Measurement E's invented columns were in SQL bodies, not
+  schema tables — so this content is safe to project, but the check should stay
+  before anyone trusts a future bundle.
+
+kcmd also refuses a publishing aspect that is not also in `snapshot.aspects`
+("Publishing aspect type ... is not listed in snapshot aspects") — a loud
+failure, which is a welcome change from this fork's usual silence.
+
+### Correction: `descriptions` is NOT returned at the default view either
+
+An earlier note in this file claimed `descriptions` comes back at the default
+`view=FULL` while `overview` needs `ALL`. **That was wrong.** Measured against
+the live entry after the projection:
+
+```
+view=2 (FULL, default)   3,619 chars   our description: NO   our queries: NO   overview: NO
+view=4 (ALL)            13,302 chars   our description: YES  our queries: YES  overview: YES
+```
+
+All three are **non-required** aspects, and FULL returns non-required aspects as
+keys only. The earlier reading was fooled by `load_batch_id` appearing in the
+FULL response — that is the column **name** from the required `schema` aspect,
+not our description of it.
+
+So owning `descriptions`/`queries` buys **UI correctness and ownership**, not
+agent reach. Reach still needs `view=ALL`.
+
+### And it did not move the agent at all — because retrieval dominates
+
+| run | score | `lookup_entry` called |
+|---|---|---|
+| Arm K — bundle via kcmd | **11/15** | **14/15** |
+| Arm Dall — +overview, view=ALL | 8/15 | 4/15 |
+| Arm D — pre-enrichment | 7/15 | 5/15 |
+| Arm D — +overview | 6/15 | 2/15 |
+| Arm D — +descriptions/queries | 6/15 | 4/15 |
+| Arm Dall — +descriptions/queries | 6/15 | 1/15 |
+
+**Score tracks the retrieval rate, not the content.** Every content improvement
+— overview, then descriptions, then queries, then forcing `view=ALL` — left the
+D family between 6 and 8 out of 15, while the one arm that actually looks
+something up on almost every question scores 11.
+
+Pooled over all 75 D-family runs:
+
+```
+called lookup_entry:       10 correct / 16   (62%)
+did NOT call lookup_entry: 23 correct / 59   (38%)
+
+on q1+q2 — the two questions only the catalog can settle:
+called:      2 correct /  6   (33%)
+not called:  1 correct / 24   ( 4%)
+```
+
+The last pair is the finding. On questions where the answer *is* in the
+metadata, an agent that consults the catalog is right a third of the time and
+one that does not is right 4% of the time — and the D family does not consult it
+in 24 of 30 attempts.
+
+**Conclusion for the projector.** Owning `descriptions` and `queries` is right on
+its own terms: the bundle is now the source of truth for what a human sees in
+the UI, it survives re-scan, and ownership is explicit. But it is the third
+consecutive intervention on the *content* axis that produced no measurable agent
+improvement. The remaining bottleneck is not what the catalog holds, nor what
+its read path returns — it is that the agent does not ask. That is tool-surface
+and prompt design, and no amount of projection fixes it.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

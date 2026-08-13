@@ -94,6 +94,7 @@ export function toStaging(
   okfKey: string,
   entryName: string,
   entryType: string = ENTRY_TYPE,
+  withAssetAspects = false,
 ): string {
   const { meta, body } = splitFrontmatter(content);
   if (!meta) {
@@ -116,6 +117,9 @@ export function toStaging(
   if (entryType === ENTRY_TYPE) {
     aspects[GENERIC_ASPECT_KEY] = { type: meta.type, system: 'okf' };
   }
+  if (withAssetAspects) {
+    Object.assign(aspects, assetAspects(meta, body));
+  }
   staged.catalogEntry = {
     name: entryName,
     resource: { name: meta.resource },
@@ -134,6 +138,126 @@ export function toStaging(
     }),
   };
   return render(staged, body);
+}
+
+// ---------------------------------------------------------------------------
+// Track A only: the two aspects the DATA_DOCUMENTATION scan owns.
+//
+// `descriptions` is what the BigQuery/Dataplex UI renders as a table's
+// description and its per-column docs, and `queries` is the suggested-SQL list.
+// If the bundle is the source of truth it has to own them, or the scan's
+// generated prose is what a human actually reads.
+//
+// MEASURED, AND NOT WHAT WE FIRST ASSUMED: this does NOT make the content
+// reachable at an MCP client's default read. Dataplex's `view=FULL` returns
+// required aspects plus only the KEYS of non-required ones, and `descriptions`,
+// `queries` and `overview` are ALL non-required — so all three are withheld
+// unless the caller asks for `view=ALL`. (A `view=FULL` response still mentions
+// `load_batch_id`, but that is the column NAME from the required `schema`
+// aspect, not our description of it. That coincidence is what made the first
+// reading wrong.) Owning these aspects is worth doing for the UI and for
+// ownership; it does not solve reach.
+//
+// MEASUREMENT G MAKES `userManaged: true` MANDATORY HERE. These aspects are
+// scan-owned: content written to them with the flag left false is destroyed by
+// the next scan, silently and with no error. Setting it is the whole difference
+// between projecting and appearing to project.
+const DESCRIPTIONS_KEY = 'dataplex-types.global.descriptions';
+const QUERIES_KEY = 'dataplex-types.global.queries';
+
+/**
+ * Rows of the body's `# Schema` markdown table -> [{name, description}].
+ *
+ * The bundle is NOT uniform — its 13 table concepts were authored by an LLM and
+ * it invented two layouts:
+ *   | Field      | Type | Description |            with `name` in backticks
+ *   | Field Name | Type | Mode | Description |     with **name** in bold
+ * so the parser takes the FIRST cell as the name and the LAST as the
+ * description, strips either emphasis marker, and drops header and separator
+ * rows. Assuming column 3 (as the first version did) silently produced zero
+ * fields for 4 of 13 tables.
+ */
+export function schemaFields(body: string): Array<{ name: string; description: string }> {
+  const out: Array<{ name: string; description: string }> = [];
+  let inSection = false;
+  for (const line of body.split(/\r?\n/)) {
+    if (/^#\s/.test(line)) {
+      inSection = /^#\s+Schema\s*$/i.test(line);
+      continue;
+    }
+    if (!inSection || !line.trim().startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length < 2) continue;
+    if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;              // separator
+    const name = cells[0].replace(/[`*]/g, '').trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) continue;                 // header / prose
+    if (/^(field|field name|column|column name|name)$/i.test(name)) continue;
+    const description = cells[cells.length - 1];
+    if (description) out.push({ name, description });
+  }
+  return out;
+}
+
+/** `### N. Title` + fenced sql blocks under `# Common query patterns`. */
+export function queryPatterns(body: string): Array<{ sql: string; description: string }> {
+  const out: Array<{ sql: string; description: string }> = [];
+  let inSection = false, title = '', prose: string[] = [], sql: string[] | null = null;
+  const flush = () => {
+    if (sql && sql.length) {
+      const desc = [title, prose.join(' ').trim()].filter(Boolean).join(' — ');
+      out.push({ sql: sql.join('\n').trim(), description: desc.trim() });
+    }
+    sql = null;
+  };
+  for (const line of body.split(/\r?\n/)) {
+    if (/^#\s/.test(line)) {
+      flush();
+      inSection = /^#\s+Common query patterns\s*$/i.test(line);
+      title = ''; prose = [];
+      continue;
+    }
+    if (!inSection) continue;
+    const h = line.match(/^#{2,4}\s+(?:\d+\.\s*)?(.+?)\s*$/);
+    if (h && sql === null) { flush(); title = h[1]; prose = []; continue; }
+    if (/^```/.test(line)) {
+      if (sql === null) { sql = []; } else { flush(); }
+      continue;
+    }
+    if (sql !== null) { sql.push(line); }
+    else if (line.trim()) { prose.push(line.trim()); }
+  }
+  flush();
+  return out;
+}
+
+/**
+ * The `descriptions` + `queries` aspects for an asset-backed concept, both
+ * flagged `userManaged: true` so a re-scan leaves them alone. Returns `{}` when
+ * the body yields nothing, so an empty aspect is never written.
+ */
+export function assetAspects(meta: any, body: string): Record<string, any> {
+  const aspects: Record<string, any> = {};
+  const fields = schemaFields(body);
+  if (meta.description || fields.length) {
+    aspects[DESCRIPTIONS_KEY] = {
+      userManaged: true,
+      ...(meta.description ? { description: meta.description } : {}),
+      ...(fields.length ? { fields } : {}),
+    };
+  }
+  const patterns = queryPatterns(body);
+  if (patterns.length) {
+    aspects[QUERIES_KEY] = {
+      userManaged: true,
+      queries: patterns.map((q) => ({
+        sql: q.sql,
+        description: q.description,
+        source: 'AGENT',
+        sqlDialect: 'GOOGLE_SQL',
+      })),
+    };
+  }
+  return aspects;
 }
 
 // pushable (as returned by `kcmd pull`) -> clean OKF

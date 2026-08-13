@@ -10,12 +10,26 @@
 // `datasets/*.md`. Joins and metrics have no ingested entry to attach to; they
 // exist only in Track B.
 //
-// SCOPE (deliberate). We publish the `okf` aspect and NOTHING else. The body is
-// not written into the entries' `overview`, so Dataplex's own generated
-// documentation is left exactly as the Phase 2 scan produced it. That keeps an
-// untouched control for Phase 7 / Measurement G, which has to distinguish "the
-// re-scan overwrote curated content" from "the content was never there".
-// `catalog.yaml`'s `publishing.aspects` is what enforces this.
+// SCOPE. The bundle owns four aspects on each ingested entry:
+//   okf           the signal layer (custom type, no scan touches it)
+//   overview      the concept body    — reaches an agent only at view=ALL
+//   descriptions  table + column docs — what the BigQuery/Dataplex UI renders
+//   queries       the concept's query patterns
+//
+// The last two are SCAN-OWNED, so they are written with `userManaged: true`.
+// Measurement G showed content written to them without that flag is destroyed
+// by the next DATA_DOCUMENTATION run, silently. Verified after this change: a
+// successful re-scan left all of it byte-identical.
+//
+// Note that NONE of overview/descriptions/queries is returned at an MCP
+// client's default `view=FULL` — all three are non-required aspects, and FULL
+// returns non-required aspects as keys only. Owning them is about the UI and
+// about ownership, not about agent reach; reach needs `view=ALL`.
+//
+// `catalog.yaml` lists all four in BOTH `snapshot.aspects` and
+// `publishing.aspects` — kcmd rejects a publishing aspect that is not also
+// snapshotted ("Publishing aspect type ... is not listed in snapshot aspects"),
+// loudly, which is a welcome change from its usual silence.
 //
 // Differences from Track B that the mapping has to respect:
 //   - local names are `bigquery/<project>/<dataset>/<table>` (BigQueryDatasetSource.localName)
@@ -144,7 +158,8 @@ for (const sub of ['tables', 'datasets']) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(
       dest,
-      toStaging(fs.readFileSync(path.join(bundleDir, rel), 'utf8'), okfKey, mapped.name, entryType),
+      toStaging(fs.readFileSync(path.join(bundleDir, rel), 'utf8'), okfKey, mapped.name,
+                entryType, /* withAssetAspects */ true),
     );
     console.log(`  ${rel} -> ${mapped.name}  [${entryType}]`);
     n++;
