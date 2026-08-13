@@ -1251,6 +1251,77 @@ verified.
 Recorded as an open item; option 1 is the recommendation and is two lines of
 prose.
 
+## `verified` is NOT mapped to `userManaged`, and the Track A pull is lossy
+
+Two questions, both answered by measurement rather than intent.
+
+### 1. No — `userManaged: true` is unconditional, not derived from `verified`
+
+`assetAspects()` hardcodes `userManaged: true` on both aspects for every
+asset-backed concept. Nothing reads `verified`. Cross-tabulated live:
+
+```
+accounts, calendar, customers, loan_applications,
+payments, transactions            verified=True   userManaged=True
+account_owners, balance_snapshots, customer_segment_history,
+investors, loan_investors, support_tickets,
+wire_transfers                    verified=False  userManaged=True   <-- 7 tables
+```
+
+Seven tables are unflagged in the bundle and owned in the catalog anyway.
+
+**Mapping them would be a real design decision, not a tidy-up.** Measurement G
+established the two are orthogonal, and coupling them would mean: *the bundle is
+authoritative only for concepts a human has signed off, and the scan keeps
+managing the rest.* That is defensible — it is arguably what a trust tier is
+for — but it contradicts the full-replace, bundle-wins semantics that
+Measurement D established and that RESULTS.md leans on. It would also make the
+projection's behaviour change as review state changes, so a re-push after
+sign-off would silently start overwriting content the scan previously owned.
+Left unmapped and flagged here rather than decided.
+
+### 2. What happens next: scan, pull, push
+
+**Scan — nothing.** Measured twice: the DATA_DOCUMENTATION job runs, reports
+SUCCEEDED, and leaves the owned aspects byte-identical (description, all 7
+fields, all 3 queries on `accounts`). It no longer refreshes anything on those
+entries — including the columns the bundle does not document, which is the cost
+recorded in the granularity section above.
+
+**Pull — lossy for Track A, in a way Track B is not.** A real pull of the 14
+asset concepts returns all 14, and the body round-trips intact, but:
+
+| field | bundle | after pull |
+|---|---|---|
+| `title` | `Accounts` | `accounts` — the **native** displayName |
+| `description` | `Core table containing checking…` | **absent** |
+| `resource` | `https://bigquery.googleapis.com/v2/projects/…` | `projects/…` — different form |
+| `descriptions` / `queries` aspect content | 7 fields, 3 queries | **discarded** by `fromStaging` |
+
+The cause is structural: these entries' `entry_source` is system-owned, so our
+`title`/`description` never land there — the description lives *only* inside the
+`descriptions` aspect, and `fromStaging` maps only `okf` and `overview` back to
+clean OKF. Track B did not have this problem because it owns its entries'
+`entry_source` outright (Measurement C: 52/53 semantically identical).
+
+**Push — safe from the bundle, degrading from a pull.** Pushing from
+`okf-bundle/` is unaffected. Pushing from a *pulled* tree was evaluated offline
+(pure function, no writes):
+
+```
+FROM BUNDLE        description="Core table containing checking, savings, and …"  fields=7  queries=3
+FROM PULLED TREE   description=""                                                fields=7  queries=3
+```
+
+The 7 fields and 3 queries survive because they are re-derived from the body,
+which does round-trip. The **table-level description would be blanked**. So a
+pull→push cycle is currently a slow leak of exactly one field per table.
+
+**Fix, not yet applied:** teach `fromStaging` to reconstruct `description` from
+the `descriptions` aspect the same way it already recovers the body from
+`overview`. That is the symmetric fix to Measurement A.1 and it restores Track A
+round-tripping. Recorded as an open item.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

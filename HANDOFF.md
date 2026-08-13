@@ -367,6 +367,17 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **The Track A pull is lossy: `fromStaging` drops the table description.**
+  These entries' `entry_source` is system-owned, so the bundle's `description`
+  lives only inside the `descriptions` aspect, and `fromStaging` maps back only
+  `okf` and `overview`. A pull→push cycle blanks one field per table (fields and
+  queries survive, being re-derived from the body). Fix symmetrically to
+  Measurement A.1 — recover `description` from the `descriptions` aspect.
+- **`verified` is deliberately NOT mapped to `userManaged`.** Ownership is
+  unconditional; 7 unflagged tables are owned anyway. Mapping them would mean
+  the bundle is authoritative only for signed-off concepts, which contradicts
+  the full-replace semantics in Measurement D. A decision, not an oversight.
+
 - **Two columns are frozen blank by whole-aspect ownership.** `userManaged` is a
   single bool per aspect — it does not exist per field or per query — so owning
   `descriptions` means owning every column. `customers.name` and
