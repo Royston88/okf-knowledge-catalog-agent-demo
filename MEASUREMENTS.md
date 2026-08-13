@@ -1590,6 +1590,72 @@ do their LLM work and discard it. Disabling them would save that, at the price
 of losing the ability to release a table and have the scan repopulate it —
 which is exactly the mechanism the `verified: false` path depends on.
 
+## How does an agent get from a table to its join/metric concepts? Today: barely
+
+Track A puts concepts **on** the 14 ingested `@bigquery` entries. Track B puts
+the 39 joins and metrics in a **separate** EntryGroup as abstract `generic`
+entries. Nothing structurally connects the two. Measured, on
+`references/joins/accounts__transactions`:
+
+| signal | value | usable? |
+|---|---|---|
+| `entry_source.labels` | `{join, one-to-many, accounts, transactions}` | **yes, weakly** — the table names are there, so `search_entries("accounts")` finds the concept. A string match, not a reference |
+| markdown links in `overview` | `../../tables/accounts.md` | **no** — a relative *file path*. Nothing in Knowledge Catalog resolves it |
+| `resource.name` | absent | **no** — joins and metrics are abstract; there is no URI tying them to a table |
+| EntryLinks | none exist | **no** — neither workspace configures `entryLinks` |
+
+### This explains an asymmetry in Phase 8
+
+Arm K reads the **bundle**, where `../../tables/accounts.md` is a real,
+resolvable path — the navigation layer works. Arm D reads the **catalog**, where
+the identical string is dangling text. The bundle's structure evaporates in
+projection, the same way the `index.md` layer does (A.2). Part of Arm K's
+advantage is that it is reading a filesystem, and filesystems have working
+links.
+
+### The native option exists, and kcmd already supports it
+
+Dataplex has four built-in EntryLink types — `definition`, `synonym`, `related`,
+`schema-join` — and kcmd has the plumbing: `snapshotConfig.entryLinks`,
+`publishingConfig.entryLinks`, and read/write in `sync.ts`. Neither of our
+workspaces configures it. `related` is the natural fit (it covers joins *and*
+metrics uniformly); `schema-join` is the native table↔table join representation
+but cannot express a metric.
+
+### And it would not reach an agent, which is the deciding fact
+
+The prebuilt dataplex MCP toolbox exposes **24 tools and not one of them touches
+entry links**:
+
+```
+check_data_quality, create_data_asset, create_data_product, discover_metadata,
+generate_data_insights, generate_data_profile, get_data_asset, get_data_insights,
+get_data_product, get_data_profile, get_data_quality_results,
+get_discovery_results, get_operation, get_run_status, list_data_assets,
+list_data_products, lookup_context, lookup_entry, search_aspect_types,
+search_dq_scans, search_entries, update_data_asset, update_data_product,
+update_data_product_aspects
+```
+
+So projecting `related` links would model the relationship correctly and remain
+invisible to any agent on this MCP path. It joins the list with
+`schema-join` — which v7 measured is **not** consumed by the BQ CA API as a join
+hint either — and with `Context.schema_relationships`. **Every structural
+relationship channel in Knowledge Catalog is, so far, unreadable by the agents
+that would need it.**
+
+### What actually works: translate the links at projection time
+
+The bundle should keep relative paths — they are correct OKF and they are why
+Arm K works. The **projector** should rewrite them into catalog entry names on
+the way out, so `[accounts](../../tables/accounts.md)` becomes a reference an
+agent can pass straight to `lookup_entry`. Same content, resolvable at both
+ends, and it rides in `overview`/`descriptions`, which we already own and which
+*do* reach an agent at `view=ALL`.
+
+That is the missing step: a projector translates addresses, and ours currently
+copies them verbatim. Recorded as the recommended fix; not implemented.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

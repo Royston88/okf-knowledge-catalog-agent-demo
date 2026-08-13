@@ -367,6 +367,17 @@ Material already in hand for it:
 
 ### Open items carried forward
 
+- **Nothing connects a table entry to its join/metric concepts.** The bundle's
+  `[accounts](../../tables/accounts.md)` links are relative file paths — alive
+  for Arm K (which reads the filesystem), dead in the catalog. Labels carry the
+  table names, so `search_entries` finds concepts by string match, but there is
+  no reference. Dataplex EntryLinks (`related`, `schema-join`) would model it
+  and kcmd already has the plumbing — **but the dataplex MCP toolbox exposes 24
+  tools and none of them reads entry links**, so it would be invisible to an
+  agent. Recommended fix: have the projector rewrite relative paths into catalog
+  entry names, so the body carries references an agent can hand to
+  `lookup_entry`. Not implemented.
+
 - **The projection rule is: always project overview + descriptions + queries,
   and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite
   `bun kcmd/demo/okf/ownership.test.ts` (26 assertions). Two things outstanding:
