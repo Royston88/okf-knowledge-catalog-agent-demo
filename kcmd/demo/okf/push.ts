@@ -11,7 +11,7 @@
 import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { toStaging } from './okf';
+import { toStaging, splitFrontmatter } from './okf';
 import { okfKey, kcmdMain } from './config';
 
 const root = process.cwd();
@@ -35,9 +35,28 @@ fs.rmSync(stagingDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(stagingDir, 'catalog'), { recursive: true });
 fs.copyFileSync(path.join(root, 'catalog.yaml'), path.join(stagingDir, 'catalog.yaml'));
 
-let n = 0;
+// A concept with a top-level `resource:` names a BigQuery asset that Dataplex
+// has ALREADY ingested as an `@bigquery` entry. Publishing it here too creates a
+// second catalog object for the same table — which is what a Knowledge Catalog
+// search then shows the user: "Accounts" (ours) next to `accounts` (native).
+//
+// The 39 joins and metrics have no `resource:` and no native home, so they are
+// the concepts that genuinely need entries of their own. The 14 asset-backed
+// concepts belong ON their native entry, and Track A (`push-track-a.ts`) puts
+// them there — the `okf` signal aspect plus the body as `overview`, a slot the
+// ingested entries leave empty.
+function isAssetBacked(content: string): boolean {
+  const { meta } = splitFrontmatter(content);
+  return !!(meta && meta.resource);
+}
+
+let n = 0, skipped = 0;
 for (const file of listMd(catalogDir)) {
   const rel = path.relative(catalogDir, file);
+  if (isAssetBacked(fs.readFileSync(file, 'utf8'))) {
+    skipped++;
+    continue;
+  }
   const dest = path.join(stagingDir, 'catalog', rel);
   // The entry id is the bundle-relative path minus `.md`, POSIX-separated —
   // the same derivation the fork's OkfLayout uses. toStaging stamps it onto
@@ -47,7 +66,8 @@ for (const file of listMd(catalogDir)) {
   fs.writeFileSync(dest, toStaging(fs.readFileSync(file, 'utf8'), okfKey, entryName));
   n++;
 }
-console.log(`staged ${n} concept file(s) -> ${stagingDir}`);
+console.log(`staged ${n} concept file(s) -> ${stagingDir} ` +
+  `(skipped ${skipped} asset-backed concept(s); Track A owns those)`);
 
 const args = ['push', ...process.argv.slice(2)];
 cp.execFileSync('node', [kcmdMain, ...args], { cwd: stagingDir, stdio: 'inherit' });

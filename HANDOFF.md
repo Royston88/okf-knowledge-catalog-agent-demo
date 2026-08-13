@@ -60,10 +60,19 @@ state is git: this branch's commits are the real handoff.
 The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
 classes (`generate_models/okf` × 39, `reference_agent/gemini-3.5-flash` × 14).
 
-**Track B is live.** EntryGroup `okf_cymbal_v6z` holds 54 entries: 13 `tables/`,
-1 `datasets/`, 39 `references/` (13 joins + 26 metrics), plus the auto-created
-`okf_cymbal_v6z_entry`. Each concept carries the `okf` signal aspect, the
-`generic` aspect, and its markdown body as `overview`.
+**The two tracks are split by asset-backing, and do not overlap.** A concept
+with a top-level `resource:` names an asset Dataplex already ingested, so it
+belongs on that native entry (Track A); the rest need entries of their own
+(Track B).
+
+- **Track B** — `okf_cymbal_v6z`, **40 entries**: 39 `references/`
+  (13 joins + 26 metrics) plus the auto-created `okf_cymbal_v6z_entry`.
+- **Track A** — the 14 native `@bigquery` entries, each carrying the `okf`
+  signal aspect **and** its concept body as `overview`.
+
+They used to overlap: Track B also published the 14 asset-backed concepts, so a
+catalog search returned two objects per table (28 hits, now 14). Do not
+reintroduce that.
 
 ---
 

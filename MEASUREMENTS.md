@@ -879,6 +879,80 @@ and on a workstation where the active config points at an unrelated project it
 would have failed confusingly rather than safely. `push-track-a.ts` now refuses
 to run unless `KCMD_ACCESS_TOKEN` is set explicitly.
 
+## Track A/B de-duplication — and the confound it exposed in Phase 8
+
+Raised from a Knowledge Catalog search screenshot: every table appeared **twice**
+— `Customers` with our description next to native `customers` with none.
+
+### The duplication was real and was Track B's fault
+
+A catalog search for the dataset returned **28 hits**: the 14 native `@bigquery`
+entries and 14 standalone concepts in `okf_cymbal_v6z`. (The "BIGQUERY TABLE"
+type shown against the duplicates is the UI's *type alias* column, rendering the
+`type` field of our `generic` aspect. The entries' real type is `generic`.)
+
+Only 39 of the bundle's 53 concepts — the joins and metrics — have no native
+home. **The other 14 describe assets Dataplex already has entries for, and
+publishing them as separate entries created a second catalog object per table.**
+
+Fixed by splitting the two tracks on a property the bundle already carries: a
+concept with a top-level `resource:` names an ingested asset, so Track B skips
+it and Track A owns it. Joins and metrics have no `resource:` and stay in Track
+B.
+
+- `push.ts` now skips asset-backed concepts (`staged 45 … skipped 14`)
+- `bq-okf-workspace/catalog.yaml` adds `dataplex-types.global.overview` to
+  `publishing.aspects`, so the concept body lands on the native entry — a slot
+  Measurement G found **empty**, so nothing is displaced
+- the 14 duplicates were deleted
+
+**Result: 28 search hits → 14.** `okf_cymbal_v6z` holds 40 entries (39
+references + its own), and all 14 native entries carry both the `okf` aspect and
+the 4,395-character body, with `descriptions` still scan-owned
+(`userManaged: false`).
+
+### Measurement G extended: `overview` survives a re-scan
+
+Re-ran the `accounts` DATA_DOCUMENTATION scan with the body in place.
+**SUCCEEDED, and the overview was untouched (4,395 → 4,395 chars)** despite
+`userManaged` being false. G showed the scan destroys unprotected content in
+`descriptions`; this shows the scan only touches the aspects it **owns**.
+`overview` is not one of them, so the projection is safe there for free — and
+`userManaged` only matters for aspects the scan writes.
+
+### The Phase 8 re-run, and why my earlier explanation was wrong
+
+Projecting the bodies onto the native entries should have helped Arm D. It did
+not: **6/15, against 7/15 before — unchanged within noise**, and q2 still 0/3
+while Arm K scores 3/3 off the identical text.
+
+The reason is not that Arm D ignored the content. **Its tool does not return
+it.** The prebuilt dataplex toolbox's `lookup_entry` takes a `view` whose
+documented default is `2 (FULL)`, and FULL means *"all required aspects and the
+**keys** of non-required aspects"*:
+
+```
+view=2 (FULL, the default)   3,619 chars   OKF body present: NO
+view=4 (ALL)                18,171 chars   OKF body present: YES
+```
+
+`overview` is a non-required aspect, so at the default view its content is
+withheld and only its key is returned. Arm D was structurally unable to read the
+enrichment sitting on the entry it was querying, and nothing in its tool
+descriptions would prompt it to ask for `view=4`.
+
+**This supersedes the explanation recorded in the Phase 8 section.** That section
+attributed Arm K's win to a thin tool surface forcing retrieval, which is still
+true and still half the story. The other half is sharper: **Arm K's
+`lookup-entry` returns the whole concept, and Arm D's returns a summary with the
+prose stripped out.** The two arms were never reading comparable content, even
+after both were pointed at the same text.
+
+The generalisable finding is not about OKF at all: *publishing knowledge to a
+catalog is not enough if the default read path omits it.* A "FULL" view that
+withholds the field a human would consider the whole point is a trap, and it is
+invisible — the call succeeds and returns a plausible-looking entry.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

@@ -1,9 +1,18 @@
 # Track A: the okf signal layer on the ingested @bigquery entries.
 #
-# `publishing.aspects` lists ONLY the okf aspect on purpose. Dataplex's own
-# generated overview on these entries is left untouched, so Phase 7 /
-# Measurement G keeps an unmodified control. Adding
-# `dataplex-types.global.overview` here would start overwriting it.
+# `publishing.aspects` carries the okf signal aspect AND the concept body as
+# `overview`.
+#
+# Publishing `overview` here is what lets Track B stop duplicating. The 14
+# asset-backed concepts used to be pushed as standalone entries in
+# okf_cymbal_v6z as well, so a catalog search returned two objects per table.
+# They now live only on their native @bigquery entry, and the body needs
+# somewhere to go — `overview` is EMPTY on these entries (Measurement G found it
+# absent, not merely blank), so nothing is being displaced.
+#
+# It does not collide with the DATA_DOCUMENTATION scan either: that scan writes
+# `descriptions` and `queries`, which are deliberately NOT published from here
+# and so remain scan-owned.
 scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
 layout: documents
 snapshot:
@@ -19,3 +28,4 @@ publishing:
     - dataplex-types.global.bigquery-table
   aspects:
     - royston-dev-8253.us.okf
+    - dataplex-types.global.overview

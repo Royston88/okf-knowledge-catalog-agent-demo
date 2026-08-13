@@ -126,10 +126,24 @@ But the mechanism is not "better metadata":
 - **14 of Arm K's 15 runs called `lookup-entry`, and the single run that did not
   was its single failure on that question.**
 
-Correct answers correlate with **retrieval**, not with the arm. The claim that
-survives is narrower and more useful: *a thin tool surface that forces retrieval
-beat a rich one that permits skipping it, and the content behind the thin one
-happened to contain the hazard.* Half of that finding is about MCP ergonomics.
+Correct answers correlate with **retrieval**, not with the arm.
+
+**And a later measurement sharpened this further.** Track A was extended to
+project the concept bodies onto the native `@bigquery` entries — the exact text
+that wins Arm K q2 — and Arm D re-run against that enriched catalog scored
+**6/15, unchanged**. Because its tool does not return the text: the dataplex
+toolbox's `lookup_entry` defaults to `view=2 (FULL)`, and FULL returns required
+aspects plus only the **keys** of non-required ones. `overview` is non-required,
+so the body is withheld unless the caller asks for `view=4 (ALL)` — 3,619 chars
+versus 18,171.
+
+So the claim that survives is: *Arm K's `lookup-entry` returns the whole concept
+and Arm D's returns a summary with the prose stripped out.* The two arms were
+never reading comparable content, even once both were pointed at the same text.
+The generalisable lesson is not about OKF — **publishing knowledge to a catalog
+is worth nothing if the default read path omits it**, and a "FULL" view that
+withholds the field a human would consider the point is a trap that fails
+silently.
 
 **And q4 is a genuine negative: both arms 0/3.** Neither channel carries the
 zero-fill-cohort hazard, because nobody curated it into the bundle. A curated
@@ -151,9 +165,11 @@ capability and it was blocked by tooling, never by Knowledge Catalog.
    `userManaged` does, and it is orthogonal to `verified` (Measurement G).
 2. *"OKF round-trips cleanly."* Not byte-wise, not without a canonicaliser you
    build yourself, and not at all for the `index.md` layer or duplicate tags.
-3. *"Putting knowledge in the catalog makes an agent use it."* Arm D had the
-   knowledge available and better tools to find it, and skipped the catalog in
-   half its runs.
+3. *"Putting knowledge in the catalog makes an agent use it."* Arm D skipped the
+   catalog in half its runs — and when the identical OKF bodies were projected
+   onto the very entries it queries, its score did not move, because the
+   toolbox's default `lookup_entry` view returns the aspect *keys* and not the
+   prose. Availability, retrieval and legibility are three different problems.
 
 **The strongest single argument for the approach** is not any measurement here —
 it is that when the projection broke in four different ways, every one was
