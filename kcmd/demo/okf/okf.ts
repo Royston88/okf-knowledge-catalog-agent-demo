@@ -231,16 +231,37 @@ export function queryPatterns(body: string): Array<{ sql: string; description: s
 }
 
 /**
- * The `descriptions` + `queries` aspects for an asset-backed concept, both
- * flagged `userManaged: true` so a re-scan leaves them alone. Returns `{}` when
- * the body yields nothing, so an empty aspect is never written.
+ * The `descriptions` + `queries` aspects for an asset-backed concept.
+ *
+ * OWNERSHIP IS GATED ON `verified`, and that is the whole point.
+ *
+ * These two aspects are CONTESTED — the DATA_DOCUMENTATION scan wants them, and
+ * `userManaged` decides who wins. Claiming them unconditionally means writing
+ * UNREVIEWED LLM output into the field a human reads in the UI and then freezing
+ * it against every future scan. The scan's version at least gets refreshed; a
+ * frozen guess does not. `verified` is exactly the signal that separates "a
+ * human vouched for this" from "a machine guessed", so it is the right gate.
+ *
+ * Unverified concepts are not abandoned: they still project their body to
+ * `overview` and their signal layer to `okf`, both uncontested and both
+ * bundle-owned. They simply do not override the scan on the aspects the scan
+ * owns. The bundle remains the complete record; what it CLAIMS in a downstream
+ * implementation is governed by its own trust tier.
+ *
+ * Note where `userManaged` therefore lives: nowhere. It is not an OKF field and
+ * not a config value — it is COMPUTED from `verified` at projection time, which
+ * is correct if Knowledge Catalog is one projection target among several.
  */
 export function assetAspects(meta: any, body: string): Record<string, any> {
   const aspects: Record<string, any> = {};
+  const owned = Array.isArray(meta.verified) && meta.verified.length > 0;
+  if (!owned) {
+    return aspects;
+  }
   const fields = schemaFields(body);
   if (meta.description || fields.length) {
     aspects[DESCRIPTIONS_KEY] = {
-      userManaged: true,
+      userManaged: owned,
       ...(meta.description ? { description: meta.description } : {}),
       ...(fields.length ? { fields } : {}),
     };
@@ -248,7 +269,7 @@ export function assetAspects(meta: any, body: string): Record<string, any> {
   const patterns = queryPatterns(body);
   if (patterns.length) {
     aspects[QUERIES_KEY] = {
-      userManaged: true,
+      userManaged: owned,
       queries: patterns.map((q) => ({
         sql: q.sql,
         description: q.description,

@@ -187,10 +187,24 @@ semantics, the surviving trust tier, and the reviewable canonical diff genuinely
 deliver "the file is authoritative, the catalog is a projection." That is a real
 capability and it was blocked by tooling, never by Knowledge Catalog.
 
+**And "the bundle wins" is best scoped, not absolute.** Aspects divide into
+three tiers: OKF-native (`okf`) and uncontested platform-native (`overview`) are
+always bundle-owned, while *contested* platform-native aspects (`descriptions`,
+`queries` — the ones a scan also writes) are owned **only where a human has
+signed off**. Claiming a contested aspect means freezing it, and freezing
+unreviewed generated content is worse than letting the platform keep refreshing
+it. Gating on `verified` also closes coverage gaps for free: released tables get
+their undocumented columns filled by the scan.
+
 **Do not claim any of the following. All three are measured false:**
 
-1. *"The OKF trust flag protects content from the pipeline."* It does not.
-   `userManaged` does, and it is orthogonal to `verified` (Measurement G).
+1. *"The OKF trust flag protects content from the pipeline."* **Not by itself.**
+   Knowledge Catalog does not couple them at all — Measurement G showed a
+   `verified` concept with `userManaged: false` destroyed by a re-scan. The
+   projector now *makes* the coupling, computing `userManaged` from `verified`
+   at push time, so the flag does confer protection **as a matter of our
+   projection policy, not platform behaviour**. Anyone reading the bundle
+   without that projector should not assume it.
 2. *"OKF round-trips cleanly."* Not byte-wise, not without a canonicaliser you
    build yourself, and not at all for the `index.md` layer or duplicate tags.
 3. *"Putting knowledge in the catalog makes an agent use it."* Arm D skipped the

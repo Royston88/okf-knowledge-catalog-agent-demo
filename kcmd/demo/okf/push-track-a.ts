@@ -40,7 +40,7 @@
 import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { toStaging } from './okf';
+import { toStaging, splitFrontmatter } from './okf';
 import { okfKey, kcmdMain, project, location } from './config';
 
 const BQ_DATASET = process.env.OKF_BQ_DATASET;
@@ -110,6 +110,50 @@ function publishingEntryTypes(): string[] {
   return out;
 }
 
+// `getEntry`'s aspect filter takes FULL RESOURCE NAMES, not the dotted alias.
+// Passing the alias returns HTTP 400 — and, because the aspect map on a failed
+// response is simply empty, a naive caller reads that as "nothing is held" and
+// releases nothing while reporting success. Measured; hence the status check in
+// releaseIfHeld.
+const DESCRIPTIONS_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/descriptions';
+const QUERIES_TYPE = 'projects/dataplex-types/locations/global/aspectTypes/queries';
+
+/**
+ * Hand a contested aspect back to the scan.
+ *
+ * Ownership is DECLARATIVE: a concept with `verified` claims `descriptions` and
+ * `queries`; one without does not. But dropping an aspect from the push payload
+ * is a NO-OP, not a release — measured: kcmd only writes the aspects present in
+ * the staged entry and never deletes the ones it omits. So a concept that loses
+ * its `verified` flag would keep a stale `userManaged: true` claim forever.
+ *
+ * This flips the flag back to false in place, leaving the content alone. The
+ * next DATA_DOCUMENTATION run then regenerates it, which is the point: the scan
+ * resumes managing what no human has vouched for.
+ */
+async function releaseIfHeld(client: any, entryId: string, label: string): Promise<boolean> {
+  const res = await client.getEntry(project, location, '@bigquery', entryId,
+                                    [DESCRIPTIONS_TYPE, QUERIES_TYPE]);
+  if (res.status !== 200 || !res.result) {
+    throw new Error(`Cannot read contested aspects for ${label}: HTTP ${res.status}`);
+  }
+  const aspects = res.result.aspects ?? {};
+  const held = Object.entries(aspects).filter(
+    ([k, v]: [string, any]) => /\.(descriptions|queries)$/.test(k) && v?.data?.userManaged === true,
+  );
+  if (!held.length) return false;
+  const entry: any = { name: res.result.name, aspects: {} };
+  for (const [k, v] of held as Array<[string, any]>) {
+    entry.aspects[k] = { aspectType: v.aspectType, data: { ...v.data, userManaged: false } };
+  }
+  const upd = await client.updateEntry(entry, ['aspects'], Object.keys(entry.aspects));
+  if (upd.status !== 200) {
+    throw new Error(`Failed to release ${label}: HTTP ${upd.status}`);
+  }
+  console.log(`  ${label}: released ${Object.keys(entry.aspects).length} aspect(s) back to the scan`);
+  return true;
+}
+
 /** The live entry type for an ingested entry, as a `dataplex-types.<loc>.<id>` ref. */
 async function liveEntryType(client: any, entryId: string): Promise<string> {
   const res = await client.getEntry(project, location, '@bigquery', entryId);
@@ -137,7 +181,8 @@ if (!token) {
 const catalogClient = new kcmd.dataplex.CatalogClient(
   new kcmd.gcp.ApiContext(project, location, token));
 
-let n = 0;
+let n = 0, released = 0;
+const toRelease: Array<{ entryId: string; label: string }> = [];
 for (const sub of ['tables', 'datasets']) {
   const dir = path.join(bundleDir, sub);
   if (!fs.existsSync(dir)) continue;
@@ -154,18 +199,28 @@ for (const sub of ['tables', 'datasets']) {
         `drop it silently and still report success — add the type or exclude ` +
         `the concept.`);
     }
+    const src = fs.readFileSync(path.join(bundleDir, rel), 'utf8');
+    if (!splitFrontmatter(src).meta?.verified) {
+      toRelease.push({ entryId: mapped.entryId, label: rel });
+    }
     const dest = path.join(stagingCatalog, `${mapped.name}.md`);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(
       dest,
-      toStaging(fs.readFileSync(path.join(bundleDir, rel), 'utf8'), okfKey, mapped.name,
-                entryType, /* withAssetAspects */ true),
+      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true),
     );
     console.log(`  ${rel} -> ${mapped.name}  [${entryType}]`);
     n++;
   }
 }
 console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}`);
+
+// Release BEFORE the push, so a concept that just lost its `verified` flag is
+// handed back in the same run that stops claiming it.
+for (const r of toRelease) {
+  if (await releaseIfHeld(catalogClient, r.entryId, r.label)) released++;
+}
+console.log(`unverified concepts: ${toRelease.length} (released ${released} stale claim(s))`);
 
 cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
                 { cwd: stagingDir, stdio: 'inherit' });

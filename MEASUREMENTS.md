@@ -1322,6 +1322,82 @@ the `descriptions` aspect the same way it already recovers the body from
 `overview`. That is the symmetric fix to Measurement A.1 and it restores Track A
 round-tripping. Recorded as an open item.
 
+## Ownership gated on `verified` — the three-tier projection model
+
+Decided and implemented: `userManaged` is now **computed from `verified`** at
+projection time. This supersedes the unconditional ownership recorded above, and
+supersedes an earlier suggestion in this file that `userManaged` "belongs in
+`catalog.yaml`'s publishing config". It belongs in neither the bundle nor the
+config — it is derived, which is the correct answer if Knowledge Catalog is one
+projection target among several rather than the system of record.
+
+### Why unconditional ownership was wrong
+
+It took **unreviewed LLM output** for 7 of 13 tables, wrote it into the field a
+human reads in the UI, and **froze it permanently** against every future scan.
+The scan's version at least gets refreshed; a frozen guess does not. `verified`
+is exactly the signal separating "a human vouched" from "a machine guessed", so
+gating on it is not a nicety — it is what stops the projector from laundering
+generated content into apparently-curated content.
+
+### The model that fell out of it
+
+| tier | aspects | owner | why |
+|---|---|---|---|
+| OKF-native, uncontested | `okf` | **always the bundle** | custom type; no scan writes it |
+| platform-native, uncontested | `overview` | **always the bundle** | the doc scan does not write it (measured) |
+| platform-native, **contested** | `descriptions`, `queries` | **bundle iff `verified`** | claiming means freezing; freeze only what a human vouched for |
+
+Unverified concepts are not abandoned — their body still projects to `overview`
+and their signal layer to `okf`. They simply do not override the scan on the
+aspects the scan owns. **The bundle stays the complete record; what it CLAIMS
+downstream is governed by its own trust tier.**
+
+### Release is explicit, because omission is a no-op
+
+Measured: dropping an aspect from the push payload does **not** delete or
+release it. kcmd writes only the aspects present in the staged entry. So a
+concept that loses its `verified` flag would keep a stale `userManaged: true`
+claim forever. `push-track-a.ts` now reads the contested aspects and flips the
+flag back to `false` in place, leaving content alone; the next scan regenerates
+it. Ownership is therefore fully declarative and idempotent in both directions.
+
+> A bug worth recording, because it is this project's signature failure yet
+> again: `getEntry`'s aspect filter takes **full resource names**
+> (`projects/dataplex-types/locations/global/aspectTypes/descriptions`), not the
+> dotted alias. Passing the alias returns **HTTP 400**, and because the aspect
+> map on a failed response is simply empty, the first implementation read that
+> as "nothing is held", released nothing, and printed
+> `released 0 stale claim(s)` as though it had succeeded. Now it throws on
+> non-200.
+
+### Verified end state
+
+```
+accounts, calendar, customers, loan_applications, payments, transactions
+    verified=True   userManaged=True    descriptions = BUNDLE (curated)
+account_owners, balance_snapshots, customer_segment_history, investors,
+loan_investors, support_tickets, wire_transfers
+    verified=False  userManaged=False   descriptions = scan (regenerated)
+
+userManaged matches okf.verified on 13/13 tables.
+```
+
+**Unexpected benefit: the coverage gap closed itself.** `investors` went from 2
+field descriptions to 3 — the scan filled the column the LLM author skipped.
+Releasing unverified tables hands their gaps back to the machinery that can fill
+them, so only **one** frozen-blank column remains (`customers.name`), and it is
+on a *verified* table — exactly where the burden of completeness belongs, since
+a human claimed it.
+
+### The semantics this buys, stated plainly
+
+Sign-off now has a side effect: flagging a concept `verified` **takes over the
+UI description and suggested queries for that table** on the next push, and
+un-flagging hands them back at the next scan. That is intended, and it makes the
+trust tier operational rather than decorative — but it must be documented, since
+a reviewer signing off on prose is also, now, changing what the platform shows.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
