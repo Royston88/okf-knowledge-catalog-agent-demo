@@ -139,12 +139,35 @@ export function fromStaging(content: string, okfKey: string): string {
   const matched = Object.keys(aspects).find((k) => k === okfKey || k.endsWith(suffix));
   const okf = matched ? aspects[matched] : {};
 
+  // MEASURED (Measurement A): on pull the concept BODY does not come back as the
+  // markdown body — it comes back stashed inside `catalogEntry.aspects` under the
+  // bare key `overview`, and the body is empty.
+  //
+  // The cause is an alias asymmetry in the fork. `ResourceAlias._defaultResource`
+  // maps `dataplex-types.global.overview` -> the short alias `overview`, and
+  // `toLocalEntry` applies it to every aspect key on the way in
+  // (`aspects[aliasMap.lookupResource(key, ASPECT)]`). But DocumentsLayout —
+  // and the fork's own OkfLayout — promote the body to/from the *unaliased*
+  // constant `OVERVIEW_ASPECT_KEY = 'dataplex-types.global.overview'`. So the
+  // push direction works (loadEntry writes the long key, lookupAlias passes it
+  // through untouched) and the pull direction silently does not. `standard.ts`
+  // is the only layout that handles both forms (`key === 'overview'`).
+  //
+  // For OKF the body IS the concept, so this is a total content loss, not churn.
+  // Recover it here: accept the short alias, the long key, and the
+  // project-number-qualified service form.
+  const ovKey = Object.keys(aspects).find(
+    (k) => k === 'overview' || k.endsWith('.overview'),
+  );
+  const ovContent = ovKey ? (aspects[ovKey]?.content ?? '') : '';
+  const effectiveBody = body.trim() ? body : ovContent;
+
   // Directory index entries carry no OKF signal — emit body only, matching the
   // frontmatter-free index files in the source bundle.
   const isOkf = SIGNAL_KEYS.some((k) => okf[k] !== undefined)
     || ce.resource?.name !== undefined;
   if (!isOkf) {
-    return `${body.trim()}\n`;
+    return `${effectiveBody.trim()}\n`;
   }
 
   // Key order mirrors reference_agent's _PREFERRED_KEY_ORDER so a round trip is
@@ -164,5 +187,5 @@ export function fromStaging(content: string, okfKey: string): string {
   if (okf.sources !== undefined) {
     clean.sources = (okf.sources as any[]).map((s) => pick(s, ['id', 'resource', 'title']));
   }
-  return render(clean, body);
+  return render(clean, effectiveBody);
 }

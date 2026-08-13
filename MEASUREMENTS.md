@@ -179,7 +179,163 @@ invention. Useful as prose, unsafe as exemplars.
 Per the plan these are **recorded, not patched** — patching would corrupt
 Measurement F's review signal.
 
-## Phase 5 — BLOCKED: `kcmd push` indexes zero entries in this fork
+## Phase 5 — RESOLVED: the projection lands. 53 concepts in `okf_cymbal_v6z`
+
+The blocker below was real but its recorded prime suspect was wrong. Kept in
+full underneath, because the six ruled-out hypotheses are still worth having and
+because the *wrong* guess is itself a result.
+
+### Root cause: entries were being pushed with no name
+
+`DocumentsLayout.init()` indexes on `entry.name` and on nothing else:
+
+```ts
+const {entry} = parseMarkdown(content);
+if (entry && entry.name) this._index.set(entry.name, localPath);
+```
+
+and `parseMarkdown` reconstructs the entry as `metadata.catalogEntry ?? {}`,
+never deriving a name from the file path. `toStaging` emitted only
+`catalogEntry.resource.name` — a BigQuery **resource URI**, not an entry name.
+So all 59 files parsed cleanly, `entry` was non-null, `entry.name` was
+`undefined`, the index stayed empty, and push iterated an empty set while
+printing *"Successfully pushed catalog entries."*
+
+Probed directly against the built layout:
+
+```
+indexed entries: 0
+entry is null? false
+entry.name = undefined
+entry.resource.name = "https://bigquery.googleapis.com/v2/projects/…/tables/accounts"
+```
+
+**The path-shape suspect is refuted, not merely unconfirmed.** `init()` contains
+no path logic at all, so `catalog/<namespace>/<project>/<location>/` could never
+have mattered. That prefix is a `KnowledgeBaseSource.localName` convention for
+the *pull* direction; `serviceName` already strips it only when present and
+otherwise treats the whole name as the entry id. A bare `tables/accounts` is a
+valid entry id and maps to `<entryGroup>/entries/tables/accounts`.
+
+Two changes, both in our own shim — the fork is untouched:
+
+- `push.ts` derives the entry id from the bundle-relative path minus `.md`, the
+  same derivation the fork's own `OkfLayout.deriveEntryName` uses.
+- `toStaging` stamps it on `catalogEntry.name` and adds the
+  `dataplex-types.global.generic` aspect. Dataplex rejects an entry whose type
+  is `generic` when the matching aspect is absent (400 *"Missing required
+  Aspect(s)"*) — an error that only became visible once entries were being
+  created at all.
+
+**Result:** 54 entries in the EntryGroup — 13 `tables/`, 1 `datasets/`, 39
+`references/` (13 joins + 26 metrics), plus the auto-created
+`okf_cymbal_v6z_entry`. Each concept carries the `okf` signal aspect, the
+`generic` aspect, and its markdown body as `overview` (4,395 chars on
+`tables/accounts`).
+
+**Not projected: the 6 `index.md` files.** They have no frontmatter, so
+`toStaging` passes them through unchanged, they get no `catalogEntry.name`, and
+they never index. The documents layout has no synthetic-index support — the
+fork's `OkfLayout` does (it invents a `<folder>/index` entry per directory), and
+that is the one thing it would buy us here.
+
+### `push --validate-only` is not a dry run in this fork
+
+It created all 14 entries it "validated", then reported success. The earlier
+session used `--validate-only` as a safe auth probe and cited its success as
+evidence against the auth hypothesis; the conclusion held, but the probe was
+writing to the catalog the whole time. Do not reach for it as a safe check.
+
+## Measurement A — clean-OKF round-trip loss
+
+Project → `pull` into a scratch workspace → compare against `okf-bundle/`.
+53/53 concepts came back. Field by field, this is what the round trip costs.
+
+### A.1 The body was lost entirely, until an alias bug was worked around
+
+First pull returned **every concept with an empty body** — for OKF, where the
+body *is* the concept, a 100% content loss with the frontmatter intact.
+
+The content was never missing from the service; it came back stashed in
+`catalogEntry.aspects` under the bare key `overview` and was never promoted to
+the markdown body. The cause is an alias asymmetry inside the fork:
+
+- `ResourceAlias._defaultResource` maps `dataplex-types.global.overview` → the
+  short alias `overview`, and `toLocalEntry` applies it to **every** aspect key
+  on the way in.
+- `DocumentsLayout` promotes the body to/from the **unaliased** constant
+  `OVERVIEW_ASPECT_KEY = 'dataplex-types.global.overview'`.
+
+So push works (`loadEntry` writes the long key and `lookupAlias` passes it
+through untouched) and pull silently does not. **`OkfLayout` has the identical
+constant and the identical defect** — the fork's own OKF layout would lose the
+body the same way. `standard.ts` is the only layout that handles both forms
+(`key === 'overview'`).
+
+Worked around in `fromStaging` by accepting the short alias, the long key and
+the project-number-qualified service form. After the fix: **53/53 bodies
+byte-identical to the bundle.** This is a fork bug worth reporting upstream, not
+a property of OKF.
+
+### A.2 The `index.md` layer does not survive at all
+
+6 of 59 files. See above — no frontmatter, no entry name, no entry. The OKF
+bundle's navigation layer has no representation in the projected catalog.
+
+### A.3 Duplicate tags collapse — 1 concept of 53
+
+`references/joins/customers__customers__referrer` carries
+`[join, one-to-many, customers, customers]` (a self-join, so the emitter names
+the table twice). It comes back as `[join, one-to-many, customers]`.
+
+Mechanism, confirmed against the stored entry: tags are not a list in Dataplex.
+`parseMarkdown` writes them into `resource.labels` as `{tag: 'true'}` and the
+service stores `{'one-to-many': 'true', 'customers': 'true', 'join': 'true'}`.
+A map cannot hold a duplicate key. Tag *order* happened to survive here, but a
+map does not promise it either.
+
+Arguably the bundle is at fault for emitting a duplicate tag. It is still a
+real, silent, unreported mutation of authored content.
+
+### A.4 Everything else survives
+
+52/53 concepts are semantically identical in frontmatter (`type`, `resource`,
+`title`, `description`, `status`, `generated.by`, `generated.at`, `sources[]`
+with `id`/`resource`/`title`). The one exception is A.3.
+
+The `okf.ts` warning that x-kcmd-less files "load lossily" does **not** apply on
+this path: our shim never uses the `x-kcmd` stash, it carries the signal layer
+through the `catalogEntry` passthrough into a custom aspect. That warning is
+about the fork's native `OkfLayout`.
+
+## Measurement C — round-trip fidelity: byte-unstable, semantically clean
+
+**0 of 53 files are byte-identical.** Every single one differs. The pass
+condition as written in the plan ("empty `git diff` is the pass") **fails**.
+
+Every difference is YAML serializer style. The bundle is written by Python
+(`yaml.dump` in `reference_agent` / `gen_okf`), the round trip re-emits it with
+JS `yaml.stringify`, and the two disagree about:
+
+| Churn | Bundle (Python) | Pulled (JS) |
+|---|---|---|
+| block sequence indent | `- core` at column 0 | `  - core` indented |
+| line-wrap column | wraps after `managed` | wraps after `credit` |
+| timestamp quoting | `at: '2026-08-12T20:50:24+00:00'` | `at: 2026-08-12T20:50:24+00:00` |
+
+Parsed and compared as data rather than as bytes: **frontmatter 52/53
+semantically identical** (the exception is A.3, a genuine loss) and **bodies
+53/53 identical**.
+
+**What this constrains.** OKF-as-source-of-truth cannot use `git diff` as its
+review surface without a canonical formatter — the churn would swamp every real
+change, which is exactly the failure mode Measurement F is meant to detect. The
+fix is cheap and mechanical (normalise the bundle through the same emitter after
+each pull, or pin a shared YAML style), and it is a **tooling** requirement, not
+evidence against the model. Recorded here so F is not run against a diff that is
+99% noise.
+
+## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
 extended aspect type exist. **The projection does not land.** `kcmd push` reports
