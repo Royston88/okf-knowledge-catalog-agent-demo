@@ -1,0 +1,188 @@
+# Join triage — the 12 schema-join links in the frozen rich capture
+# (kc-capture/relationships.json, scan kc-rel-v6z-scaffold-copy).
+#
+# Written BEFORE any deletion, per the plan. Every link in the capture gets an
+# entry. All 12 are `inference_source: AGENT` and all 12 arrive with
+# `user_managed: false`.
+#
+# CRITERIA
+#   JT1 Real            — do the fields actually correspond?
+#   JT2 Authoritative   — is this the right path, or does a better one exist?
+#   JT3 Grain-compatible— do the two sides share a grain?
+#   JT4 Cardinality declared — does the link state its cardinality?
+#
+# JT1 and JT4 were MEASURED against the warehouse rather than eyeballed:
+# orphan counts in both directions, and max-rows-per-key on each side (which
+# yields the cardinality the links themselves omit).
+#
+# HEADLINE VERDICTS
+#   JT1: 12/12 pass. Every link's fields correspond; the orphans that exist are
+#        legitimate optionality (not every customer files a loan application),
+#        not broken references.
+#   JT2: 1 reject — `accounts.customer_id -> customers.customer_id`.
+#   JT3: NO INSTANCE IN THIS CAPTURE. The plan's example was
+#        `balance_snapshots.snapshot_month -> calendar.cal_date` (month vs day),
+#        but Measurement B found every date->calendar join absent from the rich
+#        capture — all 6 dropped between runs. The triage list is per-capture,
+#        as the plan anticipated. Recorded as untestable here, NOT invented.
+#   JT4: 0/12 declare cardinality. Universal failure; measured below.
+#
+# CROSS-CUTTING FINDING — the duplicate load corrupts inferred cardinality.
+# `accounts` carries 60 re-loaded rows (max 2 rows per account_id), so EVERY
+# link touching accounts measures as N:M when it is semantically 1:N or N:1.
+# A cardinality inferred from data alone cannot distinguish "this table has
+# duplicate loads" from "this relationship is many-to-many". Marked
+# `cardinality_corrupted_by_dupes: true` on the three affected links; the
+# `semantic_cardinality` field records what it is once accounts is de-duped.
+
+- join: account_owners.account_id -> accounts.account_id
+  verdict: keep
+  reason: "The bridge's account side. Real, and the authoritative path for
+    account<->customer because it carries joint ownership."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 2, tgt_max_per_key: 2}
+  measured_cardinality: "N:M"
+  semantic_cardinality: "N:1"
+  cardinality_corrupted_by_dupes: true
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: account_owners.customer_id -> customers.customer_id
+  verdict: keep
+  reason: "The bridge's customer side. 30 customers have no ownership row,
+    which is legitimate optionality, not a broken reference."
+  measured: {src_orphans: 0, tgt_orphans: 30, src_max_per_key: 8, tgt_max_per_key: 1}
+  measured_cardinality: "N:1"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: accounts.account_id -> balance_snapshots.account_id
+  verdict: keep
+  reason: "Real 1:N fact join. Fan-out hazard — aggregating an accounts measure
+    after this join multiplies it by the snapshot count."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 2, tgt_max_per_key: 6}
+  measured_cardinality: "N:M"
+  semantic_cardinality: "1:N"
+  cardinality_corrupted_by_dupes: true
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: accounts.customer_id -> customers.customer_id
+  verdict: reject
+  reason: "JT2 — competes with the account_owners bridge and loses. This column
+    names only the PRIMARY owner, so joining customers to accounts through it
+    silently drops every joint owner: the bridge holds 1200 primary + 180 joint
+    rows over 1260 accounts. An agent offered both paths will sometimes pick
+    this one and under-report multi-owner accounts with no error. Real (JT1
+    passes, 0 source orphans) but not authoritative."
+  measured: {src_orphans: 0, tgt_orphans: 43, src_max_per_key: 8, tgt_max_per_key: 1}
+  measured_cardinality: "N:1"
+  jt1: pass
+  jt2: FAIL
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: accounts.account_id -> transactions.account_id
+  verdict: keep
+  reason: "Real 1:N fact join. 120 accounts have no transactions — legitimate.
+    Same fan-out hazard as balance_snapshots."
+  measured: {src_orphans: 120, tgt_orphans: 0, src_max_per_key: 2, tgt_max_per_key: 47}
+  measured_cardinality: "N:M"
+  semantic_cardinality: "1:N"
+  cardinality_corrupted_by_dupes: true
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: customers.customer_id -> customer_segment_history.customer_id
+  verdict: keep
+  reason: "Real 1:N. SCD2 child — a point-in-time predicate is required or the
+    join multiplies each customer by their segment history depth (max 3)."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 3}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: "pass, but conditional — the SCD2 validity window is the grain, and the
+    link does not carry it"
+  jt4: fail
+  user_managed_set: false
+
+- join: customers.customer_id -> loan_applications.customer_id
+  verdict: keep
+  reason: "Real 1:N. 88 customers never applied for a loan; legitimate."
+  measured: {src_orphans: 88, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 6}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: customers.customer_id -> payments.customer_id
+  verdict: keep
+  reason: "Real 1:N fact join."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 29}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: customers.customer_id -> support_tickets.customer_id
+  verdict: keep
+  reason: "Real 1:N. 29 customers never raised a ticket; legitimate."
+  measured: {src_orphans: 29, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 9}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: customers.customer_id -> wire_transfers.customer_id
+  verdict: keep
+  reason: "Real 1:N fact join. NOTE the role-playing hazard the plan expected to
+    triage here is invisible in this capture: wire_transfers has two date
+    columns (sent_date, received_date) and NEITHER date->calendar link was
+    generated, so there is no role-playing pair to reject."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 16}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: investors.investor_id -> loan_investors.investor_id
+  verdict: keep
+  reason: "Real 1:N. The investor side of the M:N loan syndication bridge."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 70}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false
+
+- join: loan_applications.application_id -> loan_investors.application_id
+  verdict: keep
+  reason: "Real 1:N. The application side of the M:N loan syndication bridge."
+  measured: {src_orphans: 0, tgt_orphans: 0, src_max_per_key: 1, tgt_max_per_key: 4}
+  measured_cardinality: "1:N"
+  jt1: pass
+  jt2: pass
+  jt3: n/a
+  jt4: fail
+  user_managed_set: false

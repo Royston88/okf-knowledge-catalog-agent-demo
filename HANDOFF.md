@@ -50,7 +50,7 @@ state is git: this branch's commits are the real handoff.
 | Measurement D — extended trust tier | **taken. PASS**, all tiers |
 | Track A — `okf` aspect onto `@bigquery` entries | **done.** 14/14 entries carry it |
 | 6 — canonical formatter + Measurement F | **done.** Diff goes 53/53 noise → 1 real |
-| 6 — join triage + sign-off | **not started** — next task, see §4.1 |
+| 6 — join triage + sign-off | **done.** 12 triaged (1 JT2 reject); 27 flagged / 26 control |
 | 7, 8 | not started |
 | Measurement F | **taken.** PASS, conditional on the new canonicaliser |
 | Measurement G | not taken |

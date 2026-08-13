@@ -585,6 +585,89 @@ Consequences:
    argument for Phase 6 verifying claims against the warehouse rather than
    against the prose.
 
+## Phase 6 part 2 — join triage and sign-off
+
+### Join triage — `okf-review/join_triage.yaml`, one entry per generated link
+
+All 12 links in the frozen rich capture, all `inference_source: AGENT`, all
+arriving `user_managed: false`. JT1 and JT4 were **measured against the
+warehouse** rather than eyeballed — orphan counts both directions, and
+max-rows-per-key on each side.
+
+| Criterion | Result |
+|---|---|
+| **JT1 Real** | **12/12 pass.** Every link's fields correspond. The orphans that exist are legitimate optionality — 88 customers never filed a loan application, 120 accounts have no transactions — not broken references. |
+| **JT2 Authoritative** | **1 reject.** |
+| **JT3 Grain-compatible** | **No instance in this capture.** |
+| **JT4 Cardinality declared** | **0/12.** Universal failure. |
+
+**The JT2 reject: `accounts.customer_id -> customers.customer_id`.** Real —
+JT1 passes with 0 source orphans — but not authoritative. That column names
+only the *primary* owner, so joining customers to accounts through it silently
+drops every joint owner; the `account_owners` bridge holds 1200 primary + 180
+joint rows over 1260 accounts. An agent offered both paths will sometimes take
+this one and under-report multi-owner accounts **with no error surfaced**. This
+is the single most consequential item in the triage.
+
+**JT3 has no instance, and that is the honest finding.** The plan's example was
+`balance_snapshots.snapshot_month -> calendar.cal_date` (month vs day). Measurement
+B already recorded that *every* date→calendar join is absent from the rich
+capture — all 6 dropped between runs. The role-playing case JT2 was also
+expected to catch (`wire_transfers.sent_date` vs `received_date`) is invisible
+for the same reason: neither date link was generated. Recorded as untestable
+here rather than manufactured.
+
+### Cross-cutting: the duplicate load corrupts every inferred cardinality
+
+`accounts` carries 60 re-loaded rows, so max-rows-per-key on `account_id` is 2,
+so **every link touching accounts measures as N:M** when it is semantically 1:N
+or N:1 — 3 of the 12.
+
+```
+account_owners.account_id -> accounts.account_id       measured N:M, semantic N:1
+accounts.account_id -> balance_snapshots.account_id    measured N:M, semantic 1:N
+accounts.account_id -> transactions.account_id         measured N:M, semantic 1:N
+```
+
+**Cardinality inferred from data alone cannot distinguish "this table has
+duplicate loads" from "this relationship is many-to-many."** Any automated
+modeller reading cardinality off the warehouse gets three wrong answers here,
+and each one is the kind that produces silently inflated measures rather than an
+error. The bundle's de-duplication guidance is load-bearing for this reason, not
+merely tidy.
+
+### Sign-off — 27 flagged, 26 control
+
+`okf-review/signoff.py`, deterministic and re-runnable (`--apply` / `--status` /
+`--clear`), writing `verified: [{by: human:kenly@google.com, at: …}]`.
+
+| provenance class | flagged | control |
+|---|---|---|
+| `generate_models/okf` | 20 | 19 |
+| `reference_agent/gemini-3.5-flash` | 7 | 7 |
+| **total** | **27** | **26** |
+
+**The split is balanced across provenance classes on purpose.** Flagging one
+whole class would confound the flag with the producer, so any Phase 7 difference
+could be read as "agent-authored content is treated differently" rather than
+"the flag worked". Within each class the concepts are sorted by path and every
+other one is flagged, so the population is reproducible and uncorrelated with
+content.
+
+Applied cleanly: **27 files, +81 lines, and 0 changes outside the `verified`
+key** — verified by parsing every touched file at `HEAD` and in the working tree
+and comparing everything else as data. Projected to both tracks and confirmed
+live: **Track B 27 flagged / 26 control, 0 mismatches against the bundle**;
+Track A 6 flagged / 7 control across the 13 tables.
+
+**What the flag claims, stated plainly.** Our aspect schema defines `human:<id>`
+as human-reviewed. The review behind it is a real pass over the canonical diff
+and the warehouse, and it found real things — the dedup conflict was empty, the
+profile distinct count is off by one, one join fails JT2. It is **not** a deep
+per-concept audit of all 53 bodies, and the flag should not be read as more than
+"reviewed at Phase 6 depth". Recording that here matters more than the flag
+does: an unearned trust signal is worse than none.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
