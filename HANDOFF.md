@@ -338,10 +338,17 @@ Material already in hand for it:
 
 ### Open items carried forward
 
-- **The two producers disagree on dedup direction.** Spec says
-  `order_by: load_batch_id` (ascending, first batch wins); the agent wrote
-  `ORDER BY load_batch_id DESC` (latest wins). Both are in the bundle. Resolve at
-  sign-off, and record which won and why.
+- ~~**The two producers disagree on dedup direction.**~~ **RESOLVED by query.**
+  Batch 2 is a pure re-load: all 60 overlapping accounts are byte-identical on
+  every non-batch column, so first-wins and latest-wins return the same rows and
+  the direction never mattered on this data. Record it that way at sign-off, and
+  keep the guidance — direction would matter the moment a batch carried real
+  updates.
+- **`distinct_ratio` in the KC profile is off by one** (says 1201 distinct
+  `account_id`, actual 1200), which is where the agent's quoted "1,201 unique
+  accounts" came from. Measurement B proved the profile is *reproducible*, not
+  *accurate* — it only compared the scanner to itself. Do not key any rule on
+  `distinct_ratio`; verify against the warehouse.
 - **Generated SQL invents columns.** `c.first_name`, `c.last_name`, `c.email` in
   `payments.md` and `wire_transfers.md`; `customers` has none of them. Recorded,
   **not patched** — patching corrupts Measurement F.

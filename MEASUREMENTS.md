@@ -519,6 +519,72 @@ drifts from the copy embedded here.
 - Phase 6's sign-off edits can now be reviewed as a diff, which is what makes
   the half-flagged/half-unflagged control legible.
 
+## The dedup disagreement dissolves, and the profile is off by one
+
+Carried forward across two sessions as an open item for sign-off: the reviewed
+spec says `order_by: load_batch_id` (ascending, first batch wins) while the
+agent wrote `ORDER BY load_batch_id DESC` (latest wins) — "semantically
+opposite, both plausible, now both in one bundle."
+
+Queried the table instead of arbitrating it.
+
+```
+distinct_accounts   1200
+accounts_with_dupes   60
+batch1              1200
+batch2                60
+overlapping pairs     60, identical on every non-batch column: 60
+```
+
+**Batch 2 is a pure re-load of 60 existing rows, not a set of updates.** Every
+one of the 60 overlapping pairs is byte-identical on every column except
+`load_batch_id`. So the dedup *direction is irrelevant to the result*: first-wins
+and latest-wins select rows with identical content. Both producers are correct,
+and the conflict recorded twice as a real semantic disagreement is **empty**.
+
+The resolution to record at sign-off is therefore not "which producer won" but
+"the question was not load-bearing on this data" — while noting that the
+direction *would* matter the moment a batch carried genuine updates, which is
+why keeping the guidance is still right.
+
+### The disagreement was hiding a real error: `distinct_ratio` is wrong
+
+Measurement E quoted, approvingly, the agent's *"Out of the 1,260 total records,
+there are 1,201 unique accounts"*. The true count is **1,200**.
+
+The agent is not at fault. The captured profile says:
+
+```
+kc-capture/profile/accounts.json:  "distinct_ratio": 0.9531746031746032
+0.9531746031746032 × 1260 = 1201.0     exactly 1201/1260
+actual                                  1200/1260 = 0.9523809523809523
+```
+
+**The Knowledge Catalog DATA_PROFILE scan reports 1201 distinct `account_id`
+where there are 1200.** The agent derived its figure faithfully from the input it
+was given.
+
+This sharpens Measurement B rather than contradicting it. B established the
+DATA_PROFILE half of a capture is **perfectly reproducible** — 136/136 statistics
+identical across two runs. It did not establish that it is **accurate**, because
+it only ever compared the scanner against itself. It is off by one here,
+consistent with an approximate distinct-count implementation.
+
+Consequences:
+
+1. **Reproducible is not correct.** Any downstream rule keyed on `distinct_ratio`
+   inherits the error. A "distinct_ratio == 1.0 ⇒ primary key" heuristic is
+   exactly the kind of thing that breaks on an approximate counter — and note the
+   earlier single-concept probe asserted `account_id` is a *"Primary key"* off
+   this same column.
+2. **Measurement E's hazard verdict still stands.** The agent was asked whether it
+   found the duplicate-load hazard, and it did. Only its derived count was wrong,
+   and it was wrong because its source was.
+3. It took a direct query to notice. Two sessions of review read that sentence
+   and neither checked the arithmetic, because 1,201 is plausible. That is the
+   argument for Phase 6 verifying claims against the warehouse rather than
+   against the prose.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
