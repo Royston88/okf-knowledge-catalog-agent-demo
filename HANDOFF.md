@@ -55,6 +55,7 @@ state is git: this branch's commits are the real handoff.
 | 8 — ADK agent, Arm K vs Arm D | **done.** K 11/15, D 7/15 over 3 reps |
 | Measurement F | **taken.** PASS, conditional on the new canonicaliser |
 | Measurement G | **taken.** Survival tracks `userManaged`, not the OKF flag |
+| `RESULTS.md` | **written.** All phases complete |
 
 The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
 classes (`generate_models/okf` × 39, `reference_agent/gemini-3.5-flash` × 14).
