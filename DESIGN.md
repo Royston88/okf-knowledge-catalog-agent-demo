@@ -93,6 +93,71 @@ via `before_tool_callback` (the default `FULL` returns non-required aspects as
 
 ---
 
+## 1.5 Direction of authority — why this is not kcmd's model
+
+kcmd is built for the **opposite direction**, and the difference is not stylistic.
+
+| | remote-authoritative (kcmd's `OkfLayout`) | local-authoritative (this project) |
+|---|---|---|
+| system of record | Dataplex | the bundle, in git |
+| the files are | a working copy | the source |
+| fidelity by | **stashing** the entry in `x-kcmd` | **mapping** each field to a catalog construct |
+| primary verb | `pull` | `push` |
+| the other verb | replays the working copy | should be a **diff** |
+
+`OkfLayout`'s own header concedes the direction: it stashes the full `md.Entry`
+under `x-kcmd` so *Dataplex entries* round-trip losslessly, and notes that
+hand-authored OKF "still load, **lossily**".
+
+**Measured what it would do to our source.** Running `OkfLayout.saveEntry` with a
+concept as it comes back from the catalog writes a file containing:
+
+```yaml
+type: dataplex-types.global.generic     # OVERWRITES the OKF type `BigQuery Table`
+x-kcmd:                                  # a full copy of the catalog entry
+  aspects:
+    royston-dev-8253.us.okf:
+      verified: [{by: 'human:x'}]        # `verified` DEMOTED into the stash
+```
+
+Three inversions in one file: the source's own vocabulary is replaced by the
+platform's, the catalog's state is embedded in the source, and a first-class OKF
+trust field becomes an implementation detail of the stash. For a
+bundle-authoritative project that is corruption, not round-tripping. It is also
+exactly right for kcmd's intended use case — this is a direction mismatch, not a
+bug.
+
+### The four rules that follow
+
+1. **No stash, either way.** Nothing catalog-shaped hidden in the bundle,
+   nothing bundle-shaped hidden in the catalog. Our `okf` aspect is not a stash:
+   it is a declared schema with named, individually queryable fields.
+2. **Push is total and declarative.** Owned aspects are fully replaced,
+   ownership is computed from `verified`, links are reconciled with stale
+   removal. Push twice changes nothing — verified.
+3. **Pull is a DIFF, not a source.** This is the reframe that matters. We spent
+   effort making pull *reconstruct* the bundle, which is the remote-authoritative
+   instinct. Its real job here is drift detection: *does the catalog still match
+   the bundle, and where not?* The success criterion is "no false drift", not
+   "byte-faithful reconstruction" — and it removes the temptation to build an
+   edit-in-the-UI-then-pull workflow, which would reinstate two sources of truth.
+4. **The source keeps its own vocabulary.** `type: BigQuery Table` must survive a
+   round trip; the Dataplex entry type is a *derived* value, never a replacement.
+
+Rules 1, 2 and 4 are implemented. Rule 3 is satisfied in practice — Track A
+round-trips 14/14 and Track B diffs `changed=0`, so drift *would* be visible —
+but the code is still shaped as a reconstructor rather than a differ.
+
+### The upstream shape
+
+What kcmd would need is not another layout but a declared **direction**: a
+manifest-level `authority: local | remote`. Under `local` it would never write
+`x-kcmd`, never overwrite the source's `type`, treat pull as read-only diff, and
+require an explicit mapping for the OKF signal families instead of dropping
+them. Under `remote`, today's behaviour is correct and should stay.
+
+---
+
 ## 2. kcmd defects found and fixed
 
 `kcmd/src/` was pristine; all six were first worked around in `demo/okf/` and
