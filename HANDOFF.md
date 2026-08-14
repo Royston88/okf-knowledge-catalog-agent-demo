@@ -6,6 +6,9 @@ cold is here. Read this, then `MEASUREMENTS.md` for results and
 
 - **Branch:** `v6z-okf-projector` in `okf-knowledge-catalog-agent-demo` (a private
   submodule of `agentic-data-cloud-demo`). HEAD `7ad3ce8`.
+- **Design as built:** `DESIGN.md` — the model, the six kcmd defects, the
+  verification commands, and the known gaps. Read it before `MEASUREMENTS.md`.
+- **Forward plan:** `PROPOSAL.md`
 - **Approved plan:** `/home/user/.claude/plans/glittery-tumbling-kettle.md`
 - **Goal:** prove the mechanism — can an OKF bundle be the source of truth, with
   kcmd projecting it into Knowledge Catalog, and an ADK agent reading it back?

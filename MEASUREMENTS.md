@@ -2037,6 +2037,51 @@ Re-verified after the patch and rebuild: Track A round trip **14/14 faithful**,
 Track B **`changed=0`**, conformance **0 failures**, offline suite **26 passed**,
 links **24 schema-join + 53 related**.
 
+## Spec coverage closed: three new concept types, and a sixth kcmd defect
+
+`gen_okf.py` now emits every one of the 11 `spec.yaml` constructs.
+
+| new type | n | from | what it carries |
+|---|---|---|---|
+| `Grain Rule` | 3 | `dedup`, `snapshots`, `accumulating` | de-dup SQL for `accounts`; the semi-additive rule for `balance_snapshots`; the NULL-means-not-reached-yet rule for `loan_applications` |
+| `Hierarchy` | 1 | `hierarchies` | the `region > state > city` drill path and why skipping a level mixes grains |
+| `Derived Table` | 1 | `unpivot` | `loan_milestone_dates`, and that it multiplies its source 4× |
+
+Bundle: **53 → 58 concepts**, all 11 constructs represented. The three new SQL
+blocks dry-run clean. Conformance still 0 failures.
+
+`dedup` in particular is no longer only prose inside Join bodies — the rule
+behind Phase 8's q1/q2 is now an addressable, linkable, separately-verifiable
+concept.
+
+### kcmd defect 6 — `lookupEntryLinks` returned only the first page
+
+Surfaced immediately once the bundle grew: link reconciliation began failing
+with **HTTP 409** on links that already existed. The client issued a single
+request and ignored `nextPageToken`, **which its own `LookupEntryLinksResponse`
+interface declares**. A caller reconciling an entry with more links than fit one
+page therefore saw a partial set — it re-created what it could not see, and
+could never clean up anything past page one.
+
+Fixed by following pagination inside the client. Reconciliation went from
+crashing to `0 created, 58 already correct, 0 stale removed`.
+
+### And a design correction: do NOT declare `entryLinks:` in the manifests
+
+While verifying, both manifests were found declaring `entryLinks: [related]`,
+with a comment claiming omission was destructive. That comment predated the
+defect-4 fix and is now **inverted**:
+
+- **Before the fix** — omitting `entryLinks` meant an unfiltered lookup and kcmd
+  deleted every link. Declaring it narrowed the blast radius.
+- **After the fix** — omitting it means kcmd leaves links **alone**. Declaring it
+  makes every push delete all 58 of our links and `reconcileRelatedLinks`
+  recreate them seconds later: correct end state, pointless churn, and a window
+  where the catalog has no links at all.
+
+Removed from both. Measured after: **0 created / 58 correct / 0 stale on every
+push, both tracks, twice in a row.**
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

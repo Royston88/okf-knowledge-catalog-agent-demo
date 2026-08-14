@@ -218,21 +218,163 @@ def _metric_docs(spec: dict, at: str) -> dict[str, str]:
     return out
 
 
+
+# --------------------------------------------------------------- grain rules
+def _grain_docs(spec: dict, at: str) -> dict[str, str]:
+    """`dedup`, `snapshots` and `accumulating` -> one `Grain Rule` per table.
+
+    These are table-level correctness rules. They used to exist only as prose
+    inside the Join and Metric bodies, which meant they could not be retrieved,
+    linked, verified or signed off on their own — and a rule you cannot address
+    is a rule an agent cannot be pointed at.
+    """
+    l1, l2 = spec["layer1_structure"], spec["layer2_semantics"]
+    rules: dict[str, list] = {}
+    for table, d in (l2.get("dedup") or {}).items():
+        rules.setdefault(table, []).append(("dedup", d))
+    for table, d in (l1.get("snapshots") or {}).items():
+        rules.setdefault(table, []).append(("snapshot", d))
+    for table, d in (l1.get("accumulating") or {}).items():
+        rules.setdefault(table, []).append(("accumulating", d))
+
+    out = {}
+    for table, kinds in sorted(rules.items()):
+        body, tags, descs = [], ["grain", table], []
+        for kind, d in kinds:
+            tags.append(kind)
+            if kind == "dedup":
+                pb, ob = d["partition_by"], d["order_by"]
+                descs.append(f"carries duplicate loads and MUST be de-duplicated on `{pb}`")
+                body += [
+                    "**Duplicate loads — de-duplicate before any aggregate.**", "",
+                    "| | |", "|---|---|",
+                    f"| Table | {_tbl_link(table)} |",
+                    f"| `partition_by` | `{pb}` |",
+                    f"| `order_by` | `{ob}` |", "",
+                    "Every measure over this table is overstated if computed on the raw "
+                    "rows, and every join to it fans out. Take one row per "
+                    f"`{pb}` first:", "",
+                    "```sql",
+                    f"SELECT * FROM `@{{bq_dataset}}.{table}`",
+                    f"QUALIFY ROW_NUMBER() OVER (PARTITION BY {pb} ORDER BY {ob}) = 1",
+                    "```", "",
+                ]
+            elif kind == "snapshot":
+                ek, per = d["entity_key"], d["period"]
+                descs.append(f"is a periodic snapshot at one row per `{ek}` per `{per}`")
+                body += [
+                    "**Periodic snapshot — semi-additive over time.**", "",
+                    "| | |", "|---|---|",
+                    f"| Table | {_tbl_link(table)} |",
+                    f"| `entity_key` | `{ek}` |",
+                    f"| `period` | `{per}` |", "",
+                    f"The grain is one row per `{ek}` per `{per}`. Balances SUM across "
+                    f"entities within a period and MUST NOT be summed across periods — "
+                    f"total per `{per}` first, then average those totals.", "",
+                ]
+            else:
+                ms = d["milestones"]
+                descs.append("is an accumulating snapshot whose milestone columns fill in over time")
+                body += [
+                    "**Accumulating snapshot — milestone columns fill in over time.**", "",
+                    "| | |", "|---|---|",
+                    f"| Table | {_tbl_link(table)} |",
+                    "| `milestones` | " + ", ".join(f"`{m}`" for m in ms) + " |", "",
+                    "A row is rewritten as it progresses, so a NULL milestone means "
+                    "*not reached yet*, not *missing data*. Durations are differences "
+                    "between milestone columns on the same row; filter on the milestone "
+                    "you mean rather than on row creation.", "",
+                ]
+        desc = f"Grain rules for {table}: it " + "; it ".join(descs) + "."
+        out[f"references/grain/{table}.md"] = _doc(
+            _base_meta(spec, at, "Grain Rule", f"{table} grain", desc, tags),
+            "\n".join(body).strip())
+    return out
+
+
+# ---------------------------------------------------------------- hierarchies
+def _hierarchy_docs(spec: dict, at: str) -> dict[str, str]:
+    """`hierarchies` -> one `Hierarchy` concept per declared drill path."""
+    out = {}
+    for name, h in sorted((spec["layer1_structure"].get("hierarchies") or {}).items()):
+        table, levels = h["table"], h["levels"]
+        path = " > ".join(f"`{l}`" for l in levels)
+        desc = (f"Drill path on {table}: {' > '.join(levels)}. "
+                "Roll up along these levels in order; skipping one double-counts "
+                "or mixes grains.")
+        body = ["**Drill path — roll up in order.**", "", "| | |", "|---|---|",
+                f"| Table | {_tbl_link(table)} |", f"| Levels | {path} |", "",
+                "Each level is contained by the one before it. Aggregating at a level "
+                "means grouping by that level *and every level above it*, or rows from "
+                "different parents collapse together.", "",
+                "```sql",
+                f"SELECT {', '.join(levels)}, COUNT(*) AS n",
+                f"FROM `@{{bq_dataset}}.{table}`",
+                f"GROUP BY {', '.join(levels)}",
+                "```"]
+        out[f"references/hierarchies/{name}.md"] = _doc(
+            _base_meta(spec, at, "Hierarchy", f"{name} hierarchy", desc,
+                       ["hierarchy", table] + levels), "\n".join(body))
+    return out
+
+
+# -------------------------------------------------------------- derived tables
+def _derived_docs(spec: dict, at: str) -> dict[str, str]:
+    """`unpivot` -> one `Derived Table` concept per generated view."""
+    out = {}
+    for name, u in sorted((spec["layer2_semantics"].get("unpivot") or {}).items()):
+        table, nf, vf = u["table"], u["name_field"], u["value_field"]
+        cols, keep = u["columns"], u.get("keep") or []
+        desc = (f"Long-form view of {table}: one row per source row per "
+                f"{'/'.join(cols)} column, as ({nf}, {vf}).")
+        sel = "\n  UNION ALL\n".join(
+            f"  SELECT {', '.join(keep)}{', ' if keep else ''}'{label}' AS {nf}, "
+            f"{col} AS {vf} FROM `@{{bq_dataset}}.{table}`"
+            for col, label in cols.items())
+        body = ["**Unpivot — one row per source row per milestone column.**", "",
+                "| | |", "|---|---|",
+                f"| Source | {_tbl_link(table)} |",
+                f"| `{nf}` | " + ", ".join(f"`{c}` -> {l}" for c, l in cols.items()) + " |",
+                f"| `{vf}` | the value of that column |",
+                (f"| Carried through | " + ", ".join(f"`{k}`" for k in keep) + " |") if keep else "",
+                "",
+                f"This view MULTIPLIES the source: {len(cols)} rows out per row in. "
+                f"Counting it counts milestones, not {table} rows — filter "
+                f"`{nf}` before aggregating, or join it to a de-duplicated source.", "",
+                "```sql", sel, "```"]
+        out[f"references/derived/{name}.md"] = _doc(
+            _base_meta(spec, at, "Derived Table", name, desc,
+                       ["derived", "unpivot", table]),
+            "\n".join(l for l in body if l != ""))
+    return out
+
+
 # --------------------------------------------------------------------- public
 def gen_okf(spec: dict, at: str) -> dict[str, str]:
     """spec -> {relative path: OKF concept markdown}. Pure; no I/O."""
     docs = {}
     docs.update(_join_docs(spec, at))
     docs.update(_metric_docs(spec, at))
-    for folder, title in (("references/joins", "Joins"), ("references/metrics", "Metrics")):
+    docs.update(_grain_docs(spec, at))
+    docs.update(_hierarchy_docs(spec, at))
+    docs.update(_derived_docs(spec, at))
+    for folder, title in (("references/joins", "Joins"), ("references/metrics", "Metrics"),
+                          ("references/grain", "Grain rules"),
+                          ("references/hierarchies", "Hierarchies"),
+                          ("references/derived", "Derived tables")):
         kids = sorted(p for p in docs if p.startswith(folder + "/"))
         lines = [f"# {title}", ""]
         for p in kids:
             stem = Path(p).stem
             lines.append(f"* [{stem}]({stem}.md)")
+        if len(kids) == 0:
+            continue
         docs[f"{folder}/index.md"] = "\n".join(lines) + "\n"
     docs["references/index.md"] = (
-        "# References\n\n* [joins](joins/index.md)\n* [metrics](metrics/index.md)\n")
+        "# References\n\n"
+        "* [joins](joins/index.md)\n* [metrics](metrics/index.md)\n"
+        "* [grain](grain/index.md)\n* [hierarchies](hierarchies/index.md)\n"
+        "* [derived](derived/index.md)\n")
     return docs
 
 

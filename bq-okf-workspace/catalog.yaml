@@ -1,3 +1,14 @@
+# LINK MANAGEMENT IS DELIBERATELY LEFT TO `link-concepts.ts`.
+# `entryLinks:` is NOT declared here, and that is now the safe choice rather
+# than the destructive one. kcmd's push used to reconcile EntryLinks
+# unconditionally, so omitting `entryLinks:` meant an unfiltered lookup and it
+# deleted every link the bundle did not describe — measured, it destroyed all 12
+# scan-generated `schema-join` links in this dataset, silently. That block is now
+# guarded (sync.ts, "A manifest that says nothing about links must not manage
+# links"), so omitting it means kcmd leaves links ALONE.
+# Declaring `entryLinks: [related]` instead makes every push delete our related
+# links and `reconcileRelatedLinks` recreate them seconds later — correct end
+# state, pointless churn, and a window where the catalog has no links at all.
 # Track A: the okf signal layer on the ingested @bigquery entries.
 #
 # `publishing.aspects` carries the okf signal aspect AND the concept body as
@@ -22,7 +33,6 @@
 #
 # Every aspect listed under publishing must also appear under snapshot, or kcmd
 # refuses the push.
-# entryLinks IS LOAD-BEARING, AND OMITTING IT IS DESTRUCTIVE.
 # `kcmd push` unconditionally reconciles EntryLinks on every entry it touches
 # (sync.ts ~425, no guard). It calls lookupEntryLinks with the types listed
 # HERE as the filter — and when the list is absent the lookup is UNFILTERED, so
@@ -42,8 +52,6 @@ snapshot:
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries
     - royston-dev-8253.us.okf
-  entryLinks:
-    - related
 publishing:
   entries:
     - dataplex-types.global.bigquery-dataset
@@ -53,5 +61,3 @@ publishing:
     - dataplex-types.global.overview
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries
-  entryLinks:
-    - related

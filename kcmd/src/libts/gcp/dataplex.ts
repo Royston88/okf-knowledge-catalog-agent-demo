@@ -315,6 +315,15 @@ export class CatalogClient extends api.ApiClient {
     } while (pageToken);
   }
 
+  /**
+   * All EntryLinks touching `entryName`, following pagination.
+   *
+   * FIX: this used to issue a single request and return only the first page,
+   * even though `LookupEntryLinksResponse` declares `nextPageToken`. A caller
+   * reconciling links against an entry with more links than fit one page saw a
+   * partial set — it re-created links that already existed (HTTP 409) and could
+   * never see, let alone clean up, anything past page one.
+   */
   async lookupEntryLinks(
     project: string,
     location: string,
@@ -322,23 +331,36 @@ export class CatalogClient extends api.ApiClient {
     entryLinkTypes?: string[],
   ): Promise<api.ApiResult<LookupEntryLinksResponse>> {
     const container = `${catalogContainer(project, location)}:lookupEntryLinks`;
-    const params: Record<string, string | string[]> = {
-      'entry': entryName,
-    };
-    if (entryLinkTypes && entryLinkTypes.length) {
-      // Send as a REPEATED query param (`?entryLinkTypes=A&entryLinkTypes=B`).
-      // `api._get` expands arrays into repeated params; a comma-joined string
-      // gets parsed by the server as one resource name and fails with
-      // INVALID_ARGUMENT once there are 2+ types in the list.
-      params['entryLinkTypes'] = entryLinkTypes;
-    }
-    const res = await this._get<LookupEntryLinksResponse>(container, params);
-    if (res.status === 200 && res.result?.entryLinks) {
-      for (const link of res.result.entryLinks) {
-        await _fixEntryLink(link, this.context);
+    const all: EntryLink[] = [];
+    let pageToken: string | undefined = undefined;
+    let last: api.ApiResult<LookupEntryLinksResponse> | undefined;
+
+    do {
+      const params: Record<string, string | string[]> = {'entry': entryName};
+      if (entryLinkTypes && entryLinkTypes.length) {
+        // Send as a REPEATED query param (`?entryLinkTypes=A&entryLinkTypes=B`).
+        // `api._get` expands arrays into repeated params; a comma-joined string
+        // gets parsed by the server as one resource name and fails with
+        // INVALID_ARGUMENT once there are 2+ types in the list.
+        params['entryLinkTypes'] = entryLinkTypes;
       }
-    }
-    return res;
+      if (pageToken) {
+        params['pageToken'] = pageToken;
+      }
+      const res: api.ApiResult<LookupEntryLinksResponse> =
+        await this._get<LookupEntryLinksResponse>(container, params);
+      last = res;
+      if (res.status !== 200 || !res.result) {
+        return res;
+      }
+      for (const el of res.result.entryLinks || []) {
+        await _fixEntryLink(el, this.context);
+        all.push(el);
+      }
+      pageToken = res.result.nextPageToken;
+    } while (pageToken);
+
+    return {...last!, result: {entryLinks: all}};
   }
 
   async createEntryLink(
