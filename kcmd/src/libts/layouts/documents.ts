@@ -115,6 +115,14 @@ export class DocumentsLayout implements CatalogLayout {
       );
     }
 
+    // `init()` derives a name for the index, but `parseMarkdown` re-reads the
+    // file here and sets none, so `loadEntry` used to return `name: undefined`
+    // for any file without an explicit `catalogEntry.name`. It is latent rather
+    // than fatal — `sync.ts` supplies the name separately via
+    // `source.serviceName(name)` — but it left the layout incoherent: the entry
+    // you get back could not say what it was called. Derive it the same way.
+    entry.name = entry.name || name;
+
     const bodyTrimmed = body.trim();
     if (bodyTrimmed) {
       if (!entry.aspects) {
