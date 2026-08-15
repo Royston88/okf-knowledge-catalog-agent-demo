@@ -16,6 +16,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: royston-dev-8253-cymbal-bank-loan-investors
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_investors
@@ -46,11 +47,26 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | **application_id** | INTEGER | NULLABLE | The unique identifier of the syndicated loan application, linking to [loan_applications](/tables/loan_applications.md). |
 | **investor_id** | INTEGER | NULLABLE | The unique identifier of the institutional investor, linking to [investors](/tables/investors.md). |
 | **allocation_pct** | FLOAT | NULLABLE | The percentage of the loan funded by the investor (e.g., `1.0` for 100% or `0.3732` for 37.32%). |
 | **participation_tier** | STRING | NULLABLE | The role of the investor in the loan syndicate. Standard values are `lead`, `co-lead`, and `participant`. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**2,019 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `application_id` | 0 | 800 | 1 – 800 |
+| `investor_id` | 0 | 40 | 1 – 40 |
+| `allocation_pct` | 0 | 1,608 | 0.04 – 1.00 |
+| `participation_tier` | 0 | 3 | `lead` 39.6%, `co-lead` 31.0%, `participant` 29.4% |
+
+> **2,019 rows, 800 distinct `application_id`.** The row count is not the entity count; de-duplicate before aggregating.
 
 # Common query patterns
 

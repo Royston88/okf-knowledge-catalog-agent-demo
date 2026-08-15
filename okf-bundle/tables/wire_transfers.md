@@ -16,6 +16,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-table-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/wire_transfers
@@ -45,13 +46,28 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | **transfer_id** | INTEGER | NULLABLE | Unique identifier for each wire transfer. Serves as the primary key of this table[^bq-table-metadata]. |
 | **customer_id** | INTEGER | NULLABLE | Identifier of the customer who sent the wire transfer. Foreign key referencing [customers.customer_id](/tables/customers.md)[^bq-table-metadata]. |
 | **amount** | FLOAT | NULLABLE | The monetary amount of the wire transfer transaction[^bq-table-metadata]. |
 | **sent_date** | DATE | NULLABLE | The date when the customer initiated the outbound wire transfer[^bq-table-metadata]. |
 | **received_date** | DATE | NULLABLE | The date when the wire transfer was successfully received at the destination bank[^bq-table-metadata]. |
 | **corridor** | STRING | NULLABLE | The direction and routing pair of the international wire transfer (e.g., `US->CA`, `US->DE`)[^bq-table-metadata]. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**3,000 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `transfer_id` | 0 | 3,000 | 1 – 3,000 |
+| `customer_id` | 0 | 500 | 1 – 500 |
+| `amount` | 0 | 2,996 | 173.26 – 170,638.98 |
+| `sent_date` | 0 | 1,032 | 2023-05-01 – 2026-04-27 |
+| `received_date` | 0 | 1,022 | 2023-05-03 – 2026-04-29 |
+| `corridor` | 0 | 6 | `US->DE` 18.8%, `US->SG` 16.7%, `US->CA` 16.5%, `US->UK` 16.4%, `US->IN` 16.1%, `US->JP` 15.6% |
 
 # Common query patterns
 

@@ -14,6 +14,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-meta
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/balance_snapshots
@@ -42,10 +43,24 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Description |
-| :--- | :--- | :--- |
-| **account_id** | `INTEGER` | Unique identifier of the account. Joins to the accounts table. |
-| **snapshot_month** | `DATE` | The first day of the calendar month for which the snapshot is recorded (e.g., `2025-11-01`). |
-| **balance** | `FLOAT` | The total balance of the account at the end of the snapshot month. |
+| :--- | :---: | :--- |
+| **account_id** | INTEGER | Unique identifier of the account. Joins to the accounts table. |
+| **snapshot_month** | DATE | The first day of the calendar month for which the snapshot is recorded (e.g., `2025-11-01`). |
+| **balance** | FLOAT | The total balance of the account at the end of the snapshot month. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**7,200 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `account_id` | 0 | 1,200 | 1 – 1,200 |
+| `snapshot_month` | 0 | 6 | 2025-11-01 – 2026-04-01 |
+| `balance` | 0 | 7,166 | 171.48 – 68,713.02 |
+
+> **7,200 rows, 1,200 distinct `account_id`.** The row count is not the entity count; de-duplicate before aggregating.
 
 # Common query patterns
 

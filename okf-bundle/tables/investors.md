@@ -14,6 +14,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors
@@ -36,10 +37,22 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | **investor_id** | INTEGER | NULLABLE | Unique identifier for each investor (primary key)[^bq-metadata]. |
 | **name** | STRING | NULLABLE | The full legal or corporate name of the investor[^bq-metadata]. |
 | **investor_type** | STRING | NULLABLE | The category of investor (`retail`, `insurer`, `fund`, or `bank`)[^bq-metadata]. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**40 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `investor_id` | 0 | 40 | 1 – 40 |
+| `name` | 0 | 40 |  |
+| `investor_type` | 0 | 4 | `retail` 37.5%, `insurer` 30.0%, `fund` 22.5%, `bank` 10.0% |
 
 # Common query patterns
 

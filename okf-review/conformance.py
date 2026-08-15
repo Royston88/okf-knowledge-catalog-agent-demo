@@ -69,6 +69,14 @@ for p in sorted(ROOT.rglob("*.md")):
             fails.append(f"§5.1 {rel}: a `sources` entry has no `resource`")
     if fm.get("status") and fm["status"] not in ("draft", "stable", "deprecated"):
         fails.append(f"§5.4 {rel}: status {fm['status']!r} not draft|stable|deprecated")
+    # §5.5: "An absolute date (YYYY-MM-DD)... An absolute date, not a relative
+    # TTL, keeps the staleness decision a plain date comparison." A datetime or
+    # a duration here would silently break that comparison for a consumer.
+    if "stale_after" in fm:
+        sa = fm["stale_after"]
+        sa = sa.isoformat() if hasattr(sa, "isoformat") else str(sa)
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", sa):
+            fails.append(f"§5.5 {rel}: stale_after {sa!r} is not an absolute YYYY-MM-DD date")
     # §6.1 cross-links must resolve on disk. Two forms are legal: absolute
     # (bundle-relative, begins with `/`) and relative. §6.1 recommends absolute
     # and this bundle has migrated to it, so resolve against ROOT for those and

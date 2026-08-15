@@ -15,6 +15,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/transactions
@@ -39,12 +40,26 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `transaction_id` | INTEGER | NULLABLE | A unique identifier for each transaction. |
 | `account_id` | INTEGER | NULLABLE | The identifier of the account associated with the transaction, referencing `account_id` in the [accounts](/tables/accounts.md) table. |
 | `txn_date` | DATE | NULLABLE | The date when the transaction occurred. |
 | `amount` | FLOAT | NULLABLE | The monetary amount of the transaction. |
 | `merchant_category` | STRING | NULLABLE | The category of the merchant where the transaction was made (e.g., `retail`, `utilities`, `fuel`, `restaurants`, `travel`, `education`, `other`). |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**20,000 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `transaction_id` | 0 | 20,000 | 1 – 20,000 |
+| `account_id` | 0 | 1,080 | 1 – 1,080 |
+| `txn_date` | 0 | 1,096 | 2023-05-01 – 2026-04-30 |
+| `amount` | 0 | 9,914 | -568.65 – 4,950.46 |
+| `merchant_category` | 0 | 10 | `other` 10.4%, `retail` 10.3%, `utilities` 10.3%, `fuel` 10.1%, `restaurants` 10.1%, `travel` 9.9%, `entertainment` 9.9%, `healthcare` 9.8%, `groceries` 9.7%, `education` 9.5% |
 
 # Common query patterns
 

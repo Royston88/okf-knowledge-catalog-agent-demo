@@ -14,6 +14,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/accounts
@@ -53,7 +54,7 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Description |
-| :--- | :--- | :--- |
+| :--- | :---: | :--- |
 | `account_id` | INTEGER | Unique identifier of the financial account. |
 | `customer_id` | INTEGER | Foreign key linking to the primary owner in [customers](/tables/customers.md). |
 | `account_type` | STRING | The type of account. The majority of accounts are `checking` (55.6%), followed by `savings` (34.3%) and `credit` (10.2%)[^bq-metadata]. |
@@ -61,6 +62,24 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 | `interest_rate` | FLOAT | Annual interest rate (e.g., `0.0854` for 8.54%). |
 | `open_date` | DATE | The date when the account was opened. |
 | `load_batch_id` | INTEGER | The ingestion batch ID representing when this record was loaded[^bq-metadata]. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**1,260 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `account_id` | 0 | 1,200 | 1 – 1,200 |
+| `customer_id` | 0 | 457 | 1 – 500 |
+| `account_type` | 0 | 3 | `checking` 55.6%, `savings` 34.3%, `credit` 10.2% |
+| `balance` | 0 | 1,200 | 190.67 – 65,415.35 |
+| `interest_rate` | 0 | 601 | 0.01 – 0.10 |
+| `open_date` | 0 | 985 | 2018-01-02 – 2026-04-15 |
+| `load_batch_id` | 0 | 2 | 1 – 2 |
+
+> **1,260 rows, 1,200 distinct `account_id`.** The row count is not the entity count; de-duplicate before aggregating.
 
 # Common query patterns
 

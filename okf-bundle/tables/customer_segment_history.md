@@ -16,6 +16,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history
@@ -38,11 +39,26 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Description |
-| :--- | :--- | :--- |
+| :--- | :---: | :--- |
 | `customer_id` | INTEGER | Unique identifier for the customer. Joins with the `customer_id` column in the [customers](/tables/customers.md) table. |
 | `segment` | STRING | The tier or category assigned to the customer. Common values include `retail`, `premier`, and `private`. |
 | `valid_from` | DATE | The start date (inclusive) from which this segment assignment was valid for the customer. |
 | `valid_to` | DATE | The end date (inclusive) until which this segment assignment was valid. A value of `9999-12-31` represents the currently active tier. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**827 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `customer_id` | 0 | 500 | 1 – 500 |
+| `segment` | 0 | 3 | `retail` 55.6%, `premier` 29.1%, `private` 15.2% |
+| `valid_from` | 0 | 263 | 2018-01-01 – 2025-12-30 |
+| `valid_to` | 0 | 263 | 2024-01-01 – 9999-12-31 |
+
+> **827 rows, 500 distinct `customer_id`.** The row count is not the entity count; de-duplicate before aggregating.
 
 # Common query patterns
 

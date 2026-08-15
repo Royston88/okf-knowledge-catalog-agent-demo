@@ -15,6 +15,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customers
@@ -53,7 +54,7 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 The table contains 500 rows with the following schema[^bq-metadata]:
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `customer_id` | INTEGER | NULLABLE | Unique identifier for each customer. Serves as the primary key. |
 | `name` | STRING | NULLABLE | Full name of the customer. |
 | `segment` | STRING | NULLABLE | Customer tier segment. Standard values are `retail` (~71.0%), `premier` (~25.2%), and `private` (~3.8%)[^bq-metadata]. |
@@ -62,6 +63,23 @@ The table contains 500 rows with the following schema[^bq-metadata]:
 | `referred_by` | INTEGER | NULLABLE | The `customer_id` of the referring customer. Approximately 37% of customers have no referrer (`NULL`)[^bq-metadata]. |
 | `state` | STRING | NULLABLE | State of residence for the customer. |
 | `city` | STRING | NULLABLE | City of residence for the customer. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**500 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `customer_id` | 0 | 500 | 1 – 500 |
+| `name` | 0 | 500 |  |
+| `segment` | 0 | 3 | `retail` 71.0%, `premier` 25.2%, `private` 3.8% |
+| `region` | 0 | 6 | `Northwest` 18.8%, `Midwest` 17.6%, `Northeast` 16.2%, `Southwest` 16.0%, `West` 15.8%, `Southeast` 15.6% |
+| `signup_date` | 0 | 464 | 2018-01-05 – 2026-02-15 |
+| `referred_by` | 185 (37.0%) | 99 | 1 – 386 |
+| `state` | 0 | 18 |  |
+| `city` | 0 | 36 |  |
 
 # Common query patterns
 

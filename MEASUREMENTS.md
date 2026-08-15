@@ -2629,6 +2629,120 @@ code path that could write into `okf-bundle/`, so rule 3 stops being a
 convention someone has to remember and becomes structural. `fromStaging()` is
 kept for inspecting a raw pull by hand; nothing in the pipeline calls it.
 
+## The mirrored tier — distributional facts a bundle-only reader could not get
+
+### Scope, set by the Phase 0a probe rather than by the plan's guess
+
+The plan's provisional mirror was `schema`, `data-profile`, `storage`, plus
+`bigquery-table` "if it carries partitioning/clustering". Measured, three of the
+four fall away:
+
+| candidate | what the probe found | mirrored? |
+|---|---|---|
+| `data-profile` | **exists on none of the 14 entries** | nothing to mirror |
+| `bigquery-table` | `{type: TABLE, tableType: TABLE}` — no partitioning, no clustering | no |
+| `storage` | a service name and a resource URI | no — not knowledge |
+| `schema` | `name`, `dataType`, `metadataType`, `mode`; **no `description` on any of 68 columns** | the Type/Mode half of `# Schema` |
+
+So the mirror is: **`# Schema` Type and Mode refreshed from the warehouse**, plus
+a new **`# Data characteristics`** section computed **from BigQuery** — which the
+absence of `data-profile` turns from the preferred route into the only one.
+
+That is the right route anyway. The catalog's profile is reproducible but not
+accurate — 1,201 distinct `account_id` against an actual 1,200 — and RESULTS §1's
+burn was exactly that number copied into authored prose unchecked. `mirror.py`
+now writes the true one:
+
+```
+| Column         | Nulls | Distinct | Range / top values                             |
+| `account_id`   |     0 |    1,200 | 1 – 1,200                                      |
+| `account_type` |     0 |        3 | `checking` 55.6%, `savings` 34.3%, `credit` 10.2% |
+| `open_date`    |     0 |      985 | 2018-01-02 – 2026-04-15                        |
+
+> **1,260 rows, 1,200 distinct `account_id`.** The row count is not the entity
+> count; de-duplicate before aggregating.
+```
+
+Note the last line: the dataset's central hazard, stated as a **number** on the
+table it applies to, derived rather than remembered.
+
+### The guarantee, asserted rather than hoped for
+
+The risk this tier carries is the one rule 3 exists to prevent: a refresh
+clobbering an authored field. The merge is therefore **keyed on column name and
+field-scoped** — Type and Mode refresh, Description is ours and is not touched.
+
+```
+authored column descriptions: 68 checked, 0 changed by the refresh
+```
+
+Plus an offline `--selftest` over a hand-edited table with synthetic warehouse
+facts, so the property does not depend on a live run: a changed type refreshes,
+two authored descriptions survive byte-identical, and the merge is idempotent.
+
+### New-column detection, against a real `ALTER TABLE`
+
+Not simulated — `ADD COLUMN risk_score FLOAT64` on the live `investors` table:
+
+```
+investors: +risk_score (new in BigQuery, undocumented)
+
+| `risk_score` | FLOAT | NULLABLE | _Undocumented — added by the warehouse; needs prose._ |
+| `risk_score` |  40 (100.0%) |  0 |          <- and its 100% null rate is reported
+```
+
+Flagged, never silently blank-filled. `DROP COLUMN` then produced the reverse:
+`-risk_score (in the bundle, NOT in BigQuery)` — reported, and the row **kept**
+rather than deleted, because a column vanishing from the warehouse is news, not
+an instruction to discard its documentation. Both restored afterwards.
+
+Before this, nothing told the bundle that BigQuery had gained a column.
+
+### `stale_after`, first defensible use
+
+13/13 table concepts, `2026-11-13` = refresh + 90 days. §5.5 wants an **absolute**
+date so staleness is a plain comparison, which means the policy has to live
+somewhere; it lives in `mirror.py` as a named constant with its reasoning. The
+44 reference concepts still carry none — authored prose has no honest ageing
+date, and inventing one is worse than omitting it. `conformance.py` now checks
+the §5.5 format, since a datetime or a duration there would silently break the
+comparison it exists to enable.
+
+### What it cost, re-measured rather than quoted from before the change
+
+```
+13 table-concept bodies            67,567 chars   (was 46,899)
+  # Common query patterns          22,071  32.7%
+  intro / grain / key relationships 16,009  23.7%
+  # Related concepts               11,797  17.5%   <- new, the q4 back-links
+  # Schema                          9,178  13.6%
+  # Data characteristics            8,525  12.6%   <- new, the mirror
+
+duplicated into descriptions+queries 31,249  46.2%   (was 66%)
+```
+
+`accounts` at `view=ALL` is now **17,080 bytes** (was 13,302); at `view=FULL`
+**4,064**, which is the same gap as before — FULL still returns non-required
+aspects as keys only.
+
+The projection redundancy fell from 66% to 46% **without removing anything**:
+the two new sections are overview-only, so the denominator grew while the
+duplicated numerator did not. RESULTS §4's finding that retrieval, not payload
+size, is the binding constraint still says this is the right trade — and the
+number is now current rather than quoted from before two sections were added.
+
+### The push
+
+The differ caught the change before it was pushed — `13 need a push; {"drift":
+26}`, two channels each (`overview` for the body, `okf` for the new
+`stale_after`) — the planner staged exactly 13, skipping the dataset concept,
+which has no `# Schema`. Clean afterwards.
+
+**No tier-A aspect was pushed**, asserted offline for all 58 concepts: `schema`,
+`storage` and the `bigquery-*` aspects appear in the bundle's cache and never in
+`expected`. A mirrored fact that could be pushed would misrepresent what the
+bundle is.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

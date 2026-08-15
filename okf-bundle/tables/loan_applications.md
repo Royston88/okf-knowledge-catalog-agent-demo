@@ -15,6 +15,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-schema
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_applications
@@ -47,7 +48,7 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field Name | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `application_id` | INTEGER | NULLABLE | Unique identifier for each loan application (Primary Key). |
 | `customer_id` | INTEGER | NULLABLE | Foreign key linking to the applicant in the [customers](/tables/customers.md) table. |
 | `product_type` | STRING | NULLABLE | Category of loan product applied for (e.g., 'mortgage', 'auto', 'personal', 'business', 'student'). |
@@ -56,6 +57,23 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 | `approved_date` | DATE | NULLABLE | The date when the application was approved by the bank (Null if rejected or pending). |
 | `funded_date` | DATE | NULLABLE | The date when the loan funds were disbursed to the applicant (Null if not yet funded). |
 | `closed_date` | DATE | NULLABLE | The date when the loan was fully paid off, discharged, or written off (Null if still active). |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**800 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `application_id` | 0 | 800 | 1 – 800 |
+| `customer_id` | 0 | 412 | 3 – 500 |
+| `product_type` | 0 | 5 | `mortgage` 31.0%, `auto` 27.6%, `personal` 19.5%, `business` 12.8%, `student` 9.1% |
+| `amount` | 0 | 800 | 3,761.11 – 811,968.38 |
+| `applied_date` | 0 | 563 | 2023-05-02 – 2026-03-31 |
+| `approved_date` | 170 (21.2%) | 485 | 2023-05-09 – 2026-04-27 |
+| `funded_date` | 265 (33.1%) | 405 | 2023-05-20 – 2026-04-28 |
+| `closed_date` | 611 (76.4%) | 168 | 2024-01-11 – 2026-04-22 |
 
 # Common query patterns
 

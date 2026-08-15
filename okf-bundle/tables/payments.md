@@ -15,6 +15,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments
@@ -41,13 +42,28 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `payment_id` | INTEGER | NULLABLE | Primary identifier for the payment. This field is near-unique, with a 99.96% distinctness ratio across the 8,000 total rows[^bq-metadata]. |
 | `customer_id` | INTEGER | NULLABLE | Foreign key referencing the `customer_id` in the [customers](/tables/customers.md) table[^bq-metadata]. |
 | `amount` | FLOAT | NULLABLE | The dollar value of the processed payment[^bq-metadata]. |
 | `payment_date` | DATE | NULLABLE | The specific calendar date on which the payment transaction occurred[^bq-metadata]. |
 | `payment_month` | DATE | NULLABLE | The calendar date representing the first day of the transaction's month, useful for monthly aggregation[^bq-metadata]. |
 | `channel` | STRING | NULLABLE | The channel or method through which the payment was completed. Supported values include: `ach` (33.7%), `card` (30.3%), `zelle` (13.7%), `wire` (12.3%), and `check` (10.1%)[^bq-metadata]. |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**8,000 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `payment_id` | 0 | 8,000 | 1 – 8,000 |
+| `customer_id` | 0 | 500 | 1 – 500 |
+| `amount` | 0 | 6,469 | 2.89 – 1,330.00 |
+| `payment_date` | 0 | 851 | 2024-01-01 – 2026-04-30 |
+| `payment_month` | 0 | 28 | 2024-01-01 – 2026-04-01 |
+| `channel` | 0 | 5 | `ach` 33.7%, `card` 30.3%, `zelle` 13.7%, `wire` 12.2%, `check` 10.1% |
 
 # Common query patterns
 

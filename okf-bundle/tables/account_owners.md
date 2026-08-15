@@ -16,6 +16,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: bq-metadata
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners
@@ -39,10 +40,24 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `account_id` | INTEGER | NULLABLE | Unique identifier of the bank account, referencing `accounts.account_id`. |
 | `customer_id` | INTEGER | NULLABLE | Unique identifier of the customer, referencing `customers.customer_id`. |
 | `ownership_role` | STRING | NULLABLE | Role of the customer in relation to the account (`primary` or `joint`). |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**1,380 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `account_id` | 0 | 1,200 | 1 – 1,200 |
+| `customer_id` | 0 | 470 | 1 – 500 |
+| `ownership_role` | 0 | 2 | `primary` 87.0%, `joint` 13.0% |
+
+> **1,380 rows, 1,200 distinct `account_id`.** The row count is not the entity count; de-duplicate before aggregating.
 
 # Common query patterns
 

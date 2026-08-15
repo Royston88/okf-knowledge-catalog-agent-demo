@@ -16,6 +16,7 @@ generated:
 verified:
 - by: human:kenly@google.com
   at: '2026-08-13T00:00:00+00:00'
+stale_after: '2026-11-13'
 sources:
 - id: support-tickets-meta
   resource: https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/support_tickets
@@ -41,12 +42,26 @@ _Generated from the concepts that reference this table — see `okf-review/posta
 # Schema
 
 | Field | Type | Mode | Description |
-| :--- | :--- | :--- | :--- |
+| :--- | :---: | :---: | :--- |
 | `ticket_id` | INTEGER | NULLABLE | Unique identifier for each ticket. |
 | `customer_id` | INTEGER | NULLABLE | Foreign key linking to the [customers](/tables/customers.md) table. |
 | `created_date` | DATE | NULLABLE | Date the support ticket was opened. |
 | `channel` | STRING | NULLABLE | The channel through which the ticket was received (e.g., `phone`, `chat`, `email`, `branch`). |
 | `priority` | INTEGER | NULLABLE | The ticket priority level (values from 1 to 5). |
+
+# Data characteristics
+
+_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._
+
+**1,500 rows.**
+
+| Column | Nulls | Distinct | Range / top values |
+| :--- | ---: | ---: | :--- |
+| `ticket_id` | 0 | 1,500 | 1 – 1,500 |
+| `customer_id` | 0 | 471 | 1 – 500 |
+| `created_date` | 0 | 804 | 2023-05-01 – 2026-04-30 |
+| `channel` | 0 | 4 | `phone` 40.0%, `chat` 30.3%, `email` 19.8%, `branch` 9.9% |
+| `priority` | 0 | 5 | 1 – 5 |
 
 # Common query patterns
 
