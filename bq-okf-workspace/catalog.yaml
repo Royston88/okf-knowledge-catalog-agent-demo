@@ -1,4 +1,13 @@
 # LINK MANAGEMENT IS DELIBERATELY LEFT TO `link-concepts.ts`.
+#
+# !! THE INTEROP CLAIM IS SCOPED TO ENTRIES AND ASPECTS, NOT LINKS. !!
+# Because `entryLinks:` is omitted below, an UNMODIFIED kcmd reconciles links
+# with an UNFILTERED lookup and deletes every link it does not find locally.
+# MEASURED against a scratch group: one `related` link, one pristine push,
+# "No local match found for existing link to undefined. DELETING." -> 0 links.
+# So: push this workspace with the PATCHED kcmd in `kcmd/`. A pristine binary
+# is safe for entries and aspects and will destroy the 24 schema-join + 58
+# related links in this dataset.
 # `entryLinks:` is NOT declared here, and that is now the safe choice rather
 # than the destructive one. kcmd's push used to reconcile EntryLinks
 # unconditionally, so omitting `entryLinks:` meant an unfiltered lookup and it

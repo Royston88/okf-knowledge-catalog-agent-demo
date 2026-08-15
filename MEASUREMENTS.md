@@ -2318,6 +2318,116 @@ status                 58/58 explicit
 generated.at           16 distinct values; re-emission moves 0
 ```
 
+## Interop, proved: an UNMODIFIED kcmd pushes the whole bundle
+
+The point of the exercise, and the first claim in this repo that does not depend
+on our own patches.
+
+**Method.** `git archive main kcmd` into `/tmp/kcmd-pristine`, `npx tsc -p
+tsconfig.tool.json` there, and push into a **scratch EntryGroup**
+(`okf_interop_scratch`, auto-created by kcmd, torn down afterwards) with
+`KCMD_MAIN` pointed at that build. `git diff main..HEAD -- kcmd/src` confirms
+the pristine tree differs from ours in 4 files / 119 lines, so nothing of ours
+is in the binary under test. Only the *shim* (`kcmd/demo/okf/`) is ours, and its
+job is to produce the staged tree.
+
+**Result — `okf-review/count_entrygroup.py okf_interop_scratch`:**
+
+```
+entries                 51 (+1 auto entrygroup self-entry, not ours)
+  concepts (okf aspect) 44
+  index entries         7   index, references/index, and one each for
+                            joins/ metrics/ grain/ hierarchies/ derived/
+entry types             {'generic': 51}
+aspects present         {'okf': 44, 'generic': 51, 'overview': 51}
+non-empty overview      51/51
+okf_type distribution   {'Metric': 26, 'Join': 13, 'Grain Rule': 3,
+                         'Hierarchy': 1, 'Derived Table': 1}
+okf fields absent       {'verified': 24, 'stale_after': 44}
+```
+
+44 + 7 is exactly the predicted count; `verified` absent on 24 of 44 is exactly
+the 20 signed-off concepts; `stale_after` absent on all 44 is exactly 0/58. The
+`index.md` gap closes here — those 7 entries are `OkfLayout`'s synthetic
+directory entries, created by kcmd's own code with parents resolved by
+sync.ts's parents-before-children ordering, and they are the thing the documents
+layout never produced.
+
+One count correction worth recording because it is the same failure mode in
+miniature: the first run reported **8** index entries. The eighth was
+`okf_interop_scratch_entry`, a self-entry of type `entrygroup` that Dataplex
+auto-creates per EntryGroup. Nothing pushed it. The script now reports it
+separately rather than filtering it silently.
+
+### What an unmodified kcmd does to the RAW bundle — and why the staging step exists
+
+Same pristine binary, same `layout: okf`, pointed straight at `okf-bundle/` with
+no `x-kcmd` anywhere. `push --dry-run` plans **68 Create Entry** calls — 58
+concepts + 9 `index.md` + 1 `log.md`, i.e. every file in the tree becomes an
+entry — and three of the four things wrong with that are invisible without
+reading the payloads:
+
+| what happens | consequence |
+|---|---|
+| **`log.md` becomes an entry called `log`** | the §9 changelog is published to Dataplex as a concept. Confirms the allowlist in `push.ts` is load-bearing, not defensive |
+| **`tables/index` and `datasets/index` become entries** | index entries pointing at directories that hold no Track B concepts |
+| **the 14 asset-backed concepts are named by their `resource:` URL** — `entries/https://bigquery.googleapis.com/v2/projects/…/tables/accounts` | `parseOkf`'s "lossy fallback: no stash, use the resource URI". Fourteen garbage-named duplicates of tables that already have native `@bigquery` entries. This one the plan did not anticipate |
+| every concept's Dataplex type falls back to `generic` | correct for Track B, wrong for Track A |
+
+So **defect 1 does NOT fire on the OkfLayout path** — `OkfLayout.deriveEntryName`
+indexes all 68, where the documents layout indexed 0. It is a documents-layout
+bug, as predicted. What the staging step buys is not indexing; it is *naming*,
+*typing*, and *not publishing files that are not concepts*.
+
+### The six defects, measured on this path rather than expected
+
+| # | fires here? | evidence |
+|---|---|---|
+| 1 | **no** | 68/68 files indexed against the raw bundle; `OkfLayout` has its own `deriveEntryName` |
+| 2 | **YES, total content loss** | pristine `pull` of the scratch group returned **44 of 54 concepts with an EMPTY body**. The 44 are exactly our concepts |
+| 3 | **YES** | deleted one entry (GET → 404), ran pristine `push --validate-only`, GET → **200**. It created the entry it claimed to be validating, and modified every other one |
+| 4 | **YES — and the plan predicted "no"** | created one `related` link between two scratch entries, re-pushed with pristine kcmd: `No local match found for existing link to undefined (path: undefined). DELETING.` → **0 links remain** |
+| 5 | n/a | the shim resolves the build path explicitly and never uses the bare `kcmd` import |
+| 6 | not reachable here | scratch entries hold at most one link; see the page-boundary count in the Phase 4 section |
+
+**Defect 4 is the correction that matters.** The plan asserted it "does not
+fire… (it only misfires when `entryLinks` is undeclared, and we declare
+nothing)" — which is self-contradictory, and the measurement resolves it the
+unwelcome way. Undeclared `entryLinks` is *exactly* the trigger. So:
+
+> **Running an unmodified kcmd against a workspace that has links is
+> DESTRUCTIVE to the link layer.** The interop claim is scoped to **entries and
+> aspects**, not links. It is safe in this measurement only because a fresh
+> scratch EntryGroup has none. This is now stated in the header of every
+> manifest that omits `entryLinks:`.
+
+### And the pull confirms DESIGN §1.5's corruption claim, live
+
+The pulled file is no longer a hypothetical:
+
+```yaml
+type: dataplex-types.global.generic     # OVERWRITES the OKF type `Join`
+x-kcmd:
+  name: okf_interop_scratch/royston-dev-8253/us/references/joins/accounts__transactions
+  aspects:
+    royston-dev-8253.us.okf:
+      okf_type: Join                    # the source's vocabulary, DEMOTED into the stash
+```
+
+…with an empty body, per defect 2. Three inversions in one file, exactly as
+recorded: the platform's vocabulary replaces the source's, the catalog's state
+is embedded in the source, and a first-class OKF field becomes an
+implementation detail of the stash. Note the entry name also changes shape — it
+comes back in `KnowledgeBaseSource.localName` form
+(`<group>/<project>/<location>/<path>`), not the bare bundle path we pushed. All
+of which is why **nothing pulls into `okf-bundle/`**, and why Phase 5's differ
+compares FORWARD instead.
+
+One further timestamp observation for the table in DESIGN §7: the live
+`EntryLink` returned by `lookupEntryLinks` carries `createTime` and `updateTime`.
+kcmd's `EntryLink` interface declares neither, so those are dropped client-side
+too — the same pattern as `Entry.updateTime` and the per-`Aspect` timestamps.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
