@@ -63,9 +63,12 @@ bq-okf-workspace/bundle/
 # decision. Any future workspace is covered without a second edit.
 **/.staging/
 
-# Track B workspace catalog is a throwaway copy of okf-bundle, recreated by
-# every push (see HANDOFF 2.7). Tracking it means the source of truth exists
-# twice in git and can silently diverge — which it did.
+# Track B workspace catalog: RETIRED, and the ignore kept as a tripwire.
+# `push.ts` used to require a `cp -r ../okf-bundle/. catalog/` before every run,
+# so the source of truth existed twice on disk and could silently diverge —
+# which it did. It now reads `okf-bundle/` directly via OKF_BUNDLE and stages
+# straight to `.staging/bundle/`. If this directory ever reappears, something
+# resurrected the copy step.
 okf-kb-workspace/catalog/
 
 # Phase 8 Arm K workspace bundle copy (regenerated from okf-bundle)

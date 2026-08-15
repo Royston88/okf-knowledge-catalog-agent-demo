@@ -22,13 +22,26 @@ const SIGNAL_KEYS = ['okf_type', 'generated', 'sources', 'verified', 'status', '
                      'title', 'tags'];
 
 // WHY `title` AND `tags` RIDE ON THE ASPECT.
-// On an INGESTED entry (`@bigquery`) `entry_source` is platform-owned: measured,
-// `displayName` stays the native `accounts` and `labels`/`description` stay null
-// no matter what we push. So a pull returned the platform's title and no tags,
-// and the round trip was not an inverse. Track B entries are ours and would
-// round-trip either way; carrying them here uniformly keeps one code path.
-// `description` needs no such treatment — it round-trips via the `descriptions`
-// aspect, which we own on Track A.
+//
+// The MEASUREMENT is unchanged and still holds: on an INGESTED entry
+// (`@bigquery`) `displayName` stays the native `accounts` and
+// `labels`/`description` stay absent no matter what we push, so a pull returned
+// the platform's title and no tags and the round trip was not an inverse.
+// Re-confirmed at `view=ALL` — see `_state/probe_entries.json`.
+//
+// THE EXPLANATION WAS WRONG, and it is worth correcting because it changes what
+// kind of problem this is. It is not that `entry_source` is platform-owned and
+// Dataplex refuses the write. It is that **kcmd never makes the write**:
+// `toServiceEntry` (snapshot.ts) early-returns `{name, entryType, aspects}` when
+// `manifest.source.ingestedEntries`, so displayName, description, labels,
+// resource and both timestamps are dropped CLIENT-SIDE and never sent. The
+// fix below is still the right one — it is the only thing that survives an
+// unmodified kcmd — but the underlying cause is a fixable client behaviour, not
+// a platform constraint, and it belongs on the upstream defect list.
+//
+// Track B entries are ours and would round-trip either way; carrying them here
+// uniformly keeps one code path. `description` needs no such treatment — it
+// round-trips via the `descriptions` aspect, which we own on Track A.
 
 // The Dataplex entry type every OKF concept is stored as. OKF's own `type` is
 // freeform ("BigQuery Table", "Join", "Metric") and is not a Dataplex type ref,
@@ -150,6 +163,145 @@ export function toStaging(
     }),
   };
   return render(staged, body);
+}
+
+// ---------------------------------------------------------------------------
+// The kcmd-NATIVE staging form: OKF frontmatter + the `x-kcmd` stash.
+//
+// WHY THIS EXISTS, and why it is not a reversal of rule 1.
+//
+// `toStaging` above emits `catalogEntry:`, which is DocumentsLayout's
+// passthrough. `toOkfStaging` emits `x-kcmd`, which is OkfLayout's. They are the
+// same idea — kcmd's own comment at documents.ts:148 calls `catalogEntry` "the
+// stashed catalogEntry" — so the honest statement of rule 1 was never "no stash,
+// either way": it is **no stash in the SOURCE; the stash is a build artifact**.
+// `okf-bundle/` has never contained either key and never will; `.staging/` is
+// gitignored and deleted on exit. What changes here is which of kcmd's two
+// stash keys the throwaway tree uses, and the answer is now the one kcmd's own
+// OKF layout reads.
+//
+// WHAT THAT BUYS, measured in Phase 3:
+//   - an UNMODIFIED kcmd can consume the staged tree. The `catalogEntry` form
+//     could not: `type: BigQuery Table` is not 3-part-dotted, so upstream's
+//     parse falls through to `generic`, and the publishing filter then compares
+//     `…generic` against `[bigquery-dataset, bigquery-table]` and drops all 14
+//     asset-backed concepts WHILE REPORTING SUCCESS.
+//   - `index.md` handling for free. OkfLayout synthesises a directory `index`
+//     entry per folder and regenerates the listings in `finalize()`; the
+//     documents layout does neither, which is the whole of the `index.md` gap.
+//   - kcmd's MCP server (`src/tool/mcp.ts`, Google's, not the fork's) can read
+//     the same tree.
+//
+// THE SHAPE, and the two things that are load-bearing about it:
+//
+//   type: BigQuery Table        <- UNCHANGED. `parseOkf` requires a 3-part
+//                                  dotted Dataplex ref to honour a frontmatter
+//                                  type and otherwise falls back to the STASHED
+//                                  type. So the source keeps its own vocabulary
+//                                  (rule 4) and the entry still gets the right
+//                                  Dataplex type — from `x-kcmd.type`.
+//   x-kcmd.aspects[generic]     <- REQUIRED on a generic entry. Dataplex rejects
+//                                  create with 400 "Missing required Aspect(s)"
+//                                  without it.
+//
+// `overview` is deliberately NOT in the stash: `OkfLayout._loadLayer` promotes
+// the markdown body into it. Putting it in both would push the body twice.
+export function toOkfStaging(
+  content: string,
+  okfKey: string,
+  entryName: string,
+  entryType: string = ENTRY_TYPE,
+  withAssetAspects = false,
+): string {
+  const { meta, body } = splitFrontmatter(content);
+  if (!meta) {
+    return content;
+  }
+
+  const aspects: any = {};
+  if (entryType === ENTRY_TYPE) {
+    aspects[GENERIC_ASPECT_KEY] = { type: meta.type, system: 'okf' };
+  }
+  if (withAssetAspects) {
+    Object.assign(aspects, assetAspects(meta, body));
+  }
+  aspects[okfKey] = pick(
+    {
+      okf_type: meta.type,
+      generated: meta.generated,
+      sources: meta.sources,
+      verified: meta.verified,
+      status: meta.status,
+      stale_after: meta.stale_after,
+      title: meta.title,
+      tags: meta.tags,
+    },
+    SIGNAL_KEYS,
+  );
+
+  // A complete `md.Entry`. `parseOkf` would rebuild `resource` from the OKF
+  // keys above it, so this is redundant against THIS file — but a stash is only
+  // worth the name if it stands alone, and kcmd's contract is that `x-kcmd`
+  // reconstructs the entry by itself.
+  const stash: any = {
+    name: entryName,
+    type: entryType,
+    resource: pick(
+      {
+        name: meta.resource,
+        displayName: meta.title,
+        description: meta.description,
+        labels: Array.isArray(meta.tags)
+          ? Object.fromEntries(meta.tags.map((t: string) => [t, 'true']))
+          : undefined,
+      },
+      ['name', 'displayName', 'description', 'labels'],
+    ),
+    aspects,
+  };
+
+  const staged = pick(meta, ['type', 'title', 'description', 'tags']);
+  // DEEP-CLONE THE STASH. `tags` (and `generated`, `sources`, `verified`) are
+  // the SAME object references as the ones already in `staged`, and
+  // `yaml.stringify` renders a repeated reference as an anchor + alias:
+  //
+  //     tags: &a1
+  //       - metric
+  //     ...
+  //         tags: *a1
+  //
+  // Legal YAML that every parser resolves, and still wrong here: the staged
+  // file is an interop artifact meant to be read by an unmodified kcmd, by
+  // kcmd's MCP server, and by a human debugging a push, and an alias makes the
+  // stash non-self-contained in exactly the way `x-kcmd` exists to prevent.
+  staged['x-kcmd'] = JSON.parse(JSON.stringify(stash));
+  return render(staged, body);
+}
+
+/**
+ * Which staging form to emit. `x-kcmd` is the default and the interop path;
+ * `catalogEntry` is kept because it is the only form that works against a fork
+ * WITHOUT `OkfLayout` — which is every checkout of Google's repo, since
+ * `layouts/okf.ts` is fork-only.
+ *
+ *     OKF_STAGING_FORM=catalogEntry   fall back to the documents-layout stash
+ */
+export function stagingEmitter(): {
+  emit: typeof toOkfStaging;
+  form: string;
+  layout: string;
+  rootDir: string;
+} {
+  const form = process.env.OKF_STAGING_FORM ?? 'x-kcmd';
+  if (form === 'catalogEntry') {
+    // `rootDirForLayout` in kcmd returns `bundle` for okf and `catalog`
+    // otherwise, and the staged tree has to match or the layout globs nothing.
+    return { emit: toStaging, form, layout: 'documents', rootDir: 'catalog' };
+  }
+  if (form !== 'x-kcmd') {
+    throw new Error(`OKF_STAGING_FORM must be x-kcmd or catalogEntry, got ${form}`);
+  }
+  return { emit: toOkfStaging, form, layout: 'okf', rootDir: 'bundle' };
 }
 
 // ---------------------------------------------------------------------------

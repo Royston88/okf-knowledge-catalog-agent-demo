@@ -41,8 +41,29 @@
 # this dataset, silently.
 # Listing `related` narrows the blast radius to the link type we own; the scan's
 # schema-join links are then invisible to the reconciler and survive.
+# LAYOUT: OKF — the staged tree is a kcmd-NATIVE OKF bundle.
+#
+# The shim used to emit kcmd's DOCUMENTS-layout stash (`catalogEntry:`), which
+# an unmodified kcmd cannot consume: `type: BigQuery Table` is not a 3-part
+# dotted Dataplex ref, so upstream's parse falls through to `generic`, and the
+# publishing filter then compares `...generic` against the `entries:` allowlist
+# below and drops every asset-backed concept WHILE REPORTING SUCCESS. The staged
+# tree now uses `x-kcmd`, the stash `OkfLayout` reads, so an unmodified kcmd —
+# and Google's own MCP server at src/tool/mcp.ts — can consume it.
+#
+# Two consequences of the switch, both deliberate:
+#   - the staged root directory is `bundle/`, not `catalog/` (kcmd's
+#     `rootDirForLayout`); the push scripts follow it automatically.
+#   - `OkfLayout` synthesises a directory `index` entry per folder and
+#     regenerates the `index.md` listings in `finalize()`, which is how the
+#     recorded `index.md` gap closes. On an INGESTED scope it does neither,
+#     because such a scope cannot hold custom entries.
+#
+# `OKF_STAGING_FORM=catalogEntry` reverts to the documents layout, which is the
+# only form that works against a fork WITHOUT `OkfLayout` — i.e. every checkout
+# of Google's repo, since `layouts/okf.ts` is fork-only.
 scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
-layout: documents
+layout: okf
 snapshot:
   entries:
     - dataplex-types.global.bigquery-dataset

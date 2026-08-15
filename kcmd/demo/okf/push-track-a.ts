@@ -40,7 +40,7 @@
 import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { toStaging } from './okf';
+import { stagingEmitter } from './okf';
 import { okfKey, kcmdMain, project, location } from './config';
 
 const BQ_DATASET = process.env.OKF_BQ_DATASET;
@@ -51,7 +51,12 @@ if (!BQ_DATASET) {
 const root = process.cwd();
 const bundleDir = path.resolve(root, process.env.OKF_BUNDLE ?? '../okf-bundle');
 const stagingDir = path.join(root, '.staging');
-const stagingCatalog = path.join(stagingDir, 'catalog');
+// Both tracks now go through the SAME emitter, which is the point of Phase 2:
+// one staged form, one set of interop properties, one thing to reason about.
+// `rootDir` is `bundle` under `layout: okf` and `catalog` otherwise — kcmd's
+// `rootDirForLayout`, and the tree has to match or the layout globs nothing.
+const { emit, form, layout, rootDir } = stagingEmitter();
+const stagingCatalog = path.join(stagingDir, rootDir);
 
 // Entry types are READ FROM THE CATALOG, not assumed.
 //
@@ -158,13 +163,19 @@ for (const sub of ['tables', 'datasets']) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(
       dest,
-      toStaging(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true),
+      emit(src, okfKey, mapped.name, entryType, /* withAssetAspects */ true),
     );
     console.log(`  ${rel} -> ${mapped.name}  [${entryType}]`);
     n++;
   }
 }
-console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}`);
+console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}/${rootDir} ` +
+            `[form=${form} layout=${layout}]`);
+// `ingestedEntries` is true for a bq-dataset scope, so `OkfLayout.init()` sets
+// `synthIndexEntries = false` and skips every index.md it finds — no synthetic
+// directory entries here, which is correct: an ingested source cannot hold
+// custom entries. Same observable result as the documents layout gave, now for
+// a reason that is stated in kcmd rather than in the absence of index files.
 
 
 cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
