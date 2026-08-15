@@ -2082,6 +2082,90 @@ defect-4 fix and is now **inverted**:
 Removed from both. Measured after: **0 created / 58 correct / 0 stale on every
 push, both tracks, twice in a row.**
 
+## Live entry inspection at `view=ALL` — four questions, three answers that moved the design
+
+`okf-review/probe_entries.py`, read-only, all 14 asset-backed entries. Raw
+capture in `_state/probe_entries.json`. Everything below is from that run; none
+of it was answerable offline, because no capture in `kc-capture/` contains a raw
+`schema` aspect (`insights/*.json` has a `schema.fields` block, but that is the
+DATA_DOCUMENTATION scan's OUTPUT — name + description, no `dataType`/`mode` —
+i.e. the source of `descriptions`, not the schema aspect).
+
+```
+entries probed          14
+aspects seen            109
+Q1 aspect timestamps    109/109 carry createTime AND updateTime
+Q2 aspect inventory     bigquery-dataset x1, bigquery-policy x13, bigquery-table x13,
+                        descriptions x14, okf x14, overview x14, queries x14,
+                        schema x13, storage x13
+Q3 schema.fields keys   ['dataType', 'metadataType', 'mode', 'name']
+   with a description   0/68
+Q4 BQ native table desc 1/14 populated
+   BQ native col desc   0/68 populated
+```
+
+**Q1 — does a live `Aspect` carry its own timestamps? YES, 109/109.** kcmd's
+`Aspect` interface declares only `{aspectType?, data?}`, and `toLocalEntry` does
+`aspects[key] = entry.aspects[key].data ?? {}`, so the timestamps are discarded
+**client-side**; their absence was evidence about kcmd, not about the API. This
+is the load-bearing answer: the drift fast path can name **which channel** moved
+without diffing a byte, and it must read with `CatalogClient.getEntry` rather
+than through `kcmd pull`, because the client throws away exactly these fields.
+
+A fourth timestamp tier turned up that the plan had not enumerated:
+`aspect.aspectSource.{createTime,updateTime,dataVersion}`. It is populated
+**only on the five ingestion-authored aspects** (`schema`, `storage`,
+`bigquery-table`, `bigquery-policy`, `bigquery-dataset`, all
+`dataVersion: Ingestion/1.0.0`) and is `{}` on the four we or the scan write
+(`okf`, `overview`, `descriptions`, `queries`). So `aspectSource` non-empty is
+itself a usable tier-A marker — provenance, not just time.
+
+**Q2 — the aspect inventory, and `data-profile` is not in it.** Nine aspect
+types exist across these entries; `data-profile` exists on **none** of them, so
+the plan's provisional tier-A mirror scope (`schema`, `data-profile`, `storage`,
+`bigquery-table`) is one item shorter than assumed. This makes Phase 6's "compute
+the distributional facts from BigQuery, not from the `data-profile` aspect"
+the only available route rather than the preferred one — there is nothing to
+mirror. `bigquery-table` carries `{type: TABLE, tableType: TABLE}` and **no
+partitioning or clustering**, so it does not earn a place in the mirror either.
+
+The dataset entry is the shape exception: it carries
+`bigquery-dataset / descriptions / okf / overview / queries` and **no `schema`,
+`storage` or `bigquery-policy`**. Any per-entry mirror code has to treat the
+absence of `schema` as normal, not as an error.
+
+**Q3 — the `schema` aspect does not carry column descriptions. At all.** Its
+`fields[]` entries have exactly four keys — `name`, `dataType`, `metadataType`,
+`mode` — and no `description` key on any of 68 columns. The worry this question
+existed to settle ("tier A and tier C would then hold two different sets of
+column prose, and the bundle must show both without implying they are one
+value") **does not arise on this path**: there is only one set of column prose in
+the catalog, the tier-C `descriptions` aspect, and it is ours. `# Schema`'s
+Description column stays single-sourced; the mirror refresh only has to merge
+`Type` in.
+
+**Q4 — BigQuery's own descriptions are empty, so the tier-A/tier-C split of
+"descriptions" is real but currently inert.** 0/68 columns and 13/14 tables
+carry nothing. The one populated case is the **dataset**, whose
+`entrySource.description` is `"Copy of lakehouse_dev_cymbal_bank_demo for the
+OKF/kcmd mechanism proof (v6z-okf-projector)."` — i.e. exactly the string
+PROPOSAL §B.6 recorded silently replacing the bundle's description on every pull
+until `fromStaging` was taught to prefer ours. The decision to declare BigQuery's
+native descriptions **tier A, never written by us** therefore costs nothing
+measurable today; it is a policy choice about the third writer, not a live
+trade-off.
+
+**And a corroboration of Context finding 5, from the other end.** On the
+`accounts` entry `entrySource.displayName` is the native `accounts`,
+`entrySource.description` is absent and `entrySource.labels` is absent — the
+observation that produced "`displayName` stays native no matter what we push".
+`toServiceEntry` early-returns `{name, entryType, aspects}` when
+`source.ingestedEntries`, so title/description/tags/timestamp/resource are
+dropped **client-side and never sent**. The measurement was right; the
+explanation ("platform-owned, Dataplex refuses the write") was wrong. Carrying
+`title`/`tags` on the `okf` aspect remains correct — now for a reason that is
+fixable in kcmd rather than a platform constraint.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

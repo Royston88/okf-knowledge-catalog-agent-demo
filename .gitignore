@@ -52,8 +52,16 @@ bq-okf-workspace/bundle/
 /eval/
 
 
-# kcmd OKF demo: throwaway push staging tree
-okf-kb-workspace/.staging/
+# kcmd OKF demo: throwaway push staging tree.
+#
+# `**/`, NOT a per-workspace list. This used to name `okf-kb-workspace/.staging/`
+# only, while Track A stages into `bq-okf-workspace/.staging/` (push-track-a.ts
+# uses `cwd() + '/.staging'`). Nothing was tracked purely because the tree is
+# deleted on exit — one run with `OKF_KEEP_STAGING=1` followed by `git add -A`
+# would have committed a full stash tree, which is rule 1 ("no stash in the
+# SOURCE; the stash is a build artifact") violated by accident rather than by
+# decision. Any future workspace is covered without a second edit.
+**/.staging/
 
 # Track B workspace catalog is a throwaway copy of okf-bundle, recreated by
 # every push (see HANDOFF 2.7). Tracking it means the source of truth exists
