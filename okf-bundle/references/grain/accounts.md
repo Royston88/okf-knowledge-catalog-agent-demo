@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [accounts](../../tables/accounts.md) |
+| Table | [accounts](/tables/accounts.md) |
 | `partition_by` | `account_id` |
 | `order_by` | `load_batch_id` |
 

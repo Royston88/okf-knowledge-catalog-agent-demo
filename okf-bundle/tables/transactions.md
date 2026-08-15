@@ -8,6 +8,7 @@ tags:
 - ledger
 - financial
 - cymbal-bank
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:59:24+00:00'
@@ -20,16 +21,27 @@ sources:
   title: BigQuery Table Metadata and Data Profile
 ---
 
-The `transactions` table contains transaction-level ledger records tracking financial transactions made by account holders within the [Cymbal Bank dataset](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md).[^bq-metadata] The grain of this table is one row per individual transaction. The table contains approximately 20,000 records spanning a temporal range from 2023 through 2026, capturing a comprehensive history of customer purchasing activities and utility payments.
+The `transactions` table contains transaction-level ledger records tracking financial transactions made by account holders within the [Cymbal Bank dataset](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).[^bq-metadata] The grain of this table is one row per individual transaction. The table contains approximately 20,000 records spanning a temporal range from 2023 through 2026, capturing a comprehensive history of customer purchasing activities and utility payments.
 
-This table is frequently analyzed alongside other financial tables such as [accounts](accounts.md) to understand customer spending profiles, and [balance_snapshots](balance_snapshots.md) to reconcile historical account balances. It also serves as a baseline for detecting anomalies, categorizing merchant expenses, and computing aggregated financial statistics over time.
+This table is frequently analyzed alongside other financial tables such as [accounts](/tables/accounts.md) to understand customer spending profiles, and [balance_snapshots](/tables/balance_snapshots.md) to reconcile historical account balances. It also serves as a baseline for detecting anomalies, categorizing merchant expenses, and computing aggregated financial statistics over time.
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [accounts → transactions](/references/joins/accounts__transactions.md) - One account has_txn many transactions rows, joined on account_id.
+
+## Metrics
+* [total_txn_amount (transactions)](/references/metrics/transactions__total_txn_amount.md) - additive measure on transactions.
+* [txn_amount_3mo_moving_avg (transactions)](/references/metrics/transactions__txn_amount_3mo_moving_avg.md) - moving avg measure on transactions.
 
 # Schema
 
 | Field Name | Type | Mode | Description |
 | :--- | :--- | :--- | :--- |
 | `transaction_id` | INTEGER | NULLABLE | A unique identifier for each transaction. |
-| `account_id` | INTEGER | NULLABLE | The identifier of the account associated with the transaction, referencing `account_id` in the [accounts](accounts.md) table. |
+| `account_id` | INTEGER | NULLABLE | The identifier of the account associated with the transaction, referencing `account_id` in the [accounts](/tables/accounts.md) table. |
 | `txn_date` | DATE | NULLABLE | The date when the transaction occurred. |
 | `amount` | FLOAT | NULLABLE | The monetary amount of the transaction. |
 | `merchant_category` | STRING | NULLABLE | The category of the merchant where the transaction was made (e.g., `retail`, `utilities`, `fuel`, `restaurants`, `travel`, `education`, `other`). |
@@ -59,7 +71,7 @@ ORDER BY
 ```
 
 ### 2. High-value transactions with account details
-To find transactions exceeding $500 and retrieve details of the associated accounts, we can join this table with the [accounts](accounts.md) table.
+To find transactions exceeding $500 and retrieve details of the associated accounts, we can join this table with the [accounts](/tables/accounts.md) table.
 
 ```sql
 SELECT

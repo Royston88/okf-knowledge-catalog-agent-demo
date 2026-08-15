@@ -9,6 +9,7 @@ tags:
 - dimension
 - time
 - fiscal
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:51:49+00:00'
@@ -23,10 +24,18 @@ sources:
 
 The `calendar` table is a reference dimension table representing daily date attributes for Cymbal Bank's financial, operational, and analytical reporting. It covers a range from May 1, 2023, through April 30, 2026 [^bq-metadata]. Every row in this table represents a single day (one row per day grain) [^bq-metadata], mapping its calendar date to relevant temporal attributes such as day of week, fiscal quarter, and calendar quarter, and indicating whether the date is a holiday.
 
-This dimension table is commonly joined with transaction-oriented or snapshot tables—such as [transactions](transactions.md) or [balance_snapshots](balance_snapshots.md)—to perform time-series analysis, cohort reporting, or to group activity by fiscal quarters rather than calendar months. The parent dataset is [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md).
+This dimension table is commonly joined with transaction-oriented or snapshot tables—such as [transactions](/tables/transactions.md) or [balance_snapshots](/tables/balance_snapshots.md)—to perform time-series analysis, cohort reporting, or to group activity by fiscal quarters rather than calendar months. The parent dataset is [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).
 
 ### Fiscal Calendar Alignment
 Cymbal Bank's fiscal year runs on a shifted schedule, beginning on February 1st and ending on January 31st of the following calendar year [^bq-metadata]. Under this schedule, the fiscal year is labeled based on the calendar year in which it ends (for example, May 5, 2023, falls in `FY2024-Q2` [^bq-metadata]).
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [calendar → wire_transfers (received_cal)](/references/joins/calendar__wire_transfers__received_cal.md) - One calendar_day wire_received_on many wire_transfers rows, joined on received_date.
+* [calendar → wire_transfers (sent_cal)](/references/joins/calendar__wire_transfers__sent_cal.md) - One calendar_day wire_sent_on many wire_transfers rows, joined on sent_date.
 
 # Schema
 
@@ -59,7 +68,7 @@ ORDER BY cal_date;
 
 ### Pattern 2: Aggregate transaction volumes by fiscal quarter
 
-This pattern joins the `calendar` dimension with the [transactions](transactions.md) table to analyze total transaction volume and account activity grouped by fiscal quarters.
+This pattern joins the `calendar` dimension with the [transactions](/tables/transactions.md) table to analyze total transaction volume and account activity grouped by fiscal quarters.
 
 ```sql
 SELECT 

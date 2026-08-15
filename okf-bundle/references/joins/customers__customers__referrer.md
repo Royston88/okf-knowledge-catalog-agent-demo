@@ -21,8 +21,8 @@ sources:
 
 | | |
 |---|---|
-| Parent | [customers](../../tables/customers.md) (`customer_id`) |
-| Child | [customers](../../tables/customers.md) (`referred_by`) |
+| Parent | [customers](/tables/customers.md) (`customer_id`) |
+| Child | [customers](/tables/customers.md) (`referred_by`) |
 | Cardinality | **1:N** — one parent row, many child rows |
 | Role | `referrer` — this table joins customers more than once; pick the role deliberately |
 

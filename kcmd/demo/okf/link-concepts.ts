@@ -6,8 +6,16 @@
 // the two, and that gap has a measured cost: on Phase 8's q4 the agent fetched
 // the `accounts` table concept on all three reps while the answer sat in
 // `metrics/accounts__avg_txns_per_account`, one lookup away, in a document it
-// never thought to ask for. The bundle's own `[accounts](../../tables/…)` links
-// are relative FILE paths — alive for a bundle reader, dead in the catalog.
+// never thought to ask for. The bundle's own `[accounts](/tables/accounts.md)`
+// links are FILE paths — alive for a bundle reader, dead in the catalog.
+//
+// THIS CLOSES THE CATALOG HALF ONLY. The bundle half — a reader starting at
+// `tables/accounts.md` and needing to reach the concepts about it — is closed
+// by the generated `# Related concepts` section that
+// `okf-review/postauthor.py` renders from the SAME derivation
+// (`bundle.ts::desiredRelatedLinks`). That matters because Arm K, the arm that
+// scored 11/15, reads the bundle over MCP with no catalog access at all, so
+// the links below are invisible to it.
 //
 // WHY `related` AND NOT SOMETHING ELSE, all measured:
 //   `related`      any target, UNDIRECTED (both refs UNSPECIFIED; SOURCE/TARGET
@@ -27,9 +35,8 @@
 // its link forever — the same trap that made ownership need an explicit release.
 
 import { createHash } from 'node:crypto';
-import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { splitFrontmatter } from './okf';
+import { desiredRelatedLinks } from './bundle';
 import { project, location, entryGroup, kcmdMain } from './config';
 
 const RELATED_TYPE = 'projects/655216118709/locations/global/entryLinkTypes/related';
@@ -68,29 +75,7 @@ const linkId = (table: string, rel: string) => {
   return `okf-rel-${slug(table).slice(0, 28)}-${h}`;
 };
 
-function walk(dir: string): string[] {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).flatMap((n) => {
-    const full = path.join(dir, n);
-    return fs.statSync(full).isDirectory() ? walk(full)
-         : n.endsWith('.md') && n !== 'index.md' ? [full] : [];
-  });
-}
-
-// Which tables does each reference concept talk about? Take it from the body's
-// own markdown links (`[accounts](../../tables/accounts.md)`) rather than from
-// `tags` — tags carry non-table words too ("join", "one-to-many"), and the
-// links are the concept's actual, explicit references.
-const wanted = new Map<string, Set<string>>();   // table -> set(concept rel path)
-for (const file of walk(path.join(bundleDir, 'references'))) {
-  const rel = path.relative(bundleDir, file).replace(/\\/g, '/').replace(/\.md$/, '');
-  const { meta, body } = splitFrontmatter(fs.readFileSync(file, 'utf8'));
-  if (!meta) continue;
-  for (const m of body.matchAll(/\]\((?:\.\.\/)*tables\/([a-z0-9_]+)\.md\)/gi)) {
-    if (!wanted.has(m[1])) wanted.set(m[1], new Set());
-    wanted.get(m[1])!.add(rel);
-  }
-}
+const wanted = desiredRelatedLinks(bundleDir);   // table -> set(concept rel path)
 
 const tables = [...wanted.keys()].sort();
 console.log(`bundle declares ${[...wanted.values()].reduce((n, s) => n + s.size, 0)} ` +

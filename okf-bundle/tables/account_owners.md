@@ -9,6 +9,7 @@ tags:
 - junction-table
 - customers
 - accounts
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:49:48+00:00'
@@ -21,9 +22,19 @@ sources:
   title: BigQuery Table Metadata for account_owners
 ---
 
-The `account_owners` table functions as a junction (many-to-many resolved mapping) table within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. It maps the relationship between [customers](customers.md) and their bank [accounts](accounts.md)[^bq-metadata]. Each row represents a unique association between a specific customer and an account, defined by their respective IDs and the nature of their ownership.
+The `account_owners` table functions as a junction (many-to-many resolved mapping) table within the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. It maps the relationship between [customers](/tables/customers.md) and their bank [accounts](/tables/accounts.md)[^bq-metadata]. Each row represents a unique association between a specific customer and an account, defined by their respective IDs and the nature of their ownership.
 
 The grain of this table is one row per customer-account ownership mapping[^bq-metadata]. The table supports two primary types of ownership roles specified in `ownership_role`: `primary` (the principal account owner, representing approximately 87% of associations) and `joint` (additional owners sharing access to the account, representing approximately 13% of associations)[^bq-metadata]. Since there are exactly 1,200 primary ownership records and 180 joint ownership records across the table's 1,380 rows, every account has exactly one primary owner, while some accounts have multiple owners under joint custody[^bq-metadata]. Individual customers may own or share multiple accounts, and accounts can have multiple owners.
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [accounts ↔ customers (via account_owners)](/references/joins/accounts__customers__via_account_owners.md) - accounts and customers are many-to-many; account_owners is the bridge that resolves them.
+
+## Metrics
+* [allocated_account_balance (account_owners)](/references/metrics/account_owners__allocated_account_balance.md) - Account balance split EQUALLY among the account's owners, attributable by ownership_role (primary vs joint).
 
 # Schema
 

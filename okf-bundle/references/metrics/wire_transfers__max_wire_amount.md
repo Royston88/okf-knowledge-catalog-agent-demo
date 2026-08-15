@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [wire_transfers](../../tables/wire_transfers.md) |
+| Table | [wire_transfers](/tables/wire_transfers.md) |
 | Type | `aggregate` |
 | `column` | `amount` |
 | `agg` | `max` |

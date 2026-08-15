@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [loan_investors](../../tables/loan_investors.md) |
+| Table | [loan_investors](/tables/loan_investors.md) |
 | Type | `allocated_sum` |
 | `amount_table` | `loan_applications` |
 | `amount_column` | `amount` |

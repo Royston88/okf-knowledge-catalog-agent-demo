@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [customers](../../tables/customers.md) |
+| Table | [customers](/tables/customers.md) |
 | Type | `ratio` |
 | `numerator` | `accounts.count` |
 | `denominator` | `customers.count` |

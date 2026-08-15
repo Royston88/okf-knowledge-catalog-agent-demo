@@ -23,6 +23,6 @@ sources:
 
 | | |
 |---|---|
-| Table | [loan_applications](../../tables/loan_applications.md) |
+| Table | [loan_applications](/tables/loan_applications.md) |
 | Type | `additive` |
 | `column` | `amount` |

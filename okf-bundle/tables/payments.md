@@ -8,6 +8,7 @@ tags:
 - payments
 - transaction-ledger
 - billing
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:56:18+00:00'
@@ -20,16 +21,29 @@ sources:
   title: BigQuery Table Metadata and Data Profile
 ---
 
-The `payments` table is a ledger of outgoing or incoming payment transactions initiated by customers within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. The grain of this table is one row per individual payment transaction, uniquely identified by a near-unique `payment_id`[^bq-metadata]. The dataset captures a historical range of 8,000 payments spanning from early 2024 through mid-2026[^bq-metadata].
+The `payments` table is a ledger of outgoing or incoming payment transactions initiated by customers within the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^bq-metadata]. The grain of this table is one row per individual payment transaction, uniquely identified by a near-unique `payment_id`[^bq-metadata]. The dataset captures a historical range of 8,000 payments spanning from early 2024 through mid-2026[^bq-metadata].
 
-Each payment record maps to a specific customer using the `customer_id` field, allowing direct joins with the [customers](customers.md) table[^bq-metadata]. Transactions are routed through five primary payment channels: ACH, credit cards, Zelle, wire transfers, and checks[^bq-metadata]. The table also pre-truncates transaction dates into the `payment_month` field, which simplifies monthly partition-based reporting and aggregated volume analysis[^bq-metadata].
+Each payment record maps to a specific customer using the `customer_id` field, allowing direct joins with the [customers](/tables/customers.md) table[^bq-metadata]. Transactions are routed through five primary payment channels: ACH, credit cards, Zelle, wire transfers, and checks[^bq-metadata]. The table also pre-truncates transaction dates into the `payment_month` field, which simplifies monthly partition-based reporting and aggregated volume analysis[^bq-metadata].
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [customers → payments](/references/joins/customers__payments.md) - One customer made many payments rows, joined on customer_id.
+
+## Metrics
+* [cumulative_payments (payments)](/references/metrics/payments__cumulative_payments.md) - Running (cumulative) total of payment amount by month.
+* [payment_amount_pct_by_channel (payments)](/references/metrics/payments__payment_amount_pct_by_channel.md) - percent of total measure on payments.
+* [payments_yoy (payments)](/references/metrics/payments__payments_yoy.md) - period over period measure on payments.
+* [total_payments (payments)](/references/metrics/payments__total_payments.md) - additive measure on payments.
 
 # Schema
 
 | Field | Type | Mode | Description |
 | :--- | :--- | :--- | :--- |
 | `payment_id` | INTEGER | NULLABLE | Primary identifier for the payment. This field is near-unique, with a 99.96% distinctness ratio across the 8,000 total rows[^bq-metadata]. |
-| `customer_id` | INTEGER | NULLABLE | Foreign key referencing the `customer_id` in the [customers](customers.md) table[^bq-metadata]. |
+| `customer_id` | INTEGER | NULLABLE | Foreign key referencing the `customer_id` in the [customers](/tables/customers.md) table[^bq-metadata]. |
 | `amount` | FLOAT | NULLABLE | The dollar value of the processed payment[^bq-metadata]. |
 | `payment_date` | DATE | NULLABLE | The specific calendar date on which the payment transaction occurred[^bq-metadata]. |
 | `payment_month` | DATE | NULLABLE | The calendar date representing the first day of the transaction's month, useful for monthly aggregation[^bq-metadata]. |
@@ -56,7 +70,7 @@ ORDER BY
 ```
 
 ### 2. High-value customer payment details
-This query joins payments with the [customers](customers.md) table to identify top-spending customers and their total payments.
+This query joins payments with the [customers](/tables/customers.md) table to identify top-spending customers and their total payments.
 
 ```sql
 SELECT

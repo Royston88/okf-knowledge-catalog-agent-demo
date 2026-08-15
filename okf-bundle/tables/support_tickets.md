@@ -9,6 +9,7 @@ tags:
 - operations
 - ticketing
 - customer-service
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:56:54+00:00'
@@ -21,18 +22,28 @@ sources:
   title: BigQuery Metadata for support_tickets
 ---
 
-The `support_tickets` table stores operational records of support requests and customer service queries submitted by clients. This table is a part of the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^support-tickets-meta]. The grain of the table is one row per unique support ticket, with a total volume of 1,500 tickets recorded[^support-tickets-meta].
+The `support_tickets` table stores operational records of support requests and customer service queries submitted by clients. This table is a part of the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset[^support-tickets-meta]. The grain of the table is one row per unique support ticket, with a total volume of 1,500 tickets recorded[^support-tickets-meta].
 
-Each support ticket is uniquely identified by `ticket_id` and is associated with a specific customer listed in the [customers](customers.md) table via the `customer_id` foreign key[^support-tickets-meta]. Inbound customer requests are tracked across four support channels: phone (representing 40.0% of tickets), chat (30.3%), email (19.8%), and in-person branch visits (9.9%)[^support-tickets-meta]. 
+Each support ticket is uniquely identified by `ticket_id` and is associated with a specific customer listed in the [customers](/tables/customers.md) table via the `customer_id` foreign key[^support-tickets-meta]. Inbound customer requests are tracked across four support channels: phone (representing 40.0% of tickets), chat (30.3%), email (19.8%), and in-person branch visits (9.9%)[^support-tickets-meta]. 
 
 Each ticket is assigned a numerical `priority` ranging from 1 to 5[^support-tickets-meta]. These values help support teams manage service level agreements (SLAs) and organize queues, with priority 3 and 4 tickets representing the vast majority (over 72%) of the logged volume[^support-tickets-meta].
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [customers → support_tickets](/references/joins/customers__support_tickets.md) - One customer opened many support_tickets rows, joined on customer_id.
+
+## Metrics
+* [high_priority_ticket_count (support_tickets)](/references/metrics/support_tickets__high_priority_ticket_count.md) - aggregate measure on support_tickets.
 
 # Schema
 
 | Field | Type | Mode | Description |
 | :--- | :--- | :--- | :--- |
 | `ticket_id` | INTEGER | NULLABLE | Unique identifier for each ticket. |
-| `customer_id` | INTEGER | NULLABLE | Foreign key linking to the [customers](customers.md) table. |
+| `customer_id` | INTEGER | NULLABLE | Foreign key linking to the [customers](/tables/customers.md) table. |
 | `created_date` | DATE | NULLABLE | Date the support ticket was opened. |
 | `channel` | STRING | NULLABLE | The channel through which the ticket was received (e.g., `phone`, `chat`, `email`, `branch`). |
 | `priority` | INTEGER | NULLABLE | The ticket priority level (values from 1 to 5). |
@@ -71,7 +82,7 @@ ORDER BY
 ```
 
 ### 3. Customers with the most high-priority tickets
-This query joins support tickets with the [customers](customers.md) table to find customers who have submitted the highest number of urgent (priority 4 or 5) support tickets.
+This query joins support tickets with the [customers](/tables/customers.md) table to find customers who have submitted the highest number of urgent (priority 4 or 5) support tickets.
 
 ```sql
 SELECT

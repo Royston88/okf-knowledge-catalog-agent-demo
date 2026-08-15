@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [accounts](../../tables/accounts.md) |
+| Table | [accounts](/tables/accounts.md) |
 | Type | `additive` |
 | `column` | `balance` |
 

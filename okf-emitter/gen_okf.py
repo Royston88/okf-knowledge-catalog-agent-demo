@@ -19,6 +19,14 @@ the spec file's mtime), never wall-clock, so re-emitting from the same spec is
 byte-identical. The repo freezes snapshots by sha256; an emitter that embeds
 now() would defeat that.
 
+`generated.at` is also CONTENT-ACCURATE, which is a stronger property than
+determinism and is what OKF §5.2 actually asks for — "an ISO 8601 datetime
+marking the content's last meaningful change". Before writing, each rendered
+concept is compared against the file already on disk; when nothing meaningful
+changed, the existing timestamp is carried forward. See
+`preserve_unchanged_timestamps`. Without this the field is a *run stamp*: equal
+timestamps did not imply equal content, and editing a body did not move one.
+
 Run:
     python gen_okf.py --spec spec.yaml --out ../okf-bundle
 """
@@ -27,6 +35,8 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import os
+import posixpath
+import re
 import sys
 from pathlib import Path
 
@@ -72,7 +82,10 @@ def _base_meta(spec: dict, at: str, kind: str, title: str, desc: str, tags: list
 
 
 def _tbl_link(t: str) -> str:
-    return f"[{t}](../../tables/{t}.md)"
+    # Bundle-absolute, the form OKF §6.1 RECOMMENDS: "stable when documents are
+    # moved within their subdirectory". The bundle held 0 of these and 190
+    # relative or bare-same-dir links before the migration.
+    return f"[{t}](/tables/{t}.md)"
 
 
 # ---------------------------------------------------------------------- joins
@@ -378,6 +391,134 @@ def gen_okf(spec: dict, at: str) -> dict[str, str]:
     return docs
 
 
+# ------------------------------------------------- content-accurate timestamps
+def _split(text: str) -> tuple[dict | None, str]:
+    if not text.startswith("---\n"):
+        return None, text
+    try:
+        end = text.index("\n---\n", 3)
+    except ValueError:
+        return None, text
+    return yaml.safe_load(text[4:end]) or {}, text[end + 5:]
+
+
+# Link FORM is not content. `[accounts](../../tables/accounts.md)` and
+# `[accounts](/tables/accounts.md)` assert the same relationship to the same
+# concept, so a migration between the two must not read as 44 concepts changing
+# on the same day — which is exactly the run-stamp behaviour this function
+# exists to remove. Normalise the one representational axis we know about
+# before comparing; everything else is compared as authored.
+_LINK = re.compile(r"\]\((?!https?://|#)([^)\s]+?\.md)\)")
+
+
+def _norm_links(body: str, reldir: str) -> str:
+    """Resolve every cross-concept link to its bundle-absolute target.
+
+    `reldir` is the concept's own directory relative to the bundle root, which
+    is what a bare `customers.md` is relative to — resolving without it would
+    make a same-dir link in `references/joins/` compare equal to one in
+    `tables/`.
+    """
+    def to_abs(m: re.Match) -> str:
+        target = m.group(1)
+        if not target.startswith("/"):
+            target = "/" + posixpath.normpath(posixpath.join(reldir, target)).lstrip("/")
+        return f"]({target})"
+    return _LINK.sub(to_abs, body)
+
+
+def _scalarise(o):
+    """Dates read back as `datetime` from a bare YAML scalar and as `str` from a
+    quoted one. Compare them in one form or a re-emission looks like a change."""
+    if isinstance(o, dict):
+        return {k: _scalarise(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_scalarise(v) for v in o]
+    if isinstance(o, (_dt.datetime, _dt.date)):
+        return o.isoformat()
+    return o
+
+
+def _meaning(fm: dict, body: str, reldir: str) -> tuple:
+    """A concept's content, with everything that is not content removed.
+
+    That is: `generated.at` itself (which is the thing being decided), YAML
+    serializer style (both sides are compared as parsed structures, so key
+    order, wrap width and quoting cannot register), and markdown link FORM.
+    """
+    fm = _scalarise(fm)
+    if fm.get("generated") is not None:
+        gen = dict(fm["generated"])
+        gen.pop("at", None)
+        fm = {**fm, "generated": gen}
+    return (repr(sorted(fm.items(), key=lambda kv: kv[0])),
+            _norm_links(body, reldir).strip())
+
+
+# The frontmatter keys this emitter DERIVES FROM THE SPEC and therefore owns.
+# Everything else found on disk is carried forward untouched — see
+# `merge_with_existing`.
+AUTHORED_KEYS = frozenset(
+    {"type", "resource", "title", "description", "tags", "status", "generated", "sources"}
+)
+
+
+def merge_with_existing(
+    docs: dict[str, str], root: Path
+) -> tuple[dict[str, str], int, int, int]:
+    """Reconcile freshly-rendered concepts against the ones already on disk.
+
+    Two jobs, and they have to happen in this order because the first changes
+    the answer to the second.
+
+    1. **Carry forward every frontmatter key the emitter does not author.**
+       `verified` is the one that matters and the reason this exists: it is
+       written by `okf-review/signoff.py`, it is not derivable from `spec.yaml`,
+       and the emitter never emitted it — so a plain re-run silently DELETED the
+       human sign-off on 20 reference concepts. Measured, on the first run of
+       the timestamp change: 20 concepts "changed", and every one of them
+       changed by losing its `verified` block. Nothing errored. The rule is now
+       the general one — the emitter owns `AUTHORED_KEYS` and nothing else — so
+       `stale_after`, `usage_window` and any future family survive too.
+
+    2. **Carry `generated.at` forward for every concept that did not change.**
+       OKF §5.2 defines it as "an ISO 8601 datetime marking the content's last
+       meaningful change"; before this it was a run stamp, so equal timestamps
+       did not imply equal content and editing a body did not move one. A
+       concept counts as moved when it is new or when `_meaning` differs.
+
+    Returns (docs, n_moved, n_preserved, n_carried).
+    """
+    moved = preserved = carried_files = 0
+    out: dict[str, str] = {}
+    for rel, content in docs.items():
+        path = root / rel
+        reldir = posixpath.dirname(rel)
+        fm_new, body_new = _split(content)
+        if fm_new is None or not path.exists():
+            out[rel] = content
+            if fm_new is not None:
+                moved += 1
+            continue
+
+        fm_old, body_old = _split(path.read_text(encoding="utf-8"))
+        fm_old = fm_old or {}
+        carried = {k: v for k, v in fm_old.items() if k not in AUTHORED_KEYS}
+        if carried:
+            fm_new = {**fm_new, **carried}
+            carried_files += 1
+
+        if _meaning(fm_new, body_new, reldir) != _meaning(fm_old, body_old, reldir):
+            moved += 1
+        else:
+            old_at = _scalarise(fm_old.get("generated") or {}).get("at")
+            if old_at is not None:
+                fm_new = {**fm_new, "generated": {**fm_new["generated"], "at": old_at}}
+            preserved += 1
+        out[rel] = _fm(fm_new) + body_new.strip() + "\n"
+    return out, moved, preserved, carried_files
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--spec", required=True)
@@ -396,6 +537,7 @@ def main() -> int:
 
     docs = gen_okf(spec, at)
     root = Path(args.out)
+    docs, moved, preserved, carried = merge_with_existing(docs, root)
     for rel, content in sorted(docs.items()):
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -404,6 +546,10 @@ def main() -> int:
     n_metrics = sum(1 for k in docs if k.startswith("references/metrics/") and not k.endswith("index.md"))
     print(f"wrote {n_joins} join + {n_metrics} metric concept(s) "
           f"(+3 index) -> {root}  [generated.at={at}]")
+    # Counted, not asserted: a re-emission with no spec change must report
+    # `0 moved`. That number IS the content-accuracy test (§5.2).
+    print(f"generated.at: {moved} moved, {preserved} preserved (unchanged content); "
+          f"non-authored frontmatter carried forward on {carried} file(s)")
     return 0
 
 

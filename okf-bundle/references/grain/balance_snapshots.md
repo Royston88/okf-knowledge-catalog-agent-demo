@@ -21,7 +21,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [balance_snapshots](../../tables/balance_snapshots.md) |
+| Table | [balance_snapshots](/tables/balance_snapshots.md) |
 | `entity_key` | `account_id` |
 | `period` | `snapshot_month` |
 

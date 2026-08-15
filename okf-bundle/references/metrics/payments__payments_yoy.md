@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [payments](../../tables/payments.md) |
+| Table | [payments](/tables/payments.md) |
 | Type | `period_over_period` |
 | `column` | `amount` |
 | `period` | `year` |

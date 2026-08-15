@@ -24,8 +24,8 @@ sources:
 
 | | |
 |---|---|
-| Parent | [accounts](../../tables/accounts.md) (`account_id`) |
-| Child | [balance_snapshots](../../tables/balance_snapshots.md) (`account_id`) |
+| Parent | [accounts](/tables/accounts.md) (`account_id`) |
+| Child | [balance_snapshots](/tables/balance_snapshots.md) (`account_id`) |
 | Cardinality | **1:N** — one parent row, many child rows |
 
 ```sql

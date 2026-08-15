@@ -20,6 +20,6 @@ sources:
 
 | | |
 |---|---|
-| Table | [transactions](../../tables/transactions.md) |
+| Table | [transactions](/tables/transactions.md) |
 | Type | `additive` |
 | `column` | `amount` |

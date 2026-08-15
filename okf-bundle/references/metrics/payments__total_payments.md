@@ -20,6 +20,6 @@ sources:
 
 | | |
 |---|---|
-| Table | [payments](../../tables/payments.md) |
+| Table | [payments](/tables/payments.md) |
 | Type | `additive` |
 | `column` | `amount` |

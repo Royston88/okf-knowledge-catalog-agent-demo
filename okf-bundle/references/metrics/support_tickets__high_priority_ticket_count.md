@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [support_tickets](../../tables/support_tickets.md) |
+| Table | [support_tickets](/tables/support_tickets.md) |
 | Type | `aggregate` |
 | `column` | `ticket_id` |
 | `agg` | `count_distinct` |

@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [customers](../../tables/customers.md) |
+| Table | [customers](/tables/customers.md) |
 | Levels | `region` > `state` > `city` |
 
 Each level is contained by the one before it. Aggregating at a level means grouping by that level *and every level above it*, or rows from different parents collapse together.

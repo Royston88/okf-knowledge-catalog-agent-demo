@@ -9,6 +9,7 @@ tags:
 - investors
 - allocations
 - participation
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:55:35+00:00'
@@ -26,18 +27,28 @@ The `loan_investors` table functions as a junction table establishing the relati
 ### Key Characteristics
 
 - **Grain**: One row per investor per loan application (uniquely defined by the combination of `application_id` and `investor_id`). 
-- **Syndication Model**: Loans are frequently syndicated among multiple institutions. This means a single loan application in [loan_applications](loan_applications.md) can map to multiple records in this table, representing multiple investors who split the financial backing.
+- **Syndication Model**: Loans are frequently syndicated among multiple institutions. This means a single loan application in [loan_applications](/tables/loan_applications.md) can map to multiple records in this table, representing multiple investors who split the financial backing.
 - **Participation Distribution**: The syndicate structure is represented by three tiers: `lead` (the coordinating institution, appearing in 800 records), `co-lead` (secondary lead institutions, appearing in 626 records), and `participant` (passive backers, appearing in 593 records)[[^royston-dev-8253-cymbal-bank-loan-investors]].
 - **Allocation and Funding**: The `allocation_pct` field specifies the proportion of the total loan funded by the investor (e.g., `1.0` representing a 100% solo allocation, or fractional values like `0.3732` representing 37.32%). The most frequent single allocation value is `1.0`, occurring in 174 instances, signifying cases where a single investor fully funds the loan.
 
-This table is critical for analyzing investor portfolio exposure, assessing syndicate health, and auditing funding allocations within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset. It links directly to the [investors](investors.md) details table.
+This table is critical for analyzing investor portfolio exposure, assessing syndicate health, and auditing funding allocations within the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset. It links directly to the [investors](/tables/investors.md) details table.
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [loan_applications ↔ investors (via loan_investors)](/references/joins/loan_applications__investors__via_loan_investors.md) - loan_applications and investors are many-to-many; loan_investors is the bridge that resolves them.
+
+## Metrics
+* [allocated_loan_amount (loan_investors)](/references/metrics/loan_investors__allocated_loan_amount.md) - allocated sum measure on loan_investors.
 
 # Schema
 
 | Field Name | Type | Mode | Description |
 | :--- | :--- | :--- | :--- |
-| **application_id** | INTEGER | NULLABLE | The unique identifier of the syndicated loan application, linking to [loan_applications](loan_applications.md). |
-| **investor_id** | INTEGER | NULLABLE | The unique identifier of the institutional investor, linking to [investors](investors.md). |
+| **application_id** | INTEGER | NULLABLE | The unique identifier of the syndicated loan application, linking to [loan_applications](/tables/loan_applications.md). |
+| **investor_id** | INTEGER | NULLABLE | The unique identifier of the institutional investor, linking to [investors](/tables/investors.md). |
 | **allocation_pct** | FLOAT | NULLABLE | The percentage of the loan funded by the investor (e.g., `1.0` for 100% or `0.3732` for 37.32%). |
 | **participation_tier** | STRING | NULLABLE | The role of the investor in the loan syndicate. Standard values are `lead`, `co-lead`, and `participant`. |
 

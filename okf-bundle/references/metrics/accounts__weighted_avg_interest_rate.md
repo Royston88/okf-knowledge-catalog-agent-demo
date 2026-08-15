@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [accounts](../../tables/accounts.md) |
+| Table | [accounts](/tables/accounts.md) |
 | Type | `rate` |
 | `column` | `interest_rate` |
 | `weight_by` | `balance` |

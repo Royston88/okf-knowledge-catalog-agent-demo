@@ -22,13 +22,13 @@ sources:
   title: Reviewed BI modeling spec (layer1_structure + layer2_semantics)
 ---
 
-`loan_applications` **many-to-many** `investors`, resolved through the bridge [loan_investors](../../tables/loan_investors.md).
+`loan_applications` **many-to-many** `investors`, resolved through the bridge [loan_investors](/tables/loan_investors.md).
 
 | | |
 |---|---|
-| Side A | [loan_applications](../../tables/loan_applications.md) (`application_id`) |
-| Side B | [investors](../../tables/investors.md) (`investor_id`) |
-| Bridge | [loan_investors](../../tables/loan_investors.md) |
+| Side A | [loan_applications](/tables/loan_applications.md) (`application_id`) |
+| Side B | [investors](/tables/investors.md) (`investor_id`) |
+| Bridge | [loan_investors](/tables/loan_investors.md) |
 | Cardinality | **M:N** |
 | Allocation | `count_once` — how a measure on `loan_applications` is apportioned across the bridge |
 

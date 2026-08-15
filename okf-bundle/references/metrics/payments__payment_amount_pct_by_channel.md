@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [payments](../../tables/payments.md) |
+| Table | [payments](/tables/payments.md) |
 | Type | `percent_of_total` |
 | `column` | `amount` |
 | `partition_by` | `channel` |

@@ -21,8 +21,8 @@ sources:
 
 | | |
 |---|---|
-| Parent | [calendar](../../tables/calendar.md) (`cal_date`) |
-| Child | [wire_transfers](../../tables/wire_transfers.md) (`received_date`) |
+| Parent | [calendar](/tables/calendar.md) (`cal_date`) |
+| Child | [wire_transfers](/tables/wire_transfers.md) (`received_date`) |
 | Cardinality | **1:N** — one parent row, many child rows |
 | Role | `received_cal` — this table joins calendar more than once; pick the role deliberately |
 

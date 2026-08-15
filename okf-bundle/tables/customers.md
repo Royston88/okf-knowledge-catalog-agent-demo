@@ -8,6 +8,7 @@ tags:
 - customers
 - demographics
 - core-entities
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:53:12+00:00'
@@ -20,11 +21,32 @@ sources:
   title: BigQuery Table Metadata for customers
 ---
 
-The `customers` table is a core dimension table in the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset, containing profile and demographic details for Cymbal Bank customers[^bq-metadata]. The grain of this table is **one row per customer** (uniquely identified by `customer_id`)[^bq-metadata]. 
+The `customers` table is a core dimension table in the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset, containing profile and demographic details for Cymbal Bank customers[^bq-metadata]. The grain of this table is **one row per customer** (uniquely identified by `customer_id`)[^bq-metadata]. 
 
 The table tracks customer tier classifications (ranging from mass-market retail to high-net-worth private tiers), registration signup dates, geographic regions, and customer-to-customer referral links[^bq-metadata]. 
 
-This table is frequently joined with other analytical tables such as [accounts](accounts.md) and [account_owners](account_owners.md) to map ownership, [customer_segment_history](customer_segment_history.md) to track tier transitions, or [loan_applications](loan_applications.md) and [payments](payments.md) to attribute financial transactions to demographic segments.
+This table is frequently joined with other analytical tables such as [accounts](/tables/accounts.md) and [account_owners](/tables/account_owners.md) to map ownership, [customer_segment_history](/tables/customer_segment_history.md) to track tier transitions, or [loan_applications](/tables/loan_applications.md) and [payments](/tables/payments.md) to attribute financial transactions to demographic segments.
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [accounts ↔ customers (via account_owners)](/references/joins/accounts__customers__via_account_owners.md) - accounts and customers are many-to-many; account_owners is the bridge that resolves them.
+* [customers → accounts](/references/joins/customers__accounts.md) - One customer owns many accounts rows, joined on customer_id.
+* [customers → customers (referrer)](/references/joins/customers__customers__referrer.md) - One customer referred_by many customers rows, joined on referred_by.
+* [customers → loan_applications](/references/joins/customers__loan_applications.md) - One customer applied_for many loan_applications rows, joined on customer_id.
+* [customers → payments](/references/joins/customers__payments.md) - One customer made many payments rows, joined on customer_id.
+* [customers → support_tickets](/references/joins/customers__support_tickets.md) - One customer opened many support_tickets rows, joined on customer_id.
+* [customers → wire_transfers](/references/joins/customers__wire_transfers.md) - One customer sent many wire_transfers rows, joined on customer_id.
+
+## Metrics
+* [avg_accounts_per_customer (customers)](/references/metrics/customers__avg_accounts_per_customer.md) - ratio measure on customers.
+* [avg_payments_per_customer_in_year (customers)](/references/metrics/customers__avg_payments_per_customer_in_year.md) - filtered ratio measure on customers.
+* [avg_tickets_per_customer (customers)](/references/metrics/customers__avg_tickets_per_customer.md) - ratio measure on customers.
+
+## Hierarchies
+* [geography hierarchy](/references/hierarchies/geography.md) - Drill path on customers: region > state > city. Roll up along these levels in order; skipping one double-counts or mixes grains.
 
 # Schema
 

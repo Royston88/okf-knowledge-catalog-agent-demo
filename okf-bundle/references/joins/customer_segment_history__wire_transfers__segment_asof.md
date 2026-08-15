@@ -21,8 +21,8 @@ sources:
 
 | | |
 |---|---|
-| Parent | [customer_segment_history](../../tables/customer_segment_history.md) (`customer_id`) |
-| Child | [wire_transfers](../../tables/wire_transfers.md) (`customer_id`) |
+| Parent | [customer_segment_history](/tables/customer_segment_history.md) (`customer_id`) |
+| Child | [wire_transfers](/tables/wire_transfers.md) (`customer_id`) |
 | Cardinality | **1:N** — one parent row, many child rows |
 | Role | `segment_asof` — this table joins customer_segment_history more than once; pick the role deliberately |
 | Effective-dated | `{'fact_date': 'sent_date', 'entity_key': 'customer_id', 'valid_from': 'valid_from', 'valid_to': 'valid_to'}` — pick the version valid at the reporting instant, not all versions |

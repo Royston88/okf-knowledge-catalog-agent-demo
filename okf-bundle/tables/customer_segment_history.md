@@ -9,6 +9,7 @@ tags:
 - scd-type-2
 - history
 - retail-banking
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:52:28+00:00'
@@ -21,17 +22,24 @@ sources:
   title: BigQuery Table Metadata and Schema
 ---
 
-The `customer_segment_history` table resides within the [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset and stores the historical progression of customer loyalty and service tier assignments over time. Structured as a Slowly Changing Dimension (SCD) Type 2 table[^bq-metadata], it enables historical auditing and point-in-time reporting of customer tier statuses (such as retail, premier, or private). The table contains 827 rows of historical segment shifts[^bq-metadata], facilitating trend analysis on tier progression and retention.
+The `customer_segment_history` table resides within the [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) dataset and stores the historical progression of customer loyalty and service tier assignments over time. Structured as a Slowly Changing Dimension (SCD) Type 2 table[^bq-metadata], it enables historical auditing and point-in-time reporting of customer tier statuses (such as retail, premier, or private). The table contains 827 rows of historical segment shifts[^bq-metadata], facilitating trend analysis on tier progression and retention.
 
-The grain of this table is one row per customer segment assignment period. Every assignment contains a starting validity date (`valid_from`) and an ending validity date (`valid_to`). An active segment is indicated by a `valid_to` date of `9999-12-31`. To analyze historical activity or attribute financial transactions (such as those in [transactions](transactions.md) or [payments](payments.md)) to a customer's specific tier at the moment of the event, query joins should match the event date to the window between `valid_from` and `valid_to`.
+The grain of this table is one row per customer segment assignment period. Every assignment contains a starting validity date (`valid_from`) and an ending validity date (`valid_to`). An active segment is indicated by a `valid_to` date of `9999-12-31`. To analyze historical activity or attribute financial transactions (such as those in [transactions](/tables/transactions.md) or [payments](/tables/payments.md)) to a customer's specific tier at the moment of the event, query joins should match the event date to the window between `valid_from` and `valid_to`.
 
-The table links directly to the [customers](customers.md) table via the `customer_id` field. Across the historical log, the table tracks three segment classifications: `retail` (accounting for ~55.6% of records), `premier` (~29.1%), and `private` (~15.2%)[^bq-metadata]. The earliest recorded segment assignments start on `2018-01-01`[^bq-metadata].
+The table links directly to the [customers](/tables/customers.md) table via the `customer_id` field. Across the historical log, the table tracks three segment classifications: `retail` (accounting for ~55.6% of records), `premier` (~29.1%), and `private` (~15.2%)[^bq-metadata]. The earliest recorded segment assignments start on `2018-01-01`[^bq-metadata].
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [customer_segment_history → wire_transfers (segment_asof)](/references/joins/customer_segment_history__wire_transfers__segment_asof.md) - One segment_version segment_at_wire many wire_transfers rows, joined on customer_id.
 
 # Schema
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `customer_id` | INTEGER | Unique identifier for the customer. Joins with the `customer_id` column in the [customers](customers.md) table. |
+| `customer_id` | INTEGER | Unique identifier for the customer. Joins with the `customer_id` column in the [customers](/tables/customers.md) table. |
 | `segment` | STRING | The tier or category assigned to the customer. Common values include `retail`, `premier`, and `private`. |
 | `valid_from` | DATE | The start date (inclusive) from which this segment assignment was valid for the customer. |
 | `valid_to` | DATE | The end date (inclusive) until which this segment assignment was valid. A value of `9999-12-31` represents the currently active tier. |

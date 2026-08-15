@@ -23,5 +23,5 @@ sources:
 
 | | |
 |---|---|
-| Table | [customers](../../tables/customers.md) |
+| Table | [customers](/tables/customers.md) |
 | Type | `filtered_ratio` |

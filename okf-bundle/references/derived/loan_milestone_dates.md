@@ -20,7 +20,7 @@ sources:
 **Unpivot — one row per source row per milestone column.**
 | | |
 |---|---|
-| Source | [loan_applications](../../tables/loan_applications.md) |
+| Source | [loan_applications](/tables/loan_applications.md) |
 | `milestone` | `applied_date` -> Applied, `approved_date` -> Approved, `funded_date` -> Funded, `closed_date` -> Closed |
 | `milestone_date` | the value of that column |
 | Carried through | `product_type` |

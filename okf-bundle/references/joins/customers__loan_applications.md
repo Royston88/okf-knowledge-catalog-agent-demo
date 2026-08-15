@@ -24,8 +24,8 @@ sources:
 
 | | |
 |---|---|
-| Parent | [customers](../../tables/customers.md) (`customer_id`) |
-| Child | [loan_applications](../../tables/loan_applications.md) (`customer_id`) |
+| Parent | [customers](/tables/customers.md) (`customer_id`) |
+| Child | [loan_applications](/tables/loan_applications.md) (`customer_id`) |
 | Cardinality | **1:N** — one parent row, many child rows |
 
 ```sql

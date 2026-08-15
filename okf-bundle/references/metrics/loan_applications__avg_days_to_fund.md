@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [loan_applications](../../tables/loan_applications.md) |
+| Table | [loan_applications](/tables/loan_applications.md) |
 | Type | `milestone_lag` |
 | `agg` | `average` |
 | `from` | `applied_date` |

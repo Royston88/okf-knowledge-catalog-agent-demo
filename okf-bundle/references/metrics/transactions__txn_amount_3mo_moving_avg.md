@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [transactions](../../tables/transactions.md) |
+| Table | [transactions](/tables/transactions.md) |
 | Type | `moving_avg` |
 | `column` | `amount` |
 | `order_by` | `txn_date` |

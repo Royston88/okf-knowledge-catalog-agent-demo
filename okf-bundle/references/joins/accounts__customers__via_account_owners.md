@@ -18,13 +18,13 @@ sources:
   title: Reviewed BI modeling spec (layer1_structure + layer2_semantics)
 ---
 
-`accounts` **many-to-many** `customers`, resolved through the bridge [account_owners](../../tables/account_owners.md).
+`accounts` **many-to-many** `customers`, resolved through the bridge [account_owners](/tables/account_owners.md).
 
 | | |
 |---|---|
-| Side A | [accounts](../../tables/accounts.md) (`account_id`) |
-| Side B | [customers](../../tables/customers.md) (`customer_id`) |
-| Bridge | [account_owners](../../tables/account_owners.md) |
+| Side A | [accounts](/tables/accounts.md) (`account_id`) |
+| Side B | [customers](/tables/customers.md) (`customer_id`) |
+| Bridge | [account_owners](/tables/account_owners.md) |
 | Cardinality | **M:N** |
 | Allocation | `count_once` — how a measure on `accounts` is apportioned across the bridge |
 

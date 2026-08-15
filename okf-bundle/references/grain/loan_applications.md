@@ -21,7 +21,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [loan_applications](../../tables/loan_applications.md) |
+| Table | [loan_applications](/tables/loan_applications.md) |
 | `milestones` | `applied_date`, `approved_date`, `funded_date`, `closed_date` |
 
 A row is rewritten as it progresses, so a NULL milestone means *not reached yet*, not *missing data*. Durations are differences between milestone columns on the same row; filter on the milestone you mean rather than on row creation.

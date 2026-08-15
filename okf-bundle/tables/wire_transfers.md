@@ -9,6 +9,7 @@ tags:
 - payments
 - international-wires
 - customer-activity
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:58:01+00:00'
@@ -21,16 +22,32 @@ sources:
   title: BigQuery Table Metadata for wire_transfers
 ---
 
-The `wire_transfers` table logs outbound international wire transfers initiated by customers of Cymbal Bank[^bq-table-metadata]. Every record in this table represents a unique wire transfer transaction, uniquely identified by `transfer_id`. This table belongs to the [cymbal_bank_v6z_scaffold_demo_copy dataset](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md) and provides crucial visibility into international payment flows, customer remittance behavior, and transactional speed.
+The `wire_transfers` table logs outbound international wire transfers initiated by customers of Cymbal Bank[^bq-table-metadata]. Every record in this table represents a unique wire transfer transaction, uniquely identified by `transfer_id`. This table belongs to the [cymbal_bank_v6z_scaffold_demo_copy dataset](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md) and provides crucial visibility into international payment flows, customer remittance behavior, and transactional speed.
 
-The table contains 3,000 records spanning multiple years[^bq-table-metadata]. Each transfer is associated with a specific customer through the `customer_id` foreign key, which links back to the [customers](customers.md) table. While day-to-day domestic payments or account transactions are captured in the [payments](payments.md) and [transactions](transactions.md) tables respectively, international transfers are routed through this specialized log. Every transfer in this dataset originates from the United States (`US`) and targets one of six country destinations: Germany (`DE`), Singapore (`SG`), Canada (`CA`), United Kingdom (`UK`), India (`IN`), or Japan (`JP`)[^bq-table-metadata]. Transaction values are recorded under `amount`, and processing timelines can be evaluated by comparing the `sent_date` and `received_date`.
+The table contains 3,000 records spanning multiple years[^bq-table-metadata]. Each transfer is associated with a specific customer through the `customer_id` foreign key, which links back to the [customers](/tables/customers.md) table. While day-to-day domestic payments or account transactions are captured in the [payments](/tables/payments.md) and [transactions](/tables/transactions.md) tables respectively, international transfers are routed through this specialized log. Every transfer in this dataset originates from the United States (`US`) and targets one of six country destinations: Germany (`DE`), Singapore (`SG`), Canada (`CA`), United Kingdom (`UK`), India (`IN`), or Japan (`JP`)[^bq-table-metadata]. Transaction values are recorded under `amount`, and processing timelines can be evaluated by comparing the `sent_date` and `received_date`.
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [calendar → wire_transfers (received_cal)](/references/joins/calendar__wire_transfers__received_cal.md) - One calendar_day wire_received_on many wire_transfers rows, joined on received_date.
+* [calendar → wire_transfers (sent_cal)](/references/joins/calendar__wire_transfers__sent_cal.md) - One calendar_day wire_sent_on many wire_transfers rows, joined on sent_date.
+* [customer_segment_history → wire_transfers (segment_asof)](/references/joins/customer_segment_history__wire_transfers__segment_asof.md) - One segment_version segment_at_wire many wire_transfers rows, joined on customer_id.
+* [customers → wire_transfers](/references/joins/customers__wire_transfers.md) - One customer sent many wire_transfers rows, joined on customer_id.
+
+## Metrics
+* [max_wire_amount (wire_transfers)](/references/metrics/wire_transfers__max_wire_amount.md) - aggregate measure on wire_transfers.
+* [total_wire_amount (wire_transfers)](/references/metrics/wire_transfers__total_wire_amount.md) - additive measure on wire_transfers.
+* [wire_amount_received_on_holiday (wire_transfers)](/references/metrics/wire_transfers__wire_amount_received_on_holiday.md) - Total wire amount for wires whose RECEIVED date fell on a bank holiday (filters total_wire_amount by the received_cal role-played calendar's is_holiday).
+* [wire_amount_sent_on_holiday (wire_transfers)](/references/metrics/wire_transfers__wire_amount_sent_on_holiday.md) - Total wire amount for wires whose SENT date fell on a bank holiday (filters total_wire_amount by the sent_cal role-played calendar's is_holiday).
 
 # Schema
 
 | Field Name | Type | Mode | Description |
 | :--- | :--- | :--- | :--- |
 | **transfer_id** | INTEGER | NULLABLE | Unique identifier for each wire transfer. Serves as the primary key of this table[^bq-table-metadata]. |
-| **customer_id** | INTEGER | NULLABLE | Identifier of the customer who sent the wire transfer. Foreign key referencing [customers.customer_id](customers.md)[^bq-table-metadata]. |
+| **customer_id** | INTEGER | NULLABLE | Identifier of the customer who sent the wire transfer. Foreign key referencing [customers.customer_id](/tables/customers.md)[^bq-table-metadata]. |
 | **amount** | FLOAT | NULLABLE | The monetary amount of the wire transfer transaction[^bq-table-metadata]. |
 | **sent_date** | DATE | NULLABLE | The date when the customer initiated the outbound wire transfer[^bq-table-metadata]. |
 | **received_date** | DATE | NULLABLE | The date when the wire transfer was successfully received at the destination bank[^bq-table-metadata]. |

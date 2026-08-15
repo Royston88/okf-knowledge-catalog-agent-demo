@@ -7,6 +7,7 @@ tags:
 - investment
 - party-dimension
 - loan-funding
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:53:36+00:00'
@@ -23,7 +24,14 @@ The `investors` table provides dimensional data for 40 individuals and instituti
 
 The table classifies investors into four categories: individual `retail` investors (15 rows, 37.5%), and institutional investors comprising `insurer` (12 rows, 30.0%), `fund` (9 rows, 22.5%), and `bank` (4 rows, 10.0%) entities[^bq-metadata]. This categorization enables the analysis of funding diversification and risk concentration across different types of market participants.
 
-This table serves as a reference dimension and is designed to be joined with the [loan_investors](loan_investors.md) table to map specific loan funding obligations to their respective funding entities[^bq-metadata]. The parent dataset containing this table is [cymbal_bank_v6z_scaffold_demo_copy](../datasets/cymbal_bank_v6z_scaffold_demo_copy.md).
+This table serves as a reference dimension and is designed to be joined with the [loan_investors](/tables/loan_investors.md) table to map specific loan funding obligations to their respective funding entities[^bq-metadata]. The parent dataset containing this table is [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).
+
+# Related concepts
+
+_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._
+
+## Joins
+* [loan_applications ↔ investors (via loan_investors)](/references/joins/loan_applications__investors__via_loan_investors.md) - loan_applications and investors are many-to-many; loan_investors is the bridge that resolves them.
 
 # Schema
 
@@ -51,7 +59,7 @@ ORDER BY
 ```
 
 ### 2. Identify investment participation by investor
-This query joins the `investors` table with the [loan_investors](loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.
+This query joins the `investors` table with the [loan_investors](/tables/loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.
 
 ```sql
 SELECT

@@ -8,6 +8,7 @@ tags:
 - financial-data
 - demo-dataset
 - cymbal-bank
+status: stable
 generated:
   by: reference_agent/gemini-3.5-flash
   at: '2026-08-12T20:49:17+00:00'
@@ -30,19 +31,19 @@ This dataset contains 14 tables modeling a retail and commercial banking system.
 
 ### Tables
 
-- **[customers](../tables/customers.md)**: Contains customer profiles, demographics, geographic regions, segments, and referral info.
-- **[accounts](../tables/accounts.md)**: Contains deposit and credit account types, current balances, interest rates, and open dates.
-- **[account_owners](../tables/account_owners.md)**: Junction table linking customers to their respective bank accounts (supports many-to-many relationships).
-- **[transactions](../tables/transactions.md)**: Detailed ledger of account transactions including transaction amount and merchant categories.
-- **[balance_snapshots](../tables/balance_snapshots.md)**: Historical record of account balances over time.
-- **[customer_segment_history](../tables/customer_segment_history.md)**: Tracking history of customer marketing/service segments.
-- **[loan_applications](../tables/loan_applications.md)**: Submissions for loans by customers, including status and requested amounts.
-- **[loan_investors](../tables/loan_investors.md)**: Maps investors to loan applications.
-- **[investors](../tables/investors.md)**: Details of individual or institutional investors funding loans.
-- **[payments](../tables/payments.md)**: Record of payments made by customers.
-- **[support_tickets](../tables/support_tickets.md)**: Customer service and support ticket history.
-- **[wire_transfers](../tables/wire_transfers.md)**: Log of domestic/international wire transfers.
-- **[calendar](../tables/calendar.md)**: A lookup dimension table for date-based reporting.
+- **[customers](/tables/customers.md)**: Contains customer profiles, demographics, geographic regions, segments, and referral info.
+- **[accounts](/tables/accounts.md)**: Contains deposit and credit account types, current balances, interest rates, and open dates.
+- **[account_owners](/tables/account_owners.md)**: Junction table linking customers to their respective bank accounts (supports many-to-many relationships).
+- **[transactions](/tables/transactions.md)**: Detailed ledger of account transactions including transaction amount and merchant categories.
+- **[balance_snapshots](/tables/balance_snapshots.md)**: Historical record of account balances over time.
+- **[customer_segment_history](/tables/customer_segment_history.md)**: Tracking history of customer marketing/service segments.
+- **[loan_applications](/tables/loan_applications.md)**: Submissions for loans by customers, including status and requested amounts.
+- **[loan_investors](/tables/loan_investors.md)**: Maps investors to loan applications.
+- **[investors](/tables/investors.md)**: Details of individual or institutional investors funding loans.
+- **[payments](/tables/payments.md)**: Record of payments made by customers.
+- **[support_tickets](/tables/support_tickets.md)**: Customer service and support ticket history.
+- **[wire_transfers](/tables/wire_transfers.md)**: Log of domestic/international wire transfers.
+- **[calendar](/tables/calendar.md)**: A lookup dimension table for date-based reporting.
 
 ### Key Relationships
 

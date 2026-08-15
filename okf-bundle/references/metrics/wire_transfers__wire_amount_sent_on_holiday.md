@@ -24,7 +24,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [wire_transfers](../../tables/wire_transfers.md) |
+| Table | [wire_transfers](/tables/wire_transfers.md) |
 | Type | `filtered_sum` |
 | `column` | `amount` |
 | `filter_field` | `sent_cal.is_holiday` |

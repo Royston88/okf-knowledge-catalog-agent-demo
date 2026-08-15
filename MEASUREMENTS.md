@@ -2166,6 +2166,158 @@ explanation ("platform-owned, Dataplex refuses the write") was wrong. Carrying
 `title`/`tags` on the `okf` aspect remains correct — now for a reason that is
 fixable in kcmd rather than a platform constraint.
 
+## Closing the two spec gaps OKF names — and a destructive emitter defect found doing it
+
+### The defect, because it is the important part
+
+Making `generated.at` content-accurate means comparing each rendered concept
+against the file on disk. The first run of that comparison reported **20 of 44
+concepts changed**, which was not the expected answer, and every one of them had
+changed in the same way:
+
+```diff
+ generated:
+   by: generate_models/okf
+-  at: '2026-08-12T00:00:00+00:00'
+-verified:
+-- by: human:kenly@google.com
+-  at: '2026-08-13T00:00:00+00:00'
++  at: '2026-08-12T20:55:30+00:00'
+```
+
+**`gen_okf.py` deletes `verified` every time it runs.** `_base_meta` emits
+`type / title / description / tags / status / generated / sources` and nothing
+else, and the writer replaced the file wholesale — so a plain re-emission
+silently removed the human sign-off from all 20 signed-off reference concepts.
+Latent since sign-off landed on 2026-08-13; nothing errored, nothing counted,
+and `conformance.py` would still have said CONFORMANT because §5 fields are
+optional. Whoever re-ran the emitter next would have lost the join triage.
+
+Fixed with the general rule rather than a `verified` special case: the emitter
+declares `AUTHORED_KEYS` — the keys it derives from `spec.yaml` — and **carries
+every other frontmatter key forward from disk**. `stale_after`, `usage_window`
+and any future family survive for the same reason. Counted on every run:
+`non-authored frontmatter carried forward on 20 file(s)`.
+
+This is the sixth instance of the pattern §2.1 names: it failed silently and
+plausibly, and it was found only because something started counting.
+
+### `generated.at` is now content-accurate (§5.2)
+
+Before, it was a batch run stamp: 39 of 44 emitter concepts shared
+`2026-08-12T00:00:00+00:00`, so equal timestamps did not imply equal content and
+editing a body did not move one. §5.2 defines the field as "an ISO 8601 datetime
+marking the content's last meaningful change".
+
+`merge_with_existing` renders, compares against disk, and carries the old
+timestamp forward when nothing meaningful changed. "Meaningful" excludes three
+things, each for a stated reason:
+
+| excluded | why |
+|---|---|
+| `generated.at` itself | it is the thing being decided |
+| YAML serializer style | both sides are compared as **parsed structures**, so key order, wrap width and quoting cannot register — the Measurement F false-drift class, removed by construction |
+| markdown link **form** | `[accounts](../../tables/accounts.md)` and `[accounts](/tables/accounts.md)` assert the same relationship to the same concept. Without this the §6.1 migration below would have read as 44 concepts changing on one day, which is the run-stamp behaviour being removed |
+
+Verified in both directions, which is the point — a change signal that only fires
+one way is not one:
+
+```
+re-run, no spec change          0 moved, 44 preserved   (and the bundle is byte-identical)
+edit ONE metric description     1 moved, 43 preserved   (accounts__total_balance, and only it)
+```
+
+**One deviation from the plan, stated rather than quietly met.** The plan's check
+was "`generated.at` distinct per concept (no value shared by 39)". It is still
+shared by 39 — and that is now the *correct* answer, not a miss. Those 39
+concepts have not changed since 2026-08-12; giving them distinct timestamps
+would mean inventing times for changes that did not happen, which is the same
+dishonesty as the run stamp in the other direction. The check that actually
+tests the property is the two-line table above, and it is the one worth keeping.
+
+### Links: 190, all in the §6.1 recommended absolute form
+
+```
+before   87 relative (../../tables/x.md) · 103 bare same-dir (customers.md) · 0 absolute
+after   190 absolute (/tables/x.md) · 0 relative · 0 bare · all 190 resolve on disk
+```
+
+(190 after = 132 concept links migrated + 58 new back-links; the 58 bare links
+inside `index.md` directory listings are deliberately untouched — those are §8
+listings and kcmd's `writeIndexes` regenerates them in that form.)
+
+§6.1 recommends absolute because it is "stable when documents are moved within
+their subdirectory". `gen_okf.py` emits it natively; `okf-review/postauthor.py`
+migrates the agent-authored concepts, which `reference_agent` re-writes in the
+bare form on every run.
+
+**The coupling this could have broken, and the guard.** `link-concepts.ts`
+derives the 58 `related` EntryLinks by grepping concept bodies for
+`](…tables/<name>.md)`. Its pattern was `\]\((?:\.\./)*tables/…` — relative
+only. Migrating to `/tables/…` under that pattern would have taken the derived
+map, and with it the entire link layer, **silently to zero**, while conformance,
+canonicalisation and the offline suite all stayed green. Three things now
+prevent that:
+
+- the pattern accepts both forms, and lives in one place
+  (`kcmd/demo/okf/bundle.ts::desiredRelatedLinks`);
+- `conformance.py` counts link forms and asserts every link resolves;
+- `ownership.test.ts` compares the **TS** derivation against the
+  `# Related concepts` sections the **Python** pass rendered — same source, two
+  languages, and a disagreement fails offline. 26 → **30 assertions**.
+
+### `# Related concepts` — the measured q4 failure, closed on the bundle path
+
+Grep before this change: **no table concept linked to any reference concept.**
+`### Key Relationships` in `accounts.md` names only other tables. So a reader
+starting at `tables/accounts.md` had no path to
+`metrics/accounts__avg_txns_per_account` — which is exactly Phase 8's q4, where
+the agent fetched the `accounts` concept on all three reps while the answer sat
+one lookup away in a document it never thought to ask for.
+
+The `related` EntryLinks closed that on the **catalog** path. Arm K — the arm
+that scored 11/15 — reads the bundle over MCP with **no catalog access at all**,
+so for the winning arm the hole was still open. 58 back-links across 13 table
+concepts now close it, grouped by concept type, with each target's title and
+description, placed before `# Schema` so a consumer reading only the head still
+sees them.
+
+Not duplication: §6.1 treats links as **directed** ("consumers typically treat
+all links as directed edges"), so concept→table and table→concept are two
+distinct assertions. One derivation, three renderings, no second source of
+truth — and the third rendering, the Dataplex `related` link, is *undirected*,
+so the bundle carries strictly more structure than the catalog can express.
+
+### `status` and `log.md`
+
+`status` written explicitly on **58/58** (44 before). §5.4 says absent ⇒
+`stable`, so no meaning changed; the value is now visible without knowing the
+spec's default, and a future move to `draft` is a diff rather than an appearing
+key.
+
+`okf-bundle/log.md` created (§9), date-grouped newest-first, four dates. Its
+justification is §1's: a bundle is meant to travel without its repository, so a
+consumer holding only `okf-bundle/` has no `git log` to consult.
+`conformance.py` previously checked both reserved filenames against §8 alone and
+asked `log.md` for bulleted links; it now checks §9 properly — ISO 8601 date
+headings, newest-first ordering.
+
+`stale_after` stays 0/58, superseded rather than skipped: the mirrored tier is
+the first bundle content with a real ageing obligation and is its first
+defensible use.
+
+### State after
+
+```
+OKF v0.2 conformance   CONFORMANT — 0 failures, 0 warnings (58 concepts, 9 index files)
+cross-concept links    190 absolute, 0 relative, 0 bare, all resolve
+canonical formatting   0 non-canonical, idempotent
+post-authored form     0 files pending, idempotent
+offline suite          30 passed (was 26)
+status                 58/58 explicit
+generated.at           16 distinct values; re-emission moves 0
+```
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

@@ -20,7 +20,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [customers](../../tables/customers.md) |
+| Table | [customers](/tables/customers.md) |
 | Type | `ratio` |
 | `numerator` | `support_tickets.count` |
 | `denominator` | `customers.count` |

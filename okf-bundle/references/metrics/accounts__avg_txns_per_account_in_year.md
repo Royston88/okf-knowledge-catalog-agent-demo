@@ -21,7 +21,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [accounts](../../tables/accounts.md) |
+| Table | [accounts](/tables/accounts.md) |
 | Type | `filtered_ratio` |
 
 Average transactions per account for a selected year, counted across ALL accounts (accounts with zero transactions in that year count as zero, not dropped). Set the selected_year parameter; do NOT put txn_date in a WHERE clause (that would drop zero-transaction accounts).

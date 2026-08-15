@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [payments](../../tables/payments.md) |
+| Table | [payments](/tables/payments.md) |
 | Type | `cumulative` |
 | `column` | `amount` |
 | `order_by` | `payment_month` |

@@ -21,7 +21,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [balance_snapshots](../../tables/balance_snapshots.md) |
+| Table | [balance_snapshots](/tables/balance_snapshots.md) |
 | Type | `semi_additive` |
 | `column` | `balance` |
 | `period` | `snapshot_month` |

@@ -23,7 +23,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [balance_snapshots](../../tables/balance_snapshots.md) |
+| Table | [balance_snapshots](/tables/balance_snapshots.md) |
 | Type | `additive` |
 | `column` | `balance` |
 

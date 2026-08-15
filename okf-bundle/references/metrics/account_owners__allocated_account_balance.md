@@ -21,7 +21,7 @@ sources:
 
 | | |
 |---|---|
-| Table | [account_owners](../../tables/account_owners.md) |
+| Table | [account_owners](/tables/account_owners.md) |
 | Type | `allocated_sum` |
 | `amount_table` | `accounts` |
 | `amount_column` | `balance` |

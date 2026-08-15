@@ -23,6 +23,6 @@ sources:
 
 | | |
 |---|---|
-| Table | [wire_transfers](../../tables/wire_transfers.md) |
+| Table | [wire_transfers](/tables/wire_transfers.md) |
 | Type | `additive` |
 | `column` | `amount` |
