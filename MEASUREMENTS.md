@@ -2428,6 +2428,61 @@ One further timestamp observation for the table in DESIGN §7: the live
 kcmd's `EntryLink` interface declares neither, so those are dropped client-side
 too — the same pattern as `Entry.updateTime` and the per-`Aspect` timestamps.
 
+## The invariants, re-established on the real catalog after the `layout: okf` switch
+
+Both tracks pushed live against `okf_cymbal_v6z` and the 14 ingested
+`@bigquery` entries, with the PATCHED kcmd (see the interop scoping note — a
+pristine binary would delete the link layer). Track B first, Track A second.
+
+| invariant | before | after | note |
+|---|---|---|---|
+| Track B entries | 44 | **51** | +7 synthetic index entries, as designed |
+| Track B concepts | 44 | 44 | unchanged |
+| entry types | all `generic` | all `generic` | unchanged |
+| non-empty `overview` | 44/44 | **51/51** | the index entries carry their listing as an overview |
+| Track A aspects | 4 on 14/14 | 4 on 14/14 | `okf`, `overview`, `descriptions`, `queries` |
+| `userManaged == verified` | 13/13 | 13/13 | both contested aspects present on every table |
+| `schema-join` links | 24 | 24 | untouched |
+| `related` links | 58 | 58 | `0 created, 58 already correct, 0 stale removed`, both tracks |
+| columns documented | 68/68 | 68/68 | |
+| conformance | CONFORMANT | CONFORMANT | 58 concepts, 9 index files, 0 warnings |
+| offline suite | 26 | **38** | |
+
+### The search-count risk did not materialise — measured, not assumed
+
+The plan flagged that +7 index entries might undo part of the 28→14
+de-duplication result. A `searchEntries` for the dataset name returns **14
+hits, all in `@bigquery`** — the same number as before. The index entries are
+named for their directory (`references/joins/index`), not for the dataset, so
+they do not compete with the table entries in that query. The 28→14 figure in
+DESIGN §1.1 stands unchanged.
+
+(A search for the bare word `accounts` returns 101 project-wide — 82 `@bigquery`
+across every dataset in the project, 17 `okf_cymbal_v6z`, 2 `@dataplex`. Not
+comparable to the recorded figure, which was always dataset-scoped.)
+
+### kcmd defect 6's page boundary is reachable — and already crossed, at TEN links
+
+The plan asked whether a page boundary is "even reachable" on high-degree table
+entries. It is, and the assumption behind the question was wrong in the
+dangerous direction. `okf-review/count_links.py`, following `nextPageToken`:
+
+```
+links, paginated        {'schema-join': 24, 'related': 58}  total 82
+links, page one only    {'schema-join': 24, 'related': 47}  total 71
+entries needing >1 page 2   accounts=13 in 2 pages, customers=18 in 2 pages
+```
+
+**The boundary is not at the 50 that `pageSize` suggests — `accounts` returned a
+`nextPageToken` after 10 links.** So 2 of 13 table entries already cross it, and
+a page-one-only client sees **71 of 82** links. A reconciler in that state
+re-creates what it cannot see (the HTTP 409s that surfaced the defect) and can
+never delete anything past page one.
+
+Found the honest way: the first version of this count did not paginate either
+and reported `related: 47`. The same defect, reproduced in a second
+implementation, twenty minutes after writing it up in a table.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +
