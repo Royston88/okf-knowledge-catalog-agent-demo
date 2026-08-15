@@ -1,11 +1,11 @@
 {
   "name": "projects/royston-dev-8253/locations/us/entryGroups/okf_cymbal_v6z/entries/references/grain/accounts",
-  "entryType": "projects/655216118709/locations/global/entryTypes/generic",
+  "entryType": "projects/dataplex-types/locations/global/entryTypes/generic",
   "createTime": "2026-08-14T03:19:05.663069Z",
   "updateTime": "2026-08-15T16:59:32.923149Z",
   "aspects": {
-    "404799090046.us.okf": {
-      "aspectType": "projects/404799090046/locations/us/aspectTypes/okf",
+    "royston-dev-8253.us.okf": {
+      "aspectType": "projects/royston-dev-8253/locations/us/aspectTypes/okf",
       "createTime": "2026-08-14T03:19:05.663069Z",
       "updateTime": "2026-08-14T03:19:05.663069Z",
       "data": {
@@ -31,8 +31,8 @@
       },
       "aspectSource": {}
     },
-    "655216118709.global.generic": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/generic",
+    "dataplex-types.global.generic": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/generic",
       "createTime": "2026-08-14T03:19:05.663069Z",
       "updateTime": "2026-08-14T03:19:05.663069Z",
       "data": {
@@ -41,8 +41,8 @@
       },
       "aspectSource": {}
     },
-    "655216118709.global.overview": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/overview",
+    "dataplex-types.global.overview": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/overview",
       "createTime": "2026-08-14T03:19:05.663069Z",
       "updateTime": "2026-08-15T16:59:32.887087Z",
       "data": {

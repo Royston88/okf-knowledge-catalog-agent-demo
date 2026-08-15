@@ -62,9 +62,16 @@ correctness rule with its own lifecycle — exactly what a concept is for.
 `m2n` is not, because the bridge Join already *is* that concept.
 
 Keep them under `references/grain/<table>.md`, matching the existing
-`references/joins/` and `references/metrics/` convention (§6.3) and preserving
-the producer boundary: `gen_okf.py` owns `references/**`, `reference_agent`
-owns `tables/**`.
+`references/joins/` and `references/metrics/` convention and preserving the
+producer boundary: `gen_okf.py` owns `references/**`, `reference_agent` owns
+`tables/**`.
+
+> **The §6.3 citation this used to carry was an overstatement, and is removed.**
+> §6.3 describes `references/` as mirroring *"external material, run
+> instructions, or code"* — sources, executors, attesters — not joins and
+> metrics. It is also explicitly *"a naming convention, not a requirement"*, so
+> our usage violates nothing; what was wrong was claiming the spec **endorses**
+> it. It is our convention, and a reasonable one.
 
 ### A.3 `Attested Computation` — the right end state, not now
 

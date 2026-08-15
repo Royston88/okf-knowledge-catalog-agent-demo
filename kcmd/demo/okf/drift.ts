@@ -193,9 +193,60 @@ export async function sweep(): Promise<number> {
   return 0;
 }
 
+/**
+ * Re-capture the offline comparator fixtures from the live catalog.
+ *
+ * THE FIXTURES ARE THEMSELVES A CACHE, AND THEY GO STALE. They record a
+ * `view=ALL` response taken immediately after a clean push, so "the comparator
+ * reports clean" is the known-correct answer. Change the bundle — as Phase 6's
+ * mirror did, adding `# Data characteristics` to the body and `stale_after` to
+ * the `okf` aspect — and the fixtures describe a catalog that no longer exists,
+ * so `drift.test.ts` fails on `okf:drift` and `overview:drift`.
+ *
+ * That failure is CORRECT and should not be papered over: the offline suite
+ * noticing that its own ground truth moved is the suite working. The remedy is
+ * to push, confirm `drift.ts` is clean, and re-capture here — in that order,
+ * because capturing from a catalog that has drifted would bake the drift in as
+ * the expected answer, and the offline suite would then never fail again.
+ *
+ *     bun kcmd/demo/okf/drift.ts --capture-fixtures
+ */
+async function captureFixtures(): Promise<number> {
+  const { plans } = await buildPlan();
+  const dirty = plans.filter((p) => p.needsPush);
+  if (dirty.length) {
+    console.error(
+      `REFUSING: ${dirty.length} concept(s) differ from the catalog ` +
+      `(${dirty.slice(0, 3).map((p) => p.rel).join(', ')}…). Capturing now would ` +
+      `record the drift as the expected answer. Push first, confirm ` +
+      `\`drift.ts\` exits 0, then re-run.`);
+    return 2;
+  }
+  const cat = await client();
+  const dir = path.join(REPO, 'kcmd/demo/okf/fixtures');
+  fs.mkdirSync(dir, { recursive: true });
+  const want: Array<[string, string, string]> = [
+    ['trackB_grain_accounts', entryGroup, 'references/grain/accounts'],
+    ['trackA_investors', '@bigquery',
+     `bigquery.googleapis.com/projects/${project}/datasets/${DATASET}/tables/investors`],
+  ];
+  for (const [name, group, id] of want) {
+    const res = await cat.getEntry(project, location, group, id, undefined, 'ALL');
+    if (res.status !== 200 || !res.result) {
+      console.error(`failed to read ${id}: HTTP ${res.status}`);
+      return 2;
+    }
+    const p = path.join(dir, `${name}.json`);
+    fs.writeFileSync(p, JSON.stringify(res.result, null, 2) + '\n');
+    console.log(`captured ${name} (${Object.keys(res.result.aspects ?? {}).length} aspects)`);
+  }
+  return 0;
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   if (argv.includes('--sweep')) return sweep();
+  if (argv.includes('--capture-fixtures')) return captureFixtures();
   const strict = argv.includes('--strict');
 
   const { plans, orphans, readFailures } = await buildPlan();

@@ -1,13 +1,13 @@
 {
   "name": "projects/royston-dev-8253/locations/us/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
-  "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+  "entryType": "projects/dataplex-types/locations/global/entryTypes/bigquery-table",
   "createTime": "2026-08-12T20:12:33.939283Z",
-  "updateTime": "2026-08-15T17:02:08.210727Z",
+  "updateTime": "2026-08-15T17:29:30.696642Z",
   "aspects": {
-    "404799090046.us.okf": {
-      "aspectType": "projects/404799090046/locations/us/aspectTypes/okf",
+    "royston-dev-8253.us.okf": {
+      "aspectType": "projects/royston-dev-8253/locations/us/aspectTypes/okf",
       "createTime": "2026-08-13T00:40:45.382734Z",
-      "updateTime": "2026-08-15T16:26:39.917471Z",
+      "updateTime": "2026-08-15T17:29:30.648191Z",
       "data": {
         "okf_type": "BigQuery Table",
         "generated": {
@@ -28,6 +28,7 @@
           }
         ],
         "status": "stable",
+        "stale_after": "2026-11-13",
         "title": "Investors",
         "tags": [
           "investment",
@@ -37,10 +38,10 @@
       },
       "aspectSource": {}
     },
-    "655216118709.global.bigquery-policy": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/bigquery-policy",
+    "dataplex-types.global.bigquery-policy": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/bigquery-policy",
       "createTime": "2026-08-12T20:12:33.939283Z",
-      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-15T17:22:36.834687Z",
       "data": {
         "numRowAccessPolicies": 0,
         "numColumnDataPolicies": 0,
@@ -48,26 +49,26 @@
       },
       "aspectSource": {
         "createTime": "2026-08-12T20:12:32.761Z",
-        "updateTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-15T17:22:35.797Z",
         "dataVersion": "Ingestion/1.0.0"
       }
     },
-    "655216118709.global.bigquery-table": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/bigquery-table",
+    "dataplex-types.global.bigquery-table": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/bigquery-table",
       "createTime": "2026-08-12T20:12:33.939283Z",
-      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-15T17:22:36.834687Z",
       "data": {
         "type": "TABLE",
         "tableType": "TABLE"
       },
       "aspectSource": {
         "createTime": "2026-08-12T20:12:32.761Z",
-        "updateTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-15T17:22:35.797Z",
         "dataVersion": "Ingestion/1.0.0"
       }
     },
-    "655216118709.global.descriptions": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/descriptions",
+    "dataplex-types.global.descriptions": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/descriptions",
       "createTime": "2026-08-12T20:28:13.591477Z",
       "updateTime": "2026-08-15T17:02:08.194527Z",
       "data": {
@@ -90,18 +91,18 @@
       },
       "aspectSource": {}
     },
-    "655216118709.global.overview": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/overview",
+    "dataplex-types.global.overview": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/overview",
       "createTime": "2026-08-13T01:59:11.189303Z",
-      "updateTime": "2026-08-15T17:02:08.194527Z",
+      "updateTime": "2026-08-15T17:29:30.648191Z",
       "data": {
-        "content": "The `investors` table provides dimensional data for 40 individuals and institutional entities that fund loan portfolios managed by Cymbal Bank[^bq-metadata]. The grain of this dimension is one row per investor, uniquely identified by `investor_id`[^bq-metadata].\n\nThe table classifies investors into four categories: individual `retail` investors (15 rows, 37.5%), and institutional investors comprising `insurer` (12 rows, 30.0%), `fund` (9 rows, 22.5%), and `bank` (4 rows, 10.0%) entities[^bq-metadata]. This categorization enables the analysis of funding diversification and risk concentration across different types of market participants.\n\nThis table serves as a reference dimension and is designed to be joined with the [loan_investors](/tables/loan_investors.md) table to map specific loan funding obligations to their respective funding entities[^bq-metadata]. The parent dataset containing this table is [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).\n\n# Related concepts\n\n_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._\n\n## Joins\n* [loan_applications ↔ investors (via loan_investors)](/references/joins/loan_applications__investors__via_loan_investors.md) - loan_applications and investors are many-to-many; loan_investors is the bridge that resolves them.\n\n# Schema\n\n| Field Name | Type | Mode | Description |\n| :--- | :--- | :--- | :--- |\n| **investor_id** | INTEGER | NULLABLE | Unique identifier for each investor (primary key)[^bq-metadata]. |\n| **name** | STRING | NULLABLE | The full legal or corporate name of the investor[^bq-metadata]. |\n| **investor_type** | STRING | NULLABLE | The category of investor (`retail`, `insurer`, `fund`, or `bank`)[^bq-metadata]. |\n\n# Common query patterns\n\n### 1. Count of investors by investor type\nThis query aggregates the investor counts by their types to understand the distribution of retail versus institutional investors.\n\n```sql\nSELECT\n  investor_type,\n  COUNT(*) AS investor_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  investor_count DESC;\n```\n\n### 2. Identify investment participation by investor\nThis query joins the `investors` table with the [loan_investors](/tables/loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.\n\n```sql\nSELECT\n  i.investor_id,\n  i.name,\n  i.investor_type,\n  COUNT(li.application_id) AS funded_applications_count,\n  ROUND(AVG(li.allocation_pct) * 100, 2) AS avg_allocation_percentage\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS i\nLEFT JOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS li\nON\n  i.investor_id = li.investor_id\nGROUP BY\n  i.investor_id,\n  i.name,\n  i.investor_type\nORDER BY\n  funded_applications_count DESC;\n```\n\n[^bq-metadata]: BigQuery Table Metadata and Data Profile for `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`.",
+        "content": "The `investors` table provides dimensional data for 40 individuals and institutional entities that fund loan portfolios managed by Cymbal Bank[^bq-metadata]. The grain of this dimension is one row per investor, uniquely identified by `investor_id`[^bq-metadata].\n\nThe table classifies investors into four categories: individual `retail` investors (15 rows, 37.5%), and institutional investors comprising `insurer` (12 rows, 30.0%), `fund` (9 rows, 22.5%), and `bank` (4 rows, 10.0%) entities[^bq-metadata]. This categorization enables the analysis of funding diversification and risk concentration across different types of market participants.\n\nThis table serves as a reference dimension and is designed to be joined with the [loan_investors](/tables/loan_investors.md) table to map specific loan funding obligations to their respective funding entities[^bq-metadata]. The parent dataset containing this table is [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).\n\n# Related concepts\n\n_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._\n\n## Joins\n* [loan_applications ↔ investors (via loan_investors)](/references/joins/loan_applications__investors__via_loan_investors.md) - loan_applications and investors are many-to-many; loan_investors is the bridge that resolves them.\n\n# Schema\n\n| Field Name | Type | Mode | Description |\n| :--- | :---: | :---: | :--- |\n| **investor_id** | INTEGER | NULLABLE | Unique identifier for each investor (primary key)[^bq-metadata]. |\n| **name** | STRING | NULLABLE | The full legal or corporate name of the investor[^bq-metadata]. |\n| **investor_type** | STRING | NULLABLE | The category of investor (`retail`, `insurer`, `fund`, or `bank`)[^bq-metadata]. |\n\n# Data characteristics\n\n_Computed from BigQuery on 2026-08-15 by `okf-review/mirror.py`. The warehouse is authoritative for this section — it is a cache, not an assertion, and a refresh overwrites it._\n\n**40 rows.**\n\n| Column | Nulls | Distinct | Range / top values |\n| :--- | ---: | ---: | :--- |\n| `investor_id` | 0 | 40 | 1 – 40 |\n| `name` | 0 | 40 |  |\n| `investor_type` | 0 | 4 | `retail` 37.5%, `insurer` 30.0%, `fund` 22.5%, `bank` 10.0% |\n\n# Common query patterns\n\n### 1. Count of investors by investor type\nThis query aggregates the investor counts by their types to understand the distribution of retail versus institutional investors.\n\n```sql\nSELECT\n  investor_type,\n  COUNT(*) AS investor_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  investor_count DESC;\n```\n\n### 2. Identify investment participation by investor\nThis query joins the `investors` table with the [loan_investors](/tables/loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.\n\n```sql\nSELECT\n  i.investor_id,\n  i.name,\n  i.investor_type,\n  COUNT(li.application_id) AS funded_applications_count,\n  ROUND(AVG(li.allocation_pct) * 100, 2) AS avg_allocation_percentage\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS i\nLEFT JOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS li\nON\n  i.investor_id = li.investor_id\nGROUP BY\n  i.investor_id,\n  i.name,\n  i.investor_type\nORDER BY\n  funded_applications_count DESC;\n```\n\n[^bq-metadata]: BigQuery Table Metadata and Data Profile for `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`.",
         "contentType": "MARKDOWN"
       },
       "aspectSource": {}
     },
-    "655216118709.global.queries": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/queries",
+    "dataplex-types.global.queries": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/queries",
       "createTime": "2026-08-12T20:28:13.591477Z",
       "updateTime": "2026-08-15T16:26:39.917471Z",
       "data": {
@@ -123,10 +124,10 @@
       },
       "aspectSource": {}
     },
-    "655216118709.global.schema": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/schema",
+    "dataplex-types.global.schema": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/schema",
       "createTime": "2026-08-12T20:12:33.939283Z",
-      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-15T17:22:36.834687Z",
       "data": {
         "fields": [
           {
@@ -151,21 +152,21 @@
       },
       "aspectSource": {
         "createTime": "2026-08-12T20:12:32.761Z",
-        "updateTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-15T17:22:35.797Z",
         "dataVersion": "Ingestion/1.0.0"
       }
     },
-    "655216118709.global.storage": {
-      "aspectType": "projects/655216118709/locations/global/aspectTypes/storage",
+    "dataplex-types.global.storage": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/storage",
       "createTime": "2026-08-12T20:12:33.939283Z",
-      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-15T17:22:36.834687Z",
       "data": {
         "service": "BIGQUERY",
         "resourceName": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors"
       },
       "aspectSource": {
         "createTime": "2026-08-12T20:12:32.761Z",
-        "updateTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-15T17:22:35.797Z",
         "dataVersion": "Ingestion/1.0.0"
       }
     }
@@ -184,7 +185,7 @@
       }
     ],
     "createTime": "2026-08-12T20:12:32.761Z",
-    "updateTime": "2026-08-12T20:12:32.761Z",
+    "updateTime": "2026-08-15T17:22:35.797Z",
     "location": "us"
   }
 }

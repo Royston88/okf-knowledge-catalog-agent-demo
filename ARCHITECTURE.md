@@ -29,7 +29,9 @@ graph LR
 
     OKF[("OKF Bundle<br/>source of truth")]
     REVIEW["Review Tooling<br/>canonicalise · triage · sign-off"]
+    STAGE[".staging/bundle<br/>kcmd-native · disposable"]
     KCMD["kcmd<br/>projector"]
+    DIFF["drift.ts<br/>differ + push planner"]
     LLM["LLM Agent"]
 
     BQ --> KC
@@ -38,8 +40,13 @@ graph LR
     EMIT --> OKF
     ENRICH --> OKF
     OKF <-->|"review"| REVIEW
-    OKF <-->|"push / pull"| KCMD
-    KCMD <--> KC
+    OKF -->|"project"| STAGE
+    STAGE -->|"push only what differs"| KCMD
+    KCMD --> KC
+    KC -->|"getEntry view=ALL"| DIFF
+    STAGE -->|"expected"| DIFF
+    DIFF -->|"report · never writes the bundle"| REVIEW
+    BQ -->|"mirror: the tier-A cache"| OKF
     OKF -->|"MCP"| LLM
     KC -->|"MCP"| LLM
     LLM -->|"SQL"| BQ
@@ -47,10 +54,25 @@ graph LR
 
 The **enrichment agent** and the **emitter** are two producers, deliberately:
 the emitter is deterministic and owns joins/metrics, the agent is an LLM and
-owns tables/datasets. Every concept records which one wrote it. **kcmd** is the
-only component that talks to the catalog, in both directions — the push is a
-full replace, and the pull is what makes the bundle's authority checkable rather
-than asserted.
+owns tables/datasets. Every concept records which one wrote it.
+
+**`.staging/bundle/` is the interface, and kcmd never sees `okf-bundle/`.** The
+staged tree is a kcmd-NATIVE OKF bundle — the same object, the `x-kcmd` key,
+`layout: okf` — so an unmodified kcmd can consume it, which is what closes the
+`index.md` gap using kcmd's own synthesiser. It is disposable, gitignored and
+deleted on exit: **no stash in the source; the stash is a build artifact.**
+
+**The loop is no longer symmetric, and that is the design.** The push is a full
+replace. The return leg is not a second writer but the **same interface with a
+different last hop**: `drift.ts` builds `expected` with the very function the
+push uses, reads `actual` at `view=ALL`, and emits a **report**. It compares
+forward, in the catalog's shape, so there is no reverse mapping to be lossy —
+and it cannot write into `okf-bundle/`, because the code that could was deleted.
+
+The one arrow that does write the bundle from outside is **the mirror**, and it
+runs from BigQuery rather than from the catalog: a field-scoped refresh of the
+tier-A cache (`# Schema` types, `# Data characteristics`) that never touches an
+authored field.
 
 ### What each arrow costs you
 
@@ -60,15 +82,22 @@ than asserted.
 | 3b. author | Stock `BigQuerySource` sees **no Dataplex metadata at all**. `KCBigQuerySource` is the subclass that merges `kc-capture/` into `read_concept`. |
 | 4a. push | `push --validate-only` is **not** a dry run in this fork — it creates every entry it "validates". |
 | 4a. push | The aspect write is a **full replace**, not a merge. A field deleted from the bundle is deleted from the catalog. That is what makes the bundle authoritative. |
-| 5. pull | Writes under `catalog/<entryGroup>/<project>/<location>/…`, not the bundle's bare paths. Pull into a **scratch** tree, never over `catalog/`. |
+| 4a. push | Both pushes are **planners**: pull → compare → stage only what differs, and **abort entirely** if an owned channel was written by something else since the last sweep. A second run writes nothing at all. |
+| 4a. push | Running an **unmodified** kcmd here is safe for entries and aspects and **destroys the link layer** — undeclared `entryLinks:` makes the reconciler's lookup unfiltered. |
+| 5. diff | `drift.ts` does **not** use `kcmd pull`: the client discards `Entry.updateTime` and every per-aspect timestamp, which are the only drift evidence nothing can forge. |
+| mirror | Refreshes Type and Mode **keyed on column name** and never touches a Description. A new warehouse column is flagged undocumented, not blank-filled. |
 | review | The canonicaliser is a **required post-authoring step** — `reference_agent` writes non-canonical frontmatter every time. |
 
-### Three things that do not survive the round trip
+### Three things that did not survive the round trip — two now fixed
 
-- **`index.md` × 6** — no frontmatter → no entry name → no entry. The bundle's
-  navigation layer has no representation in the catalog.
-- **Duplicate tags** — Dataplex stores tags as a label *map*.
-- **The body**, until the asymmetric-alias workaround in `pull.ts`.
+- ~~**`index.md` × 6**~~ **FIXED, and it was never a catalog limitation.** It
+  was documents-layout only: `OkfLayout` synthesises a directory entry per
+  folder and regenerates the listings in `finalize()`. Switching the staged tree
+  to `layout: okf` produced **7 index entries**, live.
+- **Duplicate tags** — Dataplex stores tags as a label *map*. Still true.
+- ~~**The body**~~ **FIXED at source** (kcmd defect 2), though the round trip is
+  no longer on the critical path: the differ compares forward and `pull.ts` is
+  deleted.
 
 ---
 

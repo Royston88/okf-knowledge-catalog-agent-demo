@@ -98,6 +98,22 @@ Catalog refusing to store something, and none was OKF being the wrong shape.
 Both are worth reporting upstream. Also found: **`push --validate-only` is not a
 dry run** — it creates every entry it "validates".
 
+**Eight defects now, and the last two are a different kind.** 1–6 are plain
+bugs. **7** — `_fixEntry` rebuilt every aspect as `{aspectType, data}` and threw
+away `createTime`, `updateTime` and `aspectSource`, none of which the `Aspect`
+interface declared — and **8** — `getEntry` could express `BASIC` and `CUSTOM`
+and had no way to ask for `ALL`, so a client restricted to it can never observe
+an aspect it did not already expect — are not really bugs. They are consequences
+of §7's finding: a tool that never got its comparison layer built has no reason
+to keep the evidence for comparison, or to be able to see what it did not
+predict. Both are fixed and both are small.
+
+Two of the six also turn out to be **unreachable from kcmd's own workflow** (1
+and 4) and only bite a hand-authored bundle, while 2 breaks kcmd's *own* primary
+verb. Splitting them that way matters for what to lead with upstream. And
+defect 6's page boundary is not the theoretical concern it looked like: it is
+reachable at **ten** links, and 2 of 13 table entries already cross it.
+
 **The pattern worth naming: this codebase's failure mode is the silent plausible
 success.** Defect 1 produced a successful push that wrote nothing. Defect 2
 produced a successful pull that returned nothing. The same defect, on the read
@@ -230,11 +246,72 @@ it is the one the evidence supports.
 - **Enrichment quality**, explicitly out of scope. Measurement E scored the
   author on 3 hazards in a single non-deterministic run and is not a capability
   measurement.
-- **Scale.** 53 concepts, 13 tables, one dataset.
-- **Multi-writer conflict.** One bundle, one pusher; full-replace semantics are
-  untested against concurrent editors.
-- **The `index.md` gap**, left open deliberately — fixing it means either giving
-  the files frontmatter or teaching the shim to synthesise directory entries the
-  way `OkfLayout` does.
+- **Scale.** 58 concepts, 13 tables, one dataset.
+- **A real concurrent scan.** ~~Multi-writer conflict. One bundle, one pusher;
+  full-replace semantics are untested against concurrent editors.~~ **Partly
+  closed** — see §7. The *mechanism* is built and verified against a synthetic
+  out-of-band edit; what has not happened is a live DATA_DOCUMENTATION run since
+  the differ landed.
+- ~~**The `index.md` gap**~~ **Closed.** It was **documents-layout only**:
+  `OkfLayout` already synthesises a directory entry per folder and regenerates
+  the listings in `finalize()`. Switching the staged tree to `layout: okf` closed
+  it using kcmd's own code — 7 index entries, live. Recording it as a gap in the
+  system was wrong; it was a gap in the layout we happened to be using.
+- **The effect of the `# Related concepts` back-links on the score.** They are
+  aimed squarely at the reachability failure §4 identifies, and **no eval has
+  been re-run since they landed.**
 - **Phase 8 at any statistical weight.** n=3, one model, 5 questions; tool use
   varied between identical repeats.
+
+---
+
+## 7. Multi-writer, drift, and the direction of authority — corrected
+
+Three claims in the sections above were investigated further and did not
+survive. They are corrected here rather than edited away, because two of them
+were quoted forward into a plan.
+
+**"kcmd is remote-authoritative by design" — false.** Its own `concept.md` tenet
+says the code artifacts "should be amenable to **serving as authoring and
+management source of truth**", and `spec.md` §3.3 specifies fail-fast conflict
+handling with a force override, §3.7 a `.catalog.state` checksum file, §3.8
+deletion intent. **None of it is implemented** — zero occurrences of
+checksum/state/etag in `kcmd/src`, two conflict TODOs, and `force` plumbed from
+the CLI into an options field that nothing reads. kcmd aims where we aim; it is
+remote-authoritative because the version-control half of its own spec was never
+built. That is a missing layer, not a philosophical difference, and it changes
+the gap from something to work around into something to build.
+
+**"v0.1's stash beats us on inspecting everything in the catalog" — no longer
+true.** The trade was real: the stash carried every aspect while we carried four
+channels. The mirrored tier gives the stash's coverage in **OKF-native,
+addressable form** — a `# Schema` table, a `# Data characteristics` section —
+where every value is readable and individually diffable rather than buried in a
+serialized entry. We get v0.1's coverage and our own legibility.
+
+**"Multi-writer conflict is untested" — the mechanism now exists and works.**
+The DATA_DOCUMENTATION scan *is* the concurrent editor, and `drift.ts` makes it
+observable for the first time. Verified end to end against an out-of-band
+`modifyEntry`: the right concept, the right channel, attributed to a third party
+from the server's own clock, the push **aborted** rather than overwriting, and
+`--force` repaired it.
+
+The nuance the report encodes, and the reason it is two verdicts rather than
+one: for an **unverified** concept a moved `descriptions` timestamp is the system
+working as designed — `userManaged: false`, the scan is supposed to refresh it —
+while for a **verified** one it is an ownership failure. Same signal, opposite
+meaning, decided by nothing but the flag.
+
+This rests on a measurement that was not expected: **Dataplex's per-aspect
+`updateTime` is content-addressed by the server.** 14 `modifyEntry` calls
+carrying byte-identical data moved the entry-level timestamp on all 14 and the
+aspect-level timestamp on **0 of 241**. So "which channel changed, and was it
+us" is answerable from a value neither we nor kcmd can write — `toServiceEntry`
+never sends it. That is strictly better evidence than the client-side checksums
+kcmd's own spec proposes, and it is why this repo has no content hash.
+
+**One thing got worse, and it is worth saying plainly.** Running an *unmodified*
+kcmd against a workspace that has links is **destructive to the link layer** —
+measured: one pristine push deleted the probe link, because an undeclared
+`entryLinks:` makes the reconciler's lookup unfiltered. The interop claim in §1
+is scoped to **entries and aspects**.

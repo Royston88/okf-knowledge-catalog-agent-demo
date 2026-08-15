@@ -68,18 +68,37 @@ Live behaviour, verified against the catalog after each push:
 
 | field | why it was lost | fix |
 |---|---|---|
-| `description` | lives in the `descriptions` aspect; on an ingested entry `entry_source.description` is platform-owned | read it from the aspect — **and prefer ours over the platform's**, since the BigQuery *dataset* has its own description and was overwriting the bundle's |
-| `tags` | `entry_source.labels` is platform-owned on ingested entries — our tags never landed | carry on the `okf` aspect |
+| `description` | lives in the `descriptions` aspect; on an ingested entry `entry_source.description` comes back absent | read it from the aspect — **and prefer ours over the platform's**, since the BigQuery *dataset* has its own description and was overwriting the bundle's |
+| `tags` | `entry_source.labels` comes back absent on ingested entries — our tags never landed | carry on the `okf` aspect |
 | `title` | `entry_source.displayName` likewise — came back as the native `accounts` | carry on the `okf` aspect |
+
+> **CORRECTION to the "why" column.** These three said *platform-owned*, meaning
+> Dataplex refuses the write. It does not refuse it — **kcmd never makes it.**
+> `toServiceEntry` early-returns `{name, entryType, aspects}` when
+> `manifest.source.ingestedEntries`, so displayName, description, labels,
+> resource and both timestamps are dropped **client-side** and never sent. The
+> measurement is unchanged and the fix is unchanged — carrying `title`/`tags` on
+> the `okf` aspect is the only thing that survives an unmodified kcmd — but the
+> cause is a fixable client behaviour, not a platform constraint, and it belongs
+> on the upstream defect list rather than in a note about how Dataplex works.
 | `resource` | Dataplex returns the bare `projects/P/datasets/D/tables/T` form | normalise back to the REST URL form the bundle uses |
 
 `title` and `tags` required extending the `okf` aspect type (now 8 fields).
 Measured result: **Track A 14/14 faithful on frontmatter *and* body; Track B 39
 concepts, `changed=0`.**
 
-The bundle is therefore no longer push-only — an edit made in the catalog can be
-pulled back, which is what makes "OKF as version control" real rather than
-aspirational.
+~~The bundle is therefore no longer push-only — an edit made in the catalog can
+be pulled back, which is what makes "OKF as version control" real rather than
+aspirational.~~
+
+**SUPERSEDED, and deliberately so.** Round-trip fidelity was the right thing to
+measure and the wrong thing to build toward. "OKF as version control" does not
+need a pull that reconstructs the bundle; it needs a **diff** that says whether
+the catalog still matches it. `pull.ts` is deleted and `drift.ts` replaced it —
+comparing FORWARD, `expected` from the bundle against a live `getEntry`, so
+there is no reverse mapping to be lossy and no code path that can write into
+`okf-bundle/` at all. The fidelity work is not wasted: it is what made the
+forward projection trustworthy enough to compare against.
 
 ## Outstanding
 

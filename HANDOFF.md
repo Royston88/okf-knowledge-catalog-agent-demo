@@ -1,15 +1,17 @@
 # HANDOFF — OKF/kcmd mechanism proof
 
-Updated 2026-08-13 at the end of the second session. Everything needed to resume
+Updated 2026-08-15 at the end of the third session. Everything needed to resume
 cold is here. Read this, then `MEASUREMENTS.md` for results and
 `okf-emitter/PROVENANCE.md` for the copied-generator story.
 
 - **Branch:** `v6z-okf-projector` in `okf-knowledge-catalog-agent-demo` (a private
-  submodule of `agentic-data-cloud-demo`). HEAD `7ad3ce8`.
-- **Design as built:** `DESIGN.md` — the model, the six kcmd defects, the
-  verification commands, and the known gaps. Read it before `MEASUREMENTS.md`.
+  submodule of `agentic-data-cloud-demo`). HEAD `4bac1bc`.
+- **Design as built:** `DESIGN.md` — the model, the three ownership tiers, the
+  differ, the direction of authority, the eight kcmd defects, the verification
+  commands and the known gaps. Read it before `MEASUREMENTS.md`.
 - **Forward plan:** `PROPOSAL.md`
-- **Approved plan:** `/home/user/.claude/plans/glittery-tumbling-kettle.md`
+- **Approved plan:** `/home/user/.claude/plans/the-two-directions-remote-authoritative-lovely-comet.md`
+  (the previous one, `glittery-tumbling-kettle.md`, is complete)
 - **Goal:** prove the mechanism — can an OKF bundle be the source of truth, with
   kcmd projecting it into Knowledge Catalog, and an ADK agent reading it back?
   Enrichment *quality* is out of scope.
@@ -58,24 +60,45 @@ state is git: this branch's commits are the real handoff.
 | 8 — ADK agent, Arm K vs Arm D | **done.** K 11/15, D 7/15 over 3 reps |
 | Measurement F | **taken.** PASS, conditional on the new canonicaliser |
 | Measurement G | **taken.** Survival tracks `userManaged`, not the OKF flag |
-| `RESULTS.md` | **written.** All phases complete |
+| spec gaps — `generated.at`, `status`, `log.md`, §6.1 links | **done.** 190 absolute links, 58/58 status |
+| q4 back-links — `# Related concepts` | **done.** 58 back-links on 13 table concepts |
+| interop — unmodified kcmd | **done.** 44 + 7 landed from a pristine `main` build |
+| forward differ + push planner | **done.** `drift.ts`; push twice = 0 writes |
+| mirrored tier | **done.** `# Data characteristics` on 13/13, computed from BigQuery |
+| `RESULTS.md` | **written**, and §7 corrects three claims that did not survive |
 
-The bundle is committed: `okf-bundle/`, 53 concepts + 6 indexes, two provenance
-classes (`generate_models/okf` × 39, `reference_agent/gemini-3.5-flash` × 14).
+The bundle is committed: `okf-bundle/`, **58 concepts + 9 indexes + `log.md`**,
+two provenance classes (`generate_models/okf` × **44**,
+`reference_agent/gemini-3.5-flash` × 14).
 
 **The two tracks are split by asset-backing, and do not overlap.** A concept
 with a top-level `resource:` names an asset Dataplex already ingested, so it
 belongs on that native entry (Track A); the rest need entries of their own
-(Track B).
+(Track B). `kcmd/demo/okf/targets.ts` is the single derivation — the two push
+scripts and the differ all use it.
 
-- **Track B** — `okf_cymbal_v6z`, **40 entries**: 39 `references/`
-  (13 joins + 26 metrics) plus the auto-created `okf_cymbal_v6z_entry`.
+- **Track B** — `okf_cymbal_v6z`, **51 entries**: **44** `references/`
+  (13 joins + 26 metrics + 3 grain rules + 1 hierarchy + 1 derived table) plus
+  **7 synthetic directory `index` entries**, plus the auto-created
+  `okf_cymbal_v6z_entry` (type `entrygroup`, not ours, not counted).
 - **Track A** — the 14 native `@bigquery` entries, each carrying the `okf`
-  signal aspect **and** its concept body as `overview`.
+  signal aspect, its concept body as `overview`, and `descriptions` + `queries`
+  with `userManaged` computed from `verified`.
 
 They used to overlap: Track B also published the 14 asset-backed concepts, so a
-catalog search returned two objects per table (28 hits, now 14). Do not
-reintroduce that.
+catalog search returned two objects per table (28 hits, now 14 — **re-measured
+after the index entries landed and still 14**). Do not reintroduce that.
+
+**Two operating rules that are now policy, not folklore:**
+
+1. **Exactly two writers touch the catalog** — our push, and the Dataplex scans.
+   That is enforced by process, not by the platform. A third-party write is
+   *visible* rather than silent, because the server timestamps are unforgeable:
+   `bun kcmd/demo/okf/drift.ts` reports it as newer than the recorded push.
+2. **Rollback is: git-revert the bundle, push, verify.** All four historical
+   projection breakages recovered that way, because the bundle is authoritative
+   and every consumed channel is live-editable. Prove a risky change against a
+   **scratch EntryGroup** first so this is never the first line of defence.
 
 ---
 
@@ -179,22 +202,71 @@ The demo shim (`kcmd/demo/okf/*.ts`) is run **directly by bun** and needs no
 rebuild. Only changes to `kcmd/src/` require `npm run build:mcp`. Nothing in
 this work has modified `kcmd/src/` — see §2.8.
 
-### 2.7 Working push / pull incantation
+### 2.7 Working incantations
+
+**The shared prelude.** Every command below assumes it.
 
 ```bash
-cd okf-kb-workspace
 export GOOGLE_APPLICATION_CREDENTIALS=/home/user/.config/gcloud/admin--kenly-lakehouse-dev-1.json
 export CLOUDSDK_COMPUTE_REGION=us
-rm -rf catalog .staging && mkdir -p catalog && cp -r ../okf-bundle/. catalog/
-OKF_PROJECT=royston-dev-8253 OKF_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z \
-  ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push.ts
+export KCMD_ACCESS_TOKEN=$(gc admin--royston-dev-8253 gcloud auth print-access-token)
+export OKF_PROJECT=royston-dev-8253 OKF_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z
+export OKF_BQ_DATASET=cymbal_bank_v6z_scaffold_demo_copy
 ```
 
-`pull.ts` takes the same env. It writes back under
-`catalog/<entryGroup>/<project>/<location>/…` (the `KnowledgeBaseSource.localName`
-convention), **not** the bundle's bare paths — so pull into a scratch workspace
-and compare, rather than pulling over `catalog/`. Set `OKF_KEEP_STAGING=1` to
-retain `.staging/` for inspection.
+`KCMD_ACCESS_TOKEN` is **not optional** — without it the CLI mints a token from
+the globally active gcloud config, which is a different identity. Both push
+scripts refuse to run without it, and `mirror.py` uses the same token so
+BigQuery is read as the same principal.
+
+```bash
+# Track B (the 44 concept entries + 7 index entries)
+(cd okf-kb-workspace && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push.ts)
+
+# Track A (the okf/overview/descriptions/queries aspects on 14 @bigquery entries)
+(cd bq-okf-workspace && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push-track-a.ts)
+
+# does the catalog still match the bundle?   0 = no drift, 1 = drift, 2 = error
+kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.ts
+
+# record the post-push baseline (tracked in _state/last_push.json)
+kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.ts --sweep
+```
+
+**Both pushes are now planners.** They pull, compare, and stage only what
+differs; a second run stages **nothing** and does not invoke kcmd at all. If the
+comparison finds an owned channel written by something other than our last push,
+the push **aborts entirely** — inspect with `drift.ts`, then re-run with
+`--force` to overwrite deliberately. `OKF_NO_PLAN=1` disables planning and
+stages everything.
+
+**There is no `cp -r ../okf-bundle/. catalog/` step any more**, and there must
+not be one again: the push scripts read `okf-bundle/` directly (override with
+`OKF_BUNDLE`). The old copy meant the source of truth existed twice on disk and
+could silently diverge, which it did.
+
+**`pull.ts` is deleted** — see `kcmd/demo/okf/RETIRED-pull.md`. Nothing writes
+into `okf-bundle/` from the catalog, by construction rather than by convention.
+To inspect a raw pull by hand, pull into a scratch directory with the kcmd CLI
+directly. `OKF_KEEP_STAGING=1` retains `.staging/` (gitignored under
+`**/.staging/`).
+
+### 2.7a The bundle's own pipeline, in order
+
+`reference_agent` and `gen_okf.py` each own part of the bundle; three passes run
+over the whole of it afterwards, and **the order matters**.
+
+```bash
+python okf-emitter/gen_okf.py --spec okf-emitter/spec.yaml --out okf-bundle
+python okf-review/mirror.py --write        # tier-A cache, from BigQuery
+python okf-review/postauthor.py --write    # absolute links, status, back-links
+python okf-review/canonicalize.py --write okf-bundle   # always last
+python okf-review/conformance.py
+```
+
+`canonicalize` is last because every other producer writes non-canonical
+frontmatter. `gen_okf.py` now **carries forward every frontmatter key it does
+not author** — it used to delete `verified` on every run, silently.
 
 ### 2.8 Rules that still bind
 
@@ -215,8 +287,8 @@ retain `.staging/` for inspection.
   > `okf-emitter/PROVENANCE.md` are all
   > `c40b1d61fb673d78c08aa1faa4ddeb128aa72d1744d410fe1246d1841f80d8ce`.
   > Re-run both on resume.
-- **`kcmd/src/` IS NOW PATCHED** — five fork defects fixed in place, on this
-  branch, after being worked around in the shim first. Rebuild with
+- **`kcmd/src/` IS NOW PATCHED** — **eight** fork defects fixed in place, on
+  this branch, after being worked around in the shim first. Rebuild with
   `npm run build:mcp` after touching it (the `build/` tree is gitignored, so a
   fresh clone must build before push/pull will work). The shim workarounds were
   deliberately KEPT so it still functions against an unpatched fork.
@@ -313,20 +385,15 @@ python okf-review/canonicalize.py --selftest   # guards reference_agent key-orde
 
 ### 4.2 Track A — DONE
 
-`kcmd/demo/okf/push-track-a.ts` + `bq-okf-workspace/catalog.yaml`. The `okf`
-aspect is on 14/14 `@bigquery` entries. Run it with:
+`kcmd/demo/okf/push-track-a.ts` + `bq-okf-workspace/catalog.yaml`. See §2.7 for
+the command; it is a one-liner now that the prelude is shared.
 
-```bash
-cd bq-okf-workspace
-export GOOGLE_APPLICATION_CREDENTIALS=/home/user/.config/gcloud/admin--kenly-lakehouse-dev-1.json
-export CLOUDSDK_COMPUTE_REGION=us
-OKF_PROJECT=royston-dev-8253 OKF_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z \
-  OKF_BQ_DATASET=cymbal_bank_v6z_scaffold_demo_copy \
-  ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push-track-a.ts
-```
-
-Scope was kept to the `okf` aspect alone (`publishing.aspects`), leaving
-Dataplex's generated content untouched as a Phase 7 control.
+**Scope grew twice since this section was first written.** It began as the `okf`
+aspect alone, leaving Dataplex's generated content untouched as a Phase 7
+control. It is now **four** aspects — `okf`, `overview`, `descriptions`,
+`queries` — with `userManaged` computed from `verified` on the last two, because
+Measurement G showed content written to a scan-owned aspect without that flag is
+destroyed by the next scan, silently.
 
 ### 4.3 Phase 7 — re-scan and Measurement G
 
