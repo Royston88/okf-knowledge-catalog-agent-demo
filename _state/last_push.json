@@ -1,0 +1,417 @@
+{
+  "datasets/cymbal_bank_v6z_scaffold_demo_copy": {
+    "(entry)": "2026-08-15T16:47:02.612550Z",
+    "okf": "2026-08-15T16:26:33.353487Z",
+    "bigquery-dataset": "2026-08-12T20:11:52.986185Z",
+    "descriptions": "2026-08-13T07:25:47.050719Z",
+    "overview": "2026-08-15T16:26:33.353487Z",
+    "queries": "2026-08-13T07:25:47.050719Z"
+  },
+  "references/derived/loan_milestone_dates": {
+    "(entry)": "2026-08-15T16:25:59.359388Z",
+    "okf": "2026-08-14T03:19:06.612894Z",
+    "generic": "2026-08-14T03:19:06.612894Z",
+    "overview": "2026-08-15T16:25:59.320095Z"
+  },
+  "references/grain/accounts": {
+    "(entry)": "2026-08-15T16:59:32.923149Z",
+    "okf": "2026-08-14T03:19:05.663069Z",
+    "generic": "2026-08-14T03:19:05.663069Z",
+    "overview": "2026-08-15T16:59:32.887087Z"
+  },
+  "references/grain/balance_snapshots": {
+    "(entry)": "2026-08-15T16:25:57.894465Z",
+    "okf": "2026-08-14T03:19:04.686373Z",
+    "generic": "2026-08-14T03:19:04.686373Z",
+    "overview": "2026-08-15T16:25:57.849103Z"
+  },
+  "references/grain/loan_applications": {
+    "(entry)": "2026-08-15T16:25:57.117502Z",
+    "okf": "2026-08-14T03:19:03.607464Z",
+    "generic": "2026-08-14T03:19:03.607464Z",
+    "overview": "2026-08-15T16:25:57.070255Z"
+  },
+  "references/hierarchies/geography": {
+    "(entry)": "2026-08-15T16:25:46.646971Z",
+    "okf": "2026-08-14T03:18:21.766300Z",
+    "generic": "2026-08-14T03:18:21.766300Z",
+    "overview": "2026-08-15T16:25:46.600495Z"
+  },
+  "references/joins/accounts__balance_snapshots": {
+    "(entry)": "2026-08-15T16:25:56.360083Z",
+    "okf": "2026-08-13T16:30:00.118863Z",
+    "generic": "2026-08-13T00:01:26.179098Z",
+    "overview": "2026-08-15T16:25:56.317487Z"
+  },
+  "references/joins/accounts__customers__via_account_owners": {
+    "(entry)": "2026-08-15T16:25:55.624392Z",
+    "okf": "2026-08-13T16:29:59.176495Z",
+    "generic": "2026-08-13T00:01:25.218601Z",
+    "overview": "2026-08-15T16:25:55.576655Z"
+  },
+  "references/joins/accounts__transactions": {
+    "(entry)": "2026-08-15T16:25:54.851965Z",
+    "okf": "2026-08-13T16:29:58.201599Z",
+    "generic": "2026-08-13T00:01:24.114054Z",
+    "overview": "2026-08-15T16:25:54.807279Z"
+  },
+  "references/joins/calendar__wire_transfers__received_cal": {
+    "(entry)": "2026-08-15T16:25:54.119908Z",
+    "okf": "2026-08-13T16:29:57.352975Z",
+    "generic": "2026-08-13T00:01:23.122904Z",
+    "overview": "2026-08-15T16:25:54.083695Z"
+  },
+  "references/joins/calendar__wire_transfers__sent_cal": {
+    "(entry)": "2026-08-15T16:25:53.415839Z",
+    "okf": "2026-08-13T16:29:56.423727Z",
+    "generic": "2026-08-13T00:01:22.168529Z",
+    "overview": "2026-08-15T16:25:53.372591Z"
+  },
+  "references/joins/customer_segment_history__wire_transfers__segment_asof": {
+    "(entry)": "2026-08-15T16:25:52.670665Z",
+    "okf": "2026-08-13T16:29:55.483631Z",
+    "generic": "2026-08-13T00:01:21.257281Z",
+    "overview": "2026-08-15T16:25:52.625407Z"
+  },
+  "references/joins/customers__accounts": {
+    "(entry)": "2026-08-15T16:25:51.925511Z",
+    "okf": "2026-08-13T16:29:54.523471Z",
+    "generic": "2026-08-13T00:01:20.348660Z",
+    "overview": "2026-08-15T16:25:51.882543Z"
+  },
+  "references/joins/customers__customers__referrer": {
+    "(entry)": "2026-08-15T16:25:51.134401Z",
+    "okf": "2026-08-13T16:29:53.520463Z",
+    "generic": "2026-08-13T00:01:19.413332Z",
+    "overview": "2026-08-15T16:25:51.092879Z"
+  },
+  "references/joins/customers__loan_applications": {
+    "(entry)": "2026-08-15T16:25:50.392263Z",
+    "okf": "2026-08-13T16:29:52.488127Z",
+    "generic": "2026-08-13T00:01:18.530289Z",
+    "overview": "2026-08-15T16:25:50.349359Z"
+  },
+  "references/joins/customers__payments": {
+    "(entry)": "2026-08-15T16:25:49.662730Z",
+    "okf": "2026-08-13T16:29:51.477583Z",
+    "generic": "2026-08-13T00:01:17.627313Z",
+    "overview": "2026-08-15T16:25:49.618543Z"
+  },
+  "references/joins/customers__support_tickets": {
+    "(entry)": "2026-08-15T16:25:48.855605Z",
+    "okf": "2026-08-13T16:29:50.518335Z",
+    "generic": "2026-08-13T00:01:16.700673Z",
+    "overview": "2026-08-15T16:25:48.818815Z"
+  },
+  "references/joins/customers__wire_transfers": {
+    "(entry)": "2026-08-15T16:25:48.143966Z",
+    "okf": "2026-08-13T16:29:49.551023Z",
+    "generic": "2026-08-13T00:01:15.783832Z",
+    "overview": "2026-08-15T16:25:48.102335Z"
+  },
+  "references/joins/loan_applications__investors__via_loan_investors": {
+    "(entry)": "2026-08-15T16:25:47.437857Z",
+    "okf": "2026-08-13T16:29:48.543183Z",
+    "generic": "2026-08-13T00:01:14.884841Z",
+    "overview": "2026-08-15T16:25:47.389711Z"
+  },
+  "references/metrics/account_owners__allocated_account_balance": {
+    "(entry)": "2026-08-15T16:25:45.884579Z",
+    "okf": "2026-08-13T16:29:47.564815Z",
+    "generic": "2026-08-13T00:01:13.979610Z",
+    "overview": "2026-08-15T16:25:45.844239Z"
+  },
+  "references/metrics/accounts__avg_txns_per_account": {
+    "(entry)": "2026-08-15T16:25:45.126600Z",
+    "okf": "2026-08-13T16:29:46.558255Z",
+    "generic": "2026-08-13T00:01:13.101364Z",
+    "overview": "2026-08-15T16:25:45.077695Z"
+  },
+  "references/metrics/accounts__avg_txns_per_account_in_year": {
+    "(entry)": "2026-08-15T16:25:44.303364Z",
+    "okf": "2026-08-13T16:29:45.608191Z",
+    "generic": "2026-08-13T00:01:12.189875Z",
+    "overview": "2026-08-15T16:25:44.253647Z"
+  },
+  "references/metrics/accounts__total_balance": {
+    "(entry)": "2026-08-15T16:25:43.544003Z",
+    "okf": "2026-08-13T16:29:44.636351Z",
+    "generic": "2026-08-13T00:01:11.319030Z",
+    "overview": "2026-08-15T16:25:43.501775Z"
+  },
+  "references/metrics/accounts__weighted_avg_interest_rate": {
+    "(entry)": "2026-08-15T16:25:42.814348Z",
+    "okf": "2026-08-13T16:29:43.684351Z",
+    "generic": "2026-08-13T00:01:10.380920Z",
+    "overview": "2026-08-15T16:25:42.761455Z"
+  },
+  "references/metrics/balance_snapshots__avg_monthly_balance": {
+    "(entry)": "2026-08-15T16:25:42.053959Z",
+    "okf": "2026-08-13T16:29:42.717423Z",
+    "generic": "2026-08-13T00:01:09.498355Z",
+    "overview": "2026-08-15T16:25:42.012655Z"
+  },
+  "references/metrics/balance_snapshots__balance_period_end": {
+    "(entry)": "2026-08-15T16:25:41.265027Z",
+    "okf": "2026-08-13T16:29:41.730239Z",
+    "generic": "2026-08-13T00:01:08.579122Z",
+    "overview": "2026-08-15T16:25:41.222719Z"
+  },
+  "references/metrics/balance_snapshots__total_snapshot_balance": {
+    "(entry)": "2026-08-15T16:25:40.515446Z",
+    "okf": "2026-08-13T16:29:40.735135Z",
+    "generic": "2026-08-13T00:01:07.694622Z",
+    "overview": "2026-08-15T16:25:40.476047Z"
+  },
+  "references/metrics/customers__avg_accounts_per_customer": {
+    "(entry)": "2026-08-15T16:25:39.794450Z",
+    "okf": "2026-08-13T16:29:39.754111Z",
+    "generic": "2026-08-13T00:01:06.754180Z",
+    "overview": "2026-08-15T16:25:39.744367Z"
+  },
+  "references/metrics/customers__avg_payments_per_customer_in_year": {
+    "(entry)": "2026-08-15T16:25:39.019917Z",
+    "okf": "2026-08-13T16:29:38.770511Z",
+    "generic": "2026-08-13T00:01:05.821768Z",
+    "overview": "2026-08-15T16:25:38.971087Z"
+  },
+  "references/metrics/customers__avg_tickets_per_customer": {
+    "(entry)": "2026-08-15T16:25:38.302612Z",
+    "okf": "2026-08-13T16:29:37.824847Z",
+    "generic": "2026-08-13T00:01:04.815031Z",
+    "overview": "2026-08-15T16:25:38.253135Z"
+  },
+  "references/metrics/loan_applications__avg_days_to_approve": {
+    "(entry)": "2026-08-15T16:25:37.507186Z",
+    "okf": "2026-08-13T16:29:36.824447Z",
+    "generic": "2026-08-13T00:01:03.884557Z",
+    "overview": "2026-08-15T16:25:37.462575Z"
+  },
+  "references/metrics/loan_applications__avg_days_to_fund": {
+    "(entry)": "2026-08-15T16:25:36.719622Z",
+    "okf": "2026-08-13T16:29:35.840847Z",
+    "generic": "2026-08-13T00:01:02.961090Z",
+    "overview": "2026-08-15T16:25:36.679999Z"
+  },
+  "references/metrics/loan_applications__total_loan_amount": {
+    "(entry)": "2026-08-15T16:25:36.000390Z",
+    "okf": "2026-08-13T16:29:34.884351Z",
+    "generic": "2026-08-13T00:01:02.062817Z",
+    "overview": "2026-08-15T16:25:35.957071Z"
+  },
+  "references/metrics/loan_investors__allocated_loan_amount": {
+    "(entry)": "2026-08-15T16:25:35.237522Z",
+    "okf": "2026-08-13T16:29:33.919407Z",
+    "generic": "2026-08-13T00:01:01.106718Z",
+    "overview": "2026-08-15T16:25:35.189807Z"
+  },
+  "references/metrics/payments__cumulative_payments": {
+    "(entry)": "2026-08-15T16:25:34.465249Z",
+    "okf": "2026-08-13T16:29:32.901983Z",
+    "generic": "2026-08-13T00:01:00.191158Z",
+    "overview": "2026-08-15T16:25:34.415551Z"
+  },
+  "references/metrics/payments__payment_amount_pct_by_channel": {
+    "(entry)": "2026-08-15T16:25:33.703092Z",
+    "okf": "2026-08-13T16:29:31.867247Z",
+    "generic": "2026-08-13T00:00:59.258748Z",
+    "overview": "2026-08-15T16:25:33.652271Z"
+  },
+  "references/metrics/payments__payments_yoy": {
+    "(entry)": "2026-08-15T16:25:32.856743Z",
+    "okf": "2026-08-13T16:29:30.885279Z",
+    "generic": "2026-08-13T00:00:58.377561Z",
+    "overview": "2026-08-15T16:25:32.811967Z"
+  },
+  "references/metrics/payments__total_payments": {
+    "(entry)": "2026-08-15T16:25:32.093983Z",
+    "okf": "2026-08-13T16:29:29.885087Z",
+    "generic": "2026-08-13T00:00:57.463207Z",
+    "overview": "2026-08-15T16:25:32.042527Z"
+  },
+  "references/metrics/support_tickets__high_priority_ticket_count": {
+    "(entry)": "2026-08-15T16:25:31.339139Z",
+    "okf": "2026-08-13T16:29:28.836415Z",
+    "generic": "2026-08-13T00:00:56.544037Z",
+    "overview": "2026-08-15T16:25:31.300207Z"
+  },
+  "references/metrics/transactions__total_txn_amount": {
+    "(entry)": "2026-08-15T16:25:30.581735Z",
+    "okf": "2026-08-13T16:29:27.841167Z",
+    "generic": "2026-08-13T00:00:55.648185Z",
+    "overview": "2026-08-15T16:25:30.528879Z"
+  },
+  "references/metrics/transactions__txn_amount_3mo_moving_avg": {
+    "(entry)": "2026-08-15T16:25:29.735449Z",
+    "okf": "2026-08-13T16:29:26.865023Z",
+    "generic": "2026-08-13T00:00:54.752894Z",
+    "overview": "2026-08-15T16:25:29.685727Z"
+  },
+  "references/metrics/wire_transfers__max_wire_amount": {
+    "(entry)": "2026-08-15T16:25:29.007Z",
+    "okf": "2026-08-13T16:29:25.906399Z",
+    "generic": "2026-08-13T00:00:53.856387Z",
+    "overview": "2026-08-15T16:25:28.962431Z"
+  },
+  "references/metrics/wire_transfers__total_wire_amount": {
+    "(entry)": "2026-08-15T16:25:28.243481Z",
+    "okf": "2026-08-13T16:29:24.936015Z",
+    "generic": "2026-08-13T00:00:52.980112Z",
+    "overview": "2026-08-15T16:25:28.192799Z"
+  },
+  "references/metrics/wire_transfers__wire_amount_received_on_holiday": {
+    "(entry)": "2026-08-15T16:25:27.459998Z",
+    "okf": "2026-08-13T16:29:23.908719Z",
+    "generic": "2026-08-13T00:00:51.996066Z",
+    "overview": "2026-08-15T16:25:27.412319Z"
+  },
+  "references/metrics/wire_transfers__wire_amount_sent_on_holiday": {
+    "(entry)": "2026-08-15T16:25:26.691688Z",
+    "okf": "2026-08-13T16:29:22.581935Z",
+    "generic": "2026-08-13T00:00:51.060694Z",
+    "overview": "2026-08-15T16:25:26.648527Z"
+  },
+  "tables/account_owners": {
+    "(entry)": "2026-08-15T16:47:14.785940Z",
+    "okf": "2026-08-15T16:26:44.974751Z",
+    "bigquery-policy": "2026-08-12T20:11:57.260926Z",
+    "bigquery-table": "2026-08-12T20:11:57.260926Z",
+    "descriptions": "2026-08-13T09:59:18.856415Z",
+    "overview": "2026-08-15T16:26:44.974751Z",
+    "queries": "2026-08-13T09:59:18.856415Z",
+    "schema": "2026-08-12T20:11:57.260926Z",
+    "storage": "2026-08-12T20:11:57.260926Z"
+  },
+  "tables/accounts": {
+    "(entry)": "2026-08-15T16:47:13.938335Z",
+    "okf": "2026-08-15T16:26:44.142799Z",
+    "bigquery-policy": "2026-08-12T20:12:05.270736Z",
+    "bigquery-table": "2026-08-12T20:12:05.270736Z",
+    "descriptions": "2026-08-15T16:26:44.142799Z",
+    "overview": "2026-08-15T16:26:44.142799Z",
+    "queries": "2026-08-13T07:26:04.178383Z",
+    "schema": "2026-08-12T20:12:05.270736Z",
+    "storage": "2026-08-12T20:12:05.270736Z"
+  },
+  "tables/balance_snapshots": {
+    "(entry)": "2026-08-15T16:47:13.074388Z",
+    "okf": "2026-08-15T16:26:43.309359Z",
+    "bigquery-policy": "2026-08-12T20:12:10.047633Z",
+    "bigquery-table": "2026-08-12T20:12:10.047633Z",
+    "descriptions": "2026-08-13T09:59:16.325439Z",
+    "overview": "2026-08-15T16:26:43.309359Z",
+    "queries": "2026-08-15T16:26:43.309359Z",
+    "schema": "2026-08-12T20:12:10.047633Z",
+    "storage": "2026-08-12T20:12:10.047633Z"
+  },
+  "tables/calendar": {
+    "(entry)": "2026-08-15T16:47:12.216211Z",
+    "okf": "2026-08-15T16:26:42.506207Z",
+    "bigquery-policy": "2026-08-12T20:12:15.611573Z",
+    "bigquery-table": "2026-08-12T20:12:15.611573Z",
+    "descriptions": "2026-08-13T07:26:01.599583Z",
+    "overview": "2026-08-15T16:26:42.506207Z",
+    "queries": "2026-08-15T16:26:42.506207Z",
+    "schema": "2026-08-12T20:12:15.611573Z",
+    "storage": "2026-08-12T20:12:15.611573Z"
+  },
+  "tables/customer_segment_history": {
+    "(entry)": "2026-08-15T16:47:11.338381Z",
+    "okf": "2026-08-15T16:26:41.664863Z",
+    "bigquery-policy": "2026-08-12T20:12:21.520848Z",
+    "bigquery-table": "2026-08-12T20:12:21.520848Z",
+    "descriptions": "2026-08-15T16:26:41.664863Z",
+    "overview": "2026-08-15T16:26:41.664863Z",
+    "queries": "2026-08-13T09:59:13.850575Z",
+    "schema": "2026-08-12T20:12:21.520848Z",
+    "storage": "2026-08-12T20:12:21.520848Z"
+  },
+  "tables/customers": {
+    "(entry)": "2026-08-15T16:47:10.449242Z",
+    "okf": "2026-08-15T16:26:40.879711Z",
+    "bigquery-policy": "2026-08-12T20:12:28.243694Z",
+    "bigquery-table": "2026-08-12T20:12:28.243694Z",
+    "descriptions": "2026-08-13T08:50:04.764143Z",
+    "overview": "2026-08-15T16:26:40.879711Z",
+    "queries": "2026-08-13T07:25:58.919103Z",
+    "schema": "2026-08-12T20:12:28.243694Z",
+    "storage": "2026-08-12T20:12:28.243694Z"
+  },
+  "tables/investors": {
+    "(entry)": "2026-08-15T17:02:08.210727Z",
+    "okf": "2026-08-15T16:26:39.917471Z",
+    "bigquery-policy": "2026-08-12T20:12:33.939283Z",
+    "bigquery-table": "2026-08-12T20:12:33.939283Z",
+    "descriptions": "2026-08-15T17:02:08.194527Z",
+    "overview": "2026-08-15T17:02:08.194527Z",
+    "queries": "2026-08-15T16:26:39.917471Z",
+    "schema": "2026-08-12T20:12:33.939283Z",
+    "storage": "2026-08-12T20:12:33.939283Z"
+  },
+  "tables/loan_applications": {
+    "(entry)": "2026-08-15T16:47:08.751094Z",
+    "okf": "2026-08-15T16:26:39.102879Z",
+    "bigquery-policy": "2026-08-12T20:12:39.404121Z",
+    "bigquery-table": "2026-08-12T20:12:39.404121Z",
+    "descriptions": "2026-08-15T16:26:39.102879Z",
+    "overview": "2026-08-15T16:26:39.102879Z",
+    "queries": "2026-08-13T07:25:56.206879Z",
+    "schema": "2026-08-12T20:12:39.404121Z",
+    "storage": "2026-08-12T20:12:39.404121Z"
+  },
+  "tables/loan_investors": {
+    "(entry)": "2026-08-15T16:47:07.909467Z",
+    "okf": "2026-08-15T16:26:38.318511Z",
+    "bigquery-policy": "2026-08-12T20:12:44.960226Z",
+    "bigquery-table": "2026-08-12T20:12:44.960226Z",
+    "descriptions": "2026-08-15T16:26:38.318511Z",
+    "overview": "2026-08-15T16:26:38.318511Z",
+    "queries": "2026-08-13T09:59:08.729935Z",
+    "schema": "2026-08-12T20:12:44.960226Z",
+    "storage": "2026-08-12T20:12:44.960226Z"
+  },
+  "tables/payments": {
+    "(entry)": "2026-08-15T16:47:07.010589Z",
+    "okf": "2026-08-15T16:26:37.474495Z",
+    "bigquery-policy": "2026-08-12T20:12:51.786174Z",
+    "bigquery-table": "2026-08-12T20:12:51.786174Z",
+    "descriptions": "2026-08-15T16:26:37.474495Z",
+    "overview": "2026-08-15T16:26:37.474495Z",
+    "queries": "2026-08-15T16:26:37.474495Z",
+    "schema": "2026-08-12T20:12:51.786174Z",
+    "storage": "2026-08-12T20:12:51.786174Z"
+  },
+  "tables/support_tickets": {
+    "(entry)": "2026-08-15T16:47:06.164946Z",
+    "okf": "2026-08-15T16:26:36.629471Z",
+    "bigquery-policy": "2026-08-12T20:12:56.672438Z",
+    "bigquery-table": "2026-08-12T20:12:56.672438Z",
+    "descriptions": "2026-08-15T16:26:36.629471Z",
+    "overview": "2026-08-15T16:26:36.629471Z",
+    "queries": "2026-08-15T16:26:36.629471Z",
+    "schema": "2026-08-12T20:12:56.672438Z",
+    "storage": "2026-08-12T20:12:56.672438Z"
+  },
+  "tables/transactions": {
+    "(entry)": "2026-08-15T16:47:05.268240Z",
+    "okf": "2026-08-15T16:26:35.791759Z",
+    "bigquery-policy": "2026-08-12T20:13:05.580419Z",
+    "bigquery-table": "2026-08-12T20:13:05.580419Z",
+    "descriptions": "2026-08-15T16:26:35.791759Z",
+    "overview": "2026-08-15T16:26:35.791759Z",
+    "queries": "2026-08-15T16:26:35.791759Z",
+    "schema": "2026-08-12T20:13:05.580419Z",
+    "storage": "2026-08-12T20:13:05.580419Z"
+  },
+  "tables/wire_transfers": {
+    "(entry)": "2026-08-15T16:47:04.381861Z",
+    "okf": "2026-08-15T16:26:34.935439Z",
+    "bigquery-policy": "2026-08-12T20:13:13.930302Z",
+    "bigquery-table": "2026-08-12T20:13:13.930302Z",
+    "descriptions": "2026-08-15T16:26:34.935439Z",
+    "overview": "2026-08-15T16:26:34.935439Z",
+    "queries": "2026-08-13T09:59:03.422031Z",
+    "schema": "2026-08-12T20:13:13.930302Z",
+    "storage": "2026-08-12T20:13:13.930302Z"
+  }
+}

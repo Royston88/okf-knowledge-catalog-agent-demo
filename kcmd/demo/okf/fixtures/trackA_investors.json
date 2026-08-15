@@ -1,0 +1,190 @@
+{
+  "name": "projects/royston-dev-8253/locations/us/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
+  "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+  "createTime": "2026-08-12T20:12:33.939283Z",
+  "updateTime": "2026-08-15T17:02:08.210727Z",
+  "aspects": {
+    "404799090046.us.okf": {
+      "aspectType": "projects/404799090046/locations/us/aspectTypes/okf",
+      "createTime": "2026-08-13T00:40:45.382734Z",
+      "updateTime": "2026-08-15T16:26:39.917471Z",
+      "data": {
+        "okf_type": "BigQuery Table",
+        "generated": {
+          "by": "reference_agent/gemini-3.5-flash",
+          "at": "2026-08-12T20:53:36+00:00"
+        },
+        "sources": [
+          {
+            "id": "bq-metadata",
+            "resource": "https://bigquery.googleapis.com/v2/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
+            "title": "BigQuery Table Metadata and Data Profile"
+          }
+        ],
+        "verified": [
+          {
+            "by": "human:kenly@google.com",
+            "at": "2026-08-13T00:00:00+00:00"
+          }
+        ],
+        "status": "stable",
+        "title": "Investors",
+        "tags": [
+          "investment",
+          "party-dimension",
+          "loan-funding"
+        ]
+      },
+      "aspectSource": {}
+    },
+    "655216118709.global.bigquery-policy": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/bigquery-policy",
+      "createTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "data": {
+        "numRowAccessPolicies": 0,
+        "numColumnDataPolicies": 0,
+        "numTags": 0
+      },
+      "aspectSource": {
+        "createTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-12T20:12:32.761Z",
+        "dataVersion": "Ingestion/1.0.0"
+      }
+    },
+    "655216118709.global.bigquery-table": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/bigquery-table",
+      "createTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "data": {
+        "type": "TABLE",
+        "tableType": "TABLE"
+      },
+      "aspectSource": {
+        "createTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-12T20:12:32.761Z",
+        "dataVersion": "Ingestion/1.0.0"
+      }
+    },
+    "655216118709.global.descriptions": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/descriptions",
+      "createTime": "2026-08-12T20:28:13.591477Z",
+      "updateTime": "2026-08-15T17:02:08.194527Z",
+      "data": {
+        "description": "Details of individuals and institutional entities investing in loan portfolios.",
+        "fields": [
+          {
+            "name": "investor_id",
+            "description": "Unique identifier for each investor (primary key)[^bq-metadata]."
+          },
+          {
+            "name": "name",
+            "description": "The full legal or corporate name of the investor[^bq-metadata]."
+          },
+          {
+            "name": "investor_type",
+            "description": "The category of investor (`retail`, `insurer`, `fund`, or `bank`)[^bq-metadata]."
+          }
+        ],
+        "userManaged": true
+      },
+      "aspectSource": {}
+    },
+    "655216118709.global.overview": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/overview",
+      "createTime": "2026-08-13T01:59:11.189303Z",
+      "updateTime": "2026-08-15T17:02:08.194527Z",
+      "data": {
+        "content": "The `investors` table provides dimensional data for 40 individuals and institutional entities that fund loan portfolios managed by Cymbal Bank[^bq-metadata]. The grain of this dimension is one row per investor, uniquely identified by `investor_id`[^bq-metadata].\n\nThe table classifies investors into four categories: individual `retail` investors (15 rows, 37.5%), and institutional investors comprising `insurer` (12 rows, 30.0%), `fund` (9 rows, 22.5%), and `bank` (4 rows, 10.0%) entities[^bq-metadata]. This categorization enables the analysis of funding diversification and risk concentration across different types of market participants.\n\nThis table serves as a reference dimension and is designed to be joined with the [loan_investors](/tables/loan_investors.md) table to map specific loan funding obligations to their respective funding entities[^bq-metadata]. The parent dataset containing this table is [cymbal_bank_v6z_scaffold_demo_copy](/datasets/cymbal_bank_v6z_scaffold_demo_copy.md).\n\n# Related concepts\n\n_Generated from the concepts that reference this table — see `okf-review/postauthor.py`._\n\n## Joins\n* [loan_applications ↔ investors (via loan_investors)](/references/joins/loan_applications__investors__via_loan_investors.md) - loan_applications and investors are many-to-many; loan_investors is the bridge that resolves them.\n\n# Schema\n\n| Field Name | Type | Mode | Description |\n| :--- | :--- | :--- | :--- |\n| **investor_id** | INTEGER | NULLABLE | Unique identifier for each investor (primary key)[^bq-metadata]. |\n| **name** | STRING | NULLABLE | The full legal or corporate name of the investor[^bq-metadata]. |\n| **investor_type** | STRING | NULLABLE | The category of investor (`retail`, `insurer`, `fund`, or `bank`)[^bq-metadata]. |\n\n# Common query patterns\n\n### 1. Count of investors by investor type\nThis query aggregates the investor counts by their types to understand the distribution of retail versus institutional investors.\n\n```sql\nSELECT\n  investor_type,\n  COUNT(*) AS investor_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  investor_count DESC;\n```\n\n### 2. Identify investment participation by investor\nThis query joins the `investors` table with the [loan_investors](/tables/loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.\n\n```sql\nSELECT\n  i.investor_id,\n  i.name,\n  i.investor_type,\n  COUNT(li.application_id) AS funded_applications_count,\n  ROUND(AVG(li.allocation_pct) * 100, 2) AS avg_allocation_percentage\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS i\nLEFT JOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS li\nON\n  i.investor_id = li.investor_id\nGROUP BY\n  i.investor_id,\n  i.name,\n  i.investor_type\nORDER BY\n  funded_applications_count DESC;\n```\n\n[^bq-metadata]: BigQuery Table Metadata and Data Profile for `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`.",
+        "contentType": "MARKDOWN"
+      },
+      "aspectSource": {}
+    },
+    "655216118709.global.queries": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/queries",
+      "createTime": "2026-08-12T20:28:13.591477Z",
+      "updateTime": "2026-08-15T16:26:39.917471Z",
+      "data": {
+        "queries": [
+          {
+            "description": "Count of investors by investor type — This query aggregates the investor counts by their types to understand the distribution of retail versus institutional investors.",
+            "sql": "SELECT\n  investor_type,\n  COUNT(*) AS investor_count\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors`\nGROUP BY\n  investor_type\nORDER BY\n  investor_count DESC;",
+            "source": "AGENT",
+            "sqlDialect": "GOOGLE_SQL"
+          },
+          {
+            "description": "Identify investment participation by investor — This query joins the `investors` table with the [loan_investors](/tables/loan_investors.md) table to list each investor, the count of loan commitments they hold, and their average allocation percentage.",
+            "sql": "SELECT\n  i.investor_id,\n  i.name,\n  i.investor_type,\n  COUNT(li.application_id) AS funded_applications_count,\n  ROUND(AVG(li.allocation_pct) * 100, 2) AS avg_allocation_percentage\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors` AS i\nLEFT JOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_investors` AS li\nON\n  i.investor_id = li.investor_id\nGROUP BY\n  i.investor_id,\n  i.name,\n  i.investor_type\nORDER BY\n  funded_applications_count DESC;",
+            "source": "AGENT",
+            "sqlDialect": "GOOGLE_SQL"
+          }
+        ],
+        "userManaged": true
+      },
+      "aspectSource": {}
+    },
+    "655216118709.global.schema": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/schema",
+      "createTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "data": {
+        "fields": [
+          {
+            "name": "investor_id",
+            "dataType": "INTEGER",
+            "metadataType": "NUMBER",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "name",
+            "dataType": "STRING",
+            "metadataType": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "investor_type",
+            "dataType": "STRING",
+            "metadataType": "STRING",
+            "mode": "NULLABLE"
+          }
+        ]
+      },
+      "aspectSource": {
+        "createTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-12T20:12:32.761Z",
+        "dataVersion": "Ingestion/1.0.0"
+      }
+    },
+    "655216118709.global.storage": {
+      "aspectType": "projects/655216118709/locations/global/aspectTypes/storage",
+      "createTime": "2026-08-12T20:12:33.939283Z",
+      "updateTime": "2026-08-12T20:12:33.939283Z",
+      "data": {
+        "service": "BIGQUERY",
+        "resourceName": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors"
+      },
+      "aspectSource": {
+        "createTime": "2026-08-12T20:12:32.761Z",
+        "updateTime": "2026-08-12T20:12:32.761Z",
+        "dataVersion": "Ingestion/1.0.0"
+      }
+    }
+  },
+  "parentEntry": "projects/royston-dev-8253/locations/us/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+  "fullyQualifiedName": "bigquery:royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.investors",
+  "entrySource": {
+    "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
+    "system": "BIGQUERY",
+    "platform": "GCP",
+    "displayName": "investors",
+    "ancestors": [
+      {
+        "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+        "type": "dataplex-types.global.bigquery-dataset"
+      }
+    ],
+    "createTime": "2026-08-12T20:12:32.761Z",
+    "updateTime": "2026-08-12T20:12:32.761Z",
+    "location": "us"
+  }
+}

@@ -41,6 +41,7 @@ import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { stagingEmitter } from './okf';
+import { planPush } from './planner';
 import { okfKey, kcmdMain, project, location } from './config';
 
 const BQ_DATASET = process.env.OKF_BQ_DATASET;
@@ -126,6 +127,11 @@ async function liveEntryInfo(client: any, entryId: string): Promise<{ type: stri
   return { type: `${BUILTIN_TYPE_PROJECT}.${parts[3]}.${parts[5]}` };
 }
 
+// PULL -> COMPARE -> STAGE ONLY WHAT DIFFERS. Runs before anything is written,
+// so a third-party edit to an owned channel aborts the push rather than being
+// silently overwritten by it.
+const plan = await planPush('A', process.argv.includes('--force'));
+
 const allowed = publishingEntryTypes();
 const kcmd = await import(path.resolve(import.meta.dirname ?? __dirname,
   '../../build/ts/tool/libts/index.js'));
@@ -141,7 +147,7 @@ if (!token) {
 const catalogClient = new kcmd.dataplex.CatalogClient(
   new kcmd.gcp.ApiContext(project, location, token));
 
-let n = 0;
+let n = 0, unchanged = 0;
 for (const sub of ['tables', 'datasets']) {
   const dir = path.join(bundleDir, sub);
   if (!fs.existsSync(dir)) continue;
@@ -158,6 +164,8 @@ for (const sub of ['tables', 'datasets']) {
         `drop it silently and still report success — add the type or exclude ` +
         `the concept.`);
     }
+    const relNoExt = rel.replace(/\.md$/, '');
+    if (plan.enabled && !plan.stage.has(relNoExt)) { unchanged++; continue; }
     const src = fs.readFileSync(path.join(bundleDir, rel), 'utf8');
     const dest = path.join(stagingCatalog, `${mapped.name}.md`);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -171,6 +179,7 @@ for (const sub of ['tables', 'datasets']) {
 }
 console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}/${rootDir} ` +
             `[form=${form} layout=${layout}]`);
+if (unchanged) console.log(`  ${unchanged} identical to the catalog — not staged`);
 // `ingestedEntries` is true for a bq-dataset scope, so `OkfLayout.init()` sets
 // `synthIndexEntries = false` and skips every index.md it finds — no synthetic
 // directory entries here, which is correct: an ingested source cannot hold
@@ -178,8 +187,15 @@ console.log(`staged ${n} asset-backed concept(s) -> ${stagingDir}/${rootDir} ` +
 // a reason that is stated in kcmd rather than in the absence of index files.
 
 
-cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
-                { cwd: stagingDir, stdio: 'inherit' });
+// A no-op push must be a genuine no-op, so the entry-level `updateTime` means
+// "we wrote this" rather than "we ran". With nothing staged there is nothing
+// for kcmd to do, and invoking it anyway costs a full snapshot load.
+if (n === 0) {
+  console.log('nothing to push — skipping the kcmd invocation entirely');
+} else {
+  cp.execFileSync('node', [kcmdMain, 'push', ...process.argv.slice(2)],
+                  { cwd: stagingDir, stdio: 'inherit' });
+}
 
 // RELINK AFTER EVERY PUSH — NOT OPTIONAL.
 // `kcmd push` reconciles EntryLinks against the local bundle (sync.ts ~425) and

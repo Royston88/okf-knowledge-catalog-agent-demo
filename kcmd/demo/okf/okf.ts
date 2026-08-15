@@ -206,16 +206,29 @@ export function toStaging(
 //
 // `overview` is deliberately NOT in the stash: `OkfLayout._loadLayer` promotes
 // the markdown body into it. Putting it in both would push the body twice.
-export function toOkfStaging(
+/**
+ * The staged entry as a STRUCTURE, before it is rendered to markdown.
+ *
+ * Extracted from `toOkfStaging` so the Phase 5 differ can build the very object
+ * the push sends rather than a second approximation of it. That is the whole
+ * argument for comparing FORWARD: `expected` is not a model of what the bundle
+ * claims about the catalog, it IS what the bundle claims, because it is the
+ * same value. A reverse mapping is blind to exactly the fields it does not know
+ * about; this cannot be, by construction.
+ *
+ * Returns `null` for a frontmatter-less file (an `index.md`), which is not a
+ * concept.
+ */
+export function buildStagedEntry(
   content: string,
   okfKey: string,
   entryName: string,
   entryType: string = ENTRY_TYPE,
   withAssetAspects = false,
-): string {
+): { frontmatter: any; stash: any; body: string } | null {
   const { meta, body } = splitFrontmatter(content);
   if (!meta) {
-    return content;
+    return null;
   }
 
   const aspects: any = {};
@@ -260,9 +273,8 @@ export function toOkfStaging(
     aspects,
   };
 
-  const staged = pick(meta, ['type', 'title', 'description', 'tags']);
   // DEEP-CLONE THE STASH. `tags` (and `generated`, `sources`, `verified`) are
-  // the SAME object references as the ones already in `staged`, and
+  // the SAME object references as the ones already in the frontmatter, and
   // `yaml.stringify` renders a repeated reference as an anchor + alias:
   //
   //     tags: &a1
@@ -274,8 +286,25 @@ export function toOkfStaging(
   // file is an interop artifact meant to be read by an unmodified kcmd, by
   // kcmd's MCP server, and by a human debugging a push, and an alias makes the
   // stash non-self-contained in exactly the way `x-kcmd` exists to prevent.
-  staged['x-kcmd'] = JSON.parse(JSON.stringify(stash));
-  return render(staged, body);
+  return {
+    frontmatter: pick(meta, ['type', 'title', 'description', 'tags']),
+    stash: JSON.parse(JSON.stringify(stash)),
+    body,
+  };
+}
+
+export function toOkfStaging(
+  content: string,
+  okfKey: string,
+  entryName: string,
+  entryType: string = ENTRY_TYPE,
+  withAssetAspects = false,
+): string {
+  const built = buildStagedEntry(content, okfKey, entryName, entryType, withAssetAspects);
+  if (!built) {
+    return content;
+  }
+  return render({ ...built.frontmatter, 'x-kcmd': built.stash }, built.body);
 }
 
 /**

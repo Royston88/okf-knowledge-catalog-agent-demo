@@ -2483,6 +2483,152 @@ Found the honest way: the first version of this count did not paginate either
 and reported `related: 47`. The same defect, reproduced in a second
 implementation, twenty minutes after writing it up in a table.
 
+## The return leg: a forward differ, and the premise it was built on turns out to be wrong
+
+### The correction first, because it changes the argument
+
+The plan's case for the push planner was:
+
+> As shipped, `sync.ts` calls `modifyEntry` whenever the updateMask is
+> non-empty, without checking whether anything actually changed, so **every push
+> bumps every `updateTime`** and the signal degrades to a sound negative test.
+
+**Measured, that is true at the entry level and FALSE at the aspect level** —
+and the aspect level is the one the whole per-channel design depends on. Fourteen
+`modifyEntry` calls carrying byte-identical aspect data:
+
+```
+entry-level updateTime moved    14/14
+aspect-level updateTime moved   0 of 241
+```
+
+**Dataplex's per-aspect `updateTime` is content-addressed by the server.** A
+moved aspect timestamp means that aspect's CONTENT changed, not merely that
+something wrote to the entry. Two consequences:
+
+- per-channel drift attribution was already exact, planner or no planner. The
+  design's most load-bearing assumption was true for a better reason than the
+  one given for it;
+- so what the planner actually buys is narrower and still worth having: an exact
+  ENTRY-level signal, fail-fast *before* a third-party edit is overwritten
+  rather than after, no pointless writes to a live catalog, and a `--force` flag
+  that finally means something.
+
+This is also what makes the conflict rule possible at all. A concept that
+differs because **the bundle** was edited is not a conflict — the catalog has
+not moved, so its aspect timestamps still match the baseline. A concept that
+differs because **something else** wrote is. Content alone cannot tell those
+apart; server-authored, content-addressed timestamps can.
+
+### The shape
+
+```
+expected = buildStagedEntry(okf-bundle/<concept>)   the object push sends
+actual   = CatalogClient.getEntry(<entry>, view=ALL)
+compare aspect by aspect, in the CATALOG'S shape
+```
+
+`drift.ts` is the planner with the apply step omitted; `push` is the planner
+followed by it. They cannot disagree about what a difference is because they are
+the same function. Exit codes: **0 = no drift** (stale caches are listed and do
+not fail), **1 = drift**, **2 = tool error**; `--strict` makes stale caches fail
+for a CI refresh gate.
+
+### Two more kcmd defects, found because the fast path needed them
+
+The plan located the timestamp loss in `toLocalEntry`. It happens **twice**, and
+the earlier one is in the client, so "read directly with `CatalogClient.getEntry`"
+would not have worked as written:
+
+| # | defect | fix |
+|---|---|---|
+| **7** | `_fixEntry` rebuilt every aspect as `{aspectType, data}`, discarding `createTime`, `updateTime` and `aspectSource` — which the API returns on 109 of 109 aspects. The `Aspect` interface declared none of them | spread the original; declare all three |
+| **8** | `getEntry` could express `BASIC` and `CUSTOM` and had **no way to ask for `ALL`**. CUSTOM returns only the aspect types the caller NAMES, so a client restricted to it can never observe an aspect it did not already expect — foreign-aspect detection and any honest "what is on this entry" inventory are impossible through it | a `view` parameter |
+
+Defect 8 is the more interesting of the two: it is not a missing convenience,
+it is a **capability the client cannot express at all**, and it silently caps
+what any consumer built on kcmd can know about an entry.
+
+### Live results
+
+```
+first run, immediately after a clean push     58 concept(s); 0 need a push; {}   NO DRIFT
+push twice, Track A                           0 staged, 0 modifyEntry calls
+push twice, Track B                           0 staged, 7 index.md held back, kcmd not invoked
+timestamps moved by the second push           0 of 241
+```
+
+"Idempotent" used to mean "it rewrites identical content". It now means **it
+does nothing at all**, and the unmoved timestamps are the proof.
+
+### The differ fires — and the two verdicts separate
+
+Rewrote one `overview` out-of-band via `modifyEntry`, then ran `drift`:
+
+```
+DRIFT   references/grain/accounts  overview (tier B)  [2026-08-15T16:58:14.433919Z]
+        content differs, and updateTime 2026-08-15T16:58:14.433919Z is NEWER than
+        our last push 2026-08-15T16:25:58.596911Z — written by a third party
+```
+
+Right concept, right channel, right tier, and attributed to a third party from
+the server's own clock. `push` then **aborted** — "1 owned channel(s) were
+written by something other than this push… ABORTING THE WHOLE PUSH" — and
+`push --force` repaired it, staging **1 of 44**.
+
+This is kcmd spec §3.3's fail-fast, implemented against server truth rather than
+the client-side checksums §3.7 proposes, and strictly better than a
+`.catalog.state` file: the server is the authority on "did this change", and
+there is no hash of ours that can be wrong or stale.
+
+### The false no-change guard, on a deliberately nasty case
+
+The risk the planner introduces is this repo's signature failure: a false
+no-change verdict silently drops a real change. Tested on one string three
+levels deep — `descriptions.fields[2].description`, one of 68 column
+descriptions on one of 58 concepts:
+
+```
+planner: 14 concept(s) on Track A; 1 differ, 13 identical
+```
+
+Exactly one. (The first attempt at this test was itself a false negative: the
+`sed` pattern did not match the file, nothing changed, and the planner correctly
+reported 0 differ. Recorded because a test that silently tests nothing is the
+same failure in the harness.)
+
+### Offline guards — 27 assertions, no GCP
+
+`drift.test.ts`, against two `getEntry` responses captured at `view=ALL` right
+after a clean push (`kcmd/demo/okf/fixtures/`):
+
+- **projection determinism** — `expected` built twice from the same bundle is
+  byte-identical on all 58. This gates the *emitter*, not just the differ:
+  `expected` IS the object the push sends, so a determinism failure is a push
+  bug found offline.
+- **the comparator reports clean** on both fixtures, and does not flag the four
+  platform aspects present on the Track A entry — a differ that cries wolf on a
+  healthy system is worse than none.
+- **it fires**: an edited `overview` → drift; a missing owned aspect → drift; a
+  `userManaged` mismatch → its own finding; a foreign aspect → noted, not
+  failed on, and not staged.
+- **the tier-C switch, both ways, on the same observation**: the scan rewriting
+  `descriptions` on a **verified** concept is **drift**; the identical change on
+  an **unverified** one is **stale cache**. Nothing distinguishes them but the
+  flag.
+- **serializer noise is not drift** — reversing an aspect's key order is not a
+  difference. The Measurement F false-drift class is gone by construction
+  (parsed structures, not text), and asserted anyway, because "cannot happen by
+  construction" is exactly the claim that rots.
+
+### `pull.ts` is deleted
+
+Its two jobs are gone: reconstruction is obsolete (the diff runs forward) and
+refresh belongs to the mirrored tier. Deleting it is the point — it was the last
+code path that could write into `okf-bundle/`, so rule 3 stops being a
+convention someone has to remember and becomes structural. `fromStaging()` is
+kept for inspecting a raw pull by hand; nothing in the pipeline calls it.
+
 ## Phase 5 — the original blocker report (superseded by the section above)
 
 The bundle is authored, committed and staged correctly, and the EntryGroup +

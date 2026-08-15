@@ -14,6 +14,7 @@ import * as cp from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { stagingEmitter, splitFrontmatter } from './okf';
+import { planPush } from './planner';
 import { okfKey, kcmdMain } from './config';
 
 const root = process.cwd();
@@ -65,11 +66,16 @@ function classify(rel: string, content: string): Staged {
   return { rel, kind: 'concept' };
 }
 
+// PULL -> COMPARE -> STAGE ONLY WHAT DIFFERS. Aborts before writing anything if
+// an owned channel was edited by a third party since the last recorded sweep.
+const plan = await planPush('B', process.argv.includes('--force'));
+
 fs.rmSync(stagingDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(stagingDir, rootDir), { recursive: true });
 fs.copyFileSync(path.join(root, 'catalog.yaml'), path.join(stagingDir, 'catalog.yaml'));
 
-let n = 0, indexes = 0;
+let n = 0, indexes = 0, unchanged = 0;
+const indexFiles: Array<{ rel: string; content: string }> = [];
 const skipped: Record<string, number> = {};
 for (const file of listMd(bundleDir)) {
   const rel = path.relative(bundleDir, file).replace(/\\/g, '/');
@@ -95,27 +101,57 @@ for (const file of listMd(bundleDir)) {
     }
   }
 
-  const dest = path.join(stagingDir, rootDir, rel);
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  // INDEX FILES ARE DEFERRED, not written yet. `OkfLayout` turns each one into
+  // a synthetic directory entry, and `sync.ts` orders parents before children
+  // and validates that `parentEntry` already exists — so an index entry is
+  // needed whenever a CONCEPT is staged, and is pure churn when none is. They
+  // are decided below, once the concept count is known.
   if (c.kind === 'index') {
-    fs.writeFileSync(dest, content);
-    indexes++;
+    indexFiles.push({ rel, content });
+    continue;
+  }
+  const relNoExt = rel.replace(/\.md$/, '');
+  if (plan.enabled && !plan.stage.has(relNoExt)) {
+    unchanged++;
     continue;
   }
   // The entry id is the bundle-relative path minus `.md`, POSIX-separated —
   // the same derivation `OkfLayout.deriveEntryName` uses, so the stashed name
   // and the path-derived fallback agree.
-  fs.writeFileSync(dest, emit(content, okfKey, rel.replace(/\.md$/, '')));
+  const dest = path.join(stagingDir, rootDir, rel);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, emit(content, okfKey, relNoExt));
   n++;
 }
+
+// A NO-OP PUSH MUST BE A GENUINE NO-OP — that is what makes the entry-level
+// `updateTime` mean "we wrote this" rather than "we ran". Staging the 7 index
+// files when no concept changed would `modifyEntry` all 7 for nothing.
+if (n > 0 || !plan.enabled) {
+  for (const { rel, content } of indexFiles) {
+    const dest = path.join(stagingDir, rootDir, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, content);
+    indexes++;
+  }
+}
+
 console.log(`staged ${n} concept file(s) + ${indexes} index.md -> ${stagingDir}/${rootDir} ` +
             `[form=${form} layout=${layout}]`);
+if (unchanged) console.log(`  ${unchanged} identical to the catalog — not staged`);
+if (n === 0 && plan.enabled && indexFiles.length) {
+  console.log(`  ${indexFiles.length} index.md held back — nothing to parent`);
+}
 for (const [why, count] of Object.entries(skipped).sort()) {
   console.log(`  skipped ${count}: ${why}`);
 }
 
-const args = ['push', ...process.argv.slice(2)];
-cp.execFileSync('node', [kcmdMain, ...args], { cwd: stagingDir, stdio: 'inherit' });
+if (n === 0 && indexes === 0) {
+  console.log('nothing to push — skipping the kcmd invocation entirely');
+} else {
+  const args = ['push', ...process.argv.slice(2)];
+  cp.execFileSync('node', [kcmdMain, ...args], { cwd: stagingDir, stdio: 'inherit' });
+}
 
 // RELINK AFTER EVERY PUSH — BOTH TRACKS NEED THIS.
 // kcmd reconciles EntryLinks against the local bundle and deletes what it does
