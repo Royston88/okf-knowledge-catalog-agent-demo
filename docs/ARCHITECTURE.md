@@ -1,11 +1,17 @@
 # ARCHITECTURE — `v6z-okf-projector`
 
-The [README](../README.md) diagram describes the *upstream* demo: one CLI, one
-bundle, `pull` → enrich → `push`. This branch keeps that spine and adds four
-things around it — a **frozen capture** to ground authoring, **two producers**
-that write the bundle, a **review surface** between authoring and projection,
-and a **measurement harness** that reads the result back. This file is the
-as-built picture.
+The **upstream demo** was one CLI and one bundle: `pull` → enrich → `push`. This
+branch keeps that spine and adds five things around it — a **frozen capture** to
+ground authoring, **two producers** that write the bundle, a **review surface**
+between authoring and projection, a **forward differ** that reports when the
+catalog stops matching, and a **measurement harness** that reads the result
+back. This file is the as-built picture; the [README](../README.md) is the
+index.
+
+§3 below compares the two directly. The upstream demo's own diagram, and its
+Cloud Run sync service and ADK agent application, are on `main` — they were
+removed from this branch because none of them was exercised in any measurement
+here.
 
 Read [RESULTS.md](RESULTS.md) for what the measurements concluded,
 [MEASUREMENTS.md](MEASUREMENTS.md) for the raw evidence, and
@@ -147,17 +153,19 @@ retrieval beat a rich one that **permits** skipping it.
 
 ---
 
-## 3. What changed relative to the README diagram
+## 3. What changed relative to the upstream demo
 
 | README diagram | This branch |
 |---|---|
 | `kcmd CLI` pulls BQ + Dataplex straight into the bundle | A **frozen, hash-manifested capture** (`kc-capture/`) sits in between, because the relationship scan is non-deterministic |
 | One enrichment step: "Data Steward or AI" | **Two producers with recorded provenance** — a deterministic emitter for joins/metrics, an LLM author for tables/datasets — and the bundle records which wrote each concept |
-| Bundle → `kcmd` → Catalog | Same spine, but through **our shim** (`kcmd/demo/okf/`), which works around two fork defects; `kcmd/src/` is untouched |
+| Bundle → `kcmd` → Catalog | Same spine, but through **our shim** (`kcmd/demo/okf/`) and a **kcmd-native staged tree** in between; `kcmd/src/` is patched, 8 defects fixed at source |
 | — | A **review surface**: canonicaliser, join triage against JT1–JT4, and a half-flagged sign-off whose unflagged half is the control |
 | — | **Two projection tracks**: Track B (concepts into a new EntryGroup) and Track A (the `okf` aspect onto the existing `@bigquery` entries) |
-| — | **A read-back loop** — pull, canonical diff, re-scan — that is where every finding came from |
-| Cloud Run `kcmd-sync-service` automates pull/push | **Not exercised on this branch.** The service still ships; every run here was manual and single-writer. Multi-writer conflict against full-replace semantics is untested. |
+| — | **A read-back loop** — the forward differ, the canonical diff, the re-scan — which is where every finding came from |
+| — | **A mirrored tier**: the bundle caches what the warehouse authors, computed from BigQuery, never pushed back |
+| Cloud Run `kcmd-sync-service` automates pull/push | **Removed from this branch.** It was never exercised — every run here was manual and single-writer — and keeping unexercised deployment scaffolding next to a measured result invites the reader to assume it was part of the measurement. It is on `main` and in git history. Multi-writer conflict is now handled by the differ instead (DESIGN §8.3), not by that service. |
+| `bq-kc-agent` is the consuming ADK agent | **Removed from this branch**, and deliberately not reused: its system prompt ships ten hand-written modelling rules — fan traps, de-duplication, zero-fill cohorts, SCD2 — which are exactly the knowledge the bundle is supposed to supply. Reusing it would have answered the questions from the prompt and measured nothing. `okf-agent/run_arms.py` uses a minimal instruction instead. |
 
 ---
 

@@ -6,10 +6,16 @@ constrains. Final synthesis goes in `RESULTS.md`.
 **Append-only.** Entries are corrected by a later entry, never by editing an
 earlier one — several findings here exist only because a previous session's
 reasoning was still on the page to be checked. Two consequences for a reader:
-older entries may be superseded further down, and **citations to `PROPOSAL.md`
-and `okf-review/TESTS.md` no longer resolve** — both were delivered in full and
-deleted on 2026-08-16. They are in git history, and what remained open from them
-is in `DESIGN.md` §12.
+older entries may be superseded further down, and some paths they name no longer
+exist. Specifically, all removed on 2026-08-16 and all still in git history:
+
+- **`PROPOSAL.md` and `okf-review/TESTS.md`** — delivered in full; what remained
+  open from them is in `DESIGN.md` §12.
+- **`bq-kc-agent/` and `kcmd-sync-service/`** — the upstream demo's ADK agent
+  and Cloud Run sync service. Neither was ever exercised in any measurement
+  below; entries that mention them are explaining why they were *not* used.
+- **`ARCHITECTURE.md`, `DESIGN.md`, `HANDOFF.md`, `RESULTS.md`** — moved into
+  `docs/` alongside this file.
 
 Environment: project `royston-dev-8253`, dataset `cymbal_bank_v6z_scaffold_demo_copy`
 (13 tables, byte-copy of `lakehouse_dev_cymbal_bank_demo`, itself a copy of

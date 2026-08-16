@@ -22,12 +22,13 @@ same catalog, one argument forced.
 Arm K can only enumerate and fetch by exact name; Arm D can search semantically.
 That is a property of the two MCP servers, not of the metadata behind them.
 
-THE INSTRUCTION IS DELIBERATELY MINIMAL. The bq-kc-agent scaffold ships a system
-prompt carrying ten hand-written modelling rules — fan traps, de-duplication,
-zero-fill cohorts, SCD2. Those encode exactly the knowledge the OKF bundle is
-supposed to supply, so reusing that prompt would answer the questions from the
-prompt and measure nothing. Both arms get the same minimal instruction; the
-metadata channel is the only variable.
+THE INSTRUCTION IS DELIBERATELY MINIMAL. The upstream `bq-kc-agent` scaffold
+(removed from this branch; see git history or `main`) shipped a system prompt
+carrying ten hand-written modelling rules — fan traps, de-duplication, zero-fill
+cohorts, SCD2. Those encode exactly the knowledge the OKF bundle is supposed to
+supply, so reusing that prompt would have answered the questions from the prompt
+and measured nothing. Both arms get the same minimal instruction; the metadata
+channel is the only variable.
 """
 from __future__ import annotations
 
