@@ -9,7 +9,9 @@ cold is here. Read this, then `MEASUREMENTS.md` for results and
 - **Design as built:** `DESIGN.md` — the model, the three ownership tiers, the
   differ, the direction of authority, the eight kcmd defects, the verification
   commands and the known gaps. Read it before `MEASUREMENTS.md`.
-- **Forward plan:** `PROPOSAL.md`
+- **Forward plan:** there isn't one as a separate file any more. `PROPOSAL.md`
+  was delivered in full and deleted; what remains open lives in `DESIGN.md`
+  §12 (Known gaps). `git log -- PROPOSAL.md` if you want the original.
 - **Approved plan:** `/home/user/.claude/plans/the-two-directions-remote-authoritative-lovely-comet.md`
   (the previous one, `glittery-tumbling-kettle.md`, is complete)
 - **Goal:** prove the mechanism — can an OKF bundle be the source of truth, with
@@ -245,11 +247,28 @@ not be one again: the push scripts read `okf-bundle/` directly (override with
 `OKF_BUNDLE`). The old copy meant the source of truth existed twice on disk and
 could silently diverge, which it did.
 
-**`pull.ts` is deleted** — see `kcmd/demo/okf/RETIRED-pull.md`. Nothing writes
-into `okf-bundle/` from the catalog, by construction rather than by convention.
-To inspect a raw pull by hand, pull into a scratch directory with the kcmd CLI
-directly. `OKF_KEEP_STAGING=1` retains `.staging/` (gitignored under
-`**/.staging/`).
+**`pull.ts` is deleted, and that is the point rather than a tidy-up.** It was
+the last code path that could write into `okf-bundle/`, so rule 3 is now
+structural instead of a convention someone has to remember. Its two jobs are
+gone: reconstruction is obsolete (the differ compares forward) and refresh
+belongs to `mirror.py`, which is field-scoped and cannot touch an owned field.
+
+Phase 3 measured what one `pull` over the bundle would have cost: `type`
+overwritten with `dataplex-types.global.generic`, the OKF type demoted to
+`okf_type` inside the stash, **every body empty** (defect 2, 44 of 54), and the
+entry renamed into the KB source's `<group>/<project>/<location>/<path>` form.
+
+To inspect a raw pull by hand, pull into a **scratch** directory with the kcmd
+CLI directly — never into `okf-bundle/`. `fromStaging()` in `okf.ts` is kept for
+reading the result; nothing in the pipeline calls it.
+
+```bash
+mkdir -p /tmp/pull-ws && cp okf-kb-workspace/catalog.yaml /tmp/pull-ws/
+(cd /tmp/pull-ws && node "$PWD/../../kcmd/build/ts/tool/tool/main.js" pull)
+```
+
+To answer "did the catalog change", use `drift.ts` above. `OKF_KEEP_STAGING=1`
+retains `.staging/` (gitignored under `**/.staging/`).
 
 ### 2.7a The bundle's own pipeline, in order
 
@@ -456,12 +475,22 @@ Material already in hand for it:
   Not implemented; a working `related` probe link exists on `accounts`.
 
 - **The projection rule is: always project overview + descriptions + queries,
-  and set `userManaged = verified`.** See `okf-review/TESTS.md`. Offline suite
-  `bun kcmd/demo/okf/ownership.test.ts` (26 assertions). **Round trip is now faithful in both directions** — Track A 14/14, Track B
-  39/39 — after teaching `fromStaging` to recover `description` from the
-  `descriptions` aspect and carrying `title`/`tags` on the `okf` aspect (they
-  cannot live on `entry_source`, which is platform-owned for ingested entries).
-  Outstanding: **the joins arm of Phase 7 was never run**.
+  and set `userManaged = verified`.** Now stated in `DESIGN.md` §3 with the full
+  tier table; `okf-review/TESTS.md` held the original write-up and was deleted
+  once the code carried its own reasoning. Offline suites
+  `bun kcmd/demo/okf/ownership.test.ts` (38 assertions) and
+  `bun kcmd/demo/okf/drift.test.ts` (27).
+
+  **Round-trip fidelity is no longer the goal**, though it was reached: Track A
+  14/14, Track B 44/44, after teaching `fromStaging` to recover `description`
+  from the `descriptions` aspect and carrying `title`/`tags` on the `okf`
+  aspect. The differ compares FORWARD instead and `pull.ts` is deleted, so the
+  round trip is a property we happen to have rather than a path anything uses.
+  (And `entry_source` is not "platform-owned" — kcmd simply never sends it on
+  an ingested scope. See `DESIGN.md` §4.1.)
+
+  Outstanding: **the joins arm of Phase 7 was never run** — now recorded in
+  `DESIGN.md` §12.
 
 - **`verified` is doing two incompatible jobs.** It is simultaneously Phase 7's
   *arbitrary* control population (`signoff.py`, every-other-concept) and the

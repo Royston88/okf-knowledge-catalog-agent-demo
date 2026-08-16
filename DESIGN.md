@@ -3,7 +3,9 @@
 What exists, why it is shaped this way, and what was wrong with the tooling
 underneath. Every "measured" claim has evidence in `MEASUREMENTS.md`; this file
 cites it rather than restating it. `RESULTS.md` holds the conclusions,
-`HANDOFF.md` the operational state, `PROPOSAL.md` the forward plan.
+`HANDOFF.md` the operational state, `ARCHITECTURE.md` the as-built diagrams
+and the Phase 8 harness. There is no separate forward plan: `PROPOSAL.md` was
+delivered in full and deleted, and what remains open is §12 below.
 
 ---
 
@@ -93,6 +95,16 @@ because the bridge already *is* that concept.
 not OKF types. §4.1 is explicit that type values are not centrally registered
 and consumers must tolerate unknown ones; §11 requires only that `type` be
 present and non-empty.
+
+**What earns a type of its own is addressability.** A rule that lives only as a
+sentence inside another document cannot be retrieved, linked, verified or signed
+off independently. `dedup`, `snapshots` and `accumulating` are each a
+table-level correctness rule with its own lifecycle, so each became a `Grain
+Rule`. `m2n` did not, because the bridge `Join` already *is* that concept.
+`references/` as the home for them is **our convention** — OKF §6.3 describes
+that directory as mirroring "external material, run instructions, or code" and
+is explicit that it is "a naming convention, not a requirement", so our usage
+violates nothing, but the spec does not endorse it either.
 
 **`BigQuery Table`** (13) is the only type using `#` headings, and the only one
 projecting into tier C:
@@ -334,10 +346,23 @@ Traversal from the table entry works — the link is undirected and
 reconciliation reports "0 created, 58 already correct" while querying the
 `@bigquery` end. Reach differs by consumer:
 
-| channel | prebuilt dataplex MCP toolbox | custom ADK agent |
-|---|---|---|
-| `overview` / `descriptions` / `queries` | only at `view=ALL` | yes |
-| `related` links | **no link tool among its 24** | **yes** — `lookupEntryLinks` |
+| channel | prebuilt dataplex MCP toolbox | custom ADK agent | BQ CA API |
+|---|---|---|---|
+| `overview` / `descriptions` / `queries` | `lookup_context` yes; `lookup_entry` only at `view=ALL` | yes | **no** — CA reads BigQuery's own descriptions (§3.1) |
+| `definition` → glossary term | yes | yes | **yes** |
+| `related` → concept | **no link tool among its 24** | **yes** — `lookupEntryLinks` | no |
+
+So a custom ADK agent needs three things, and the second is the one most easily
+got wrong:
+
+1. **A `lookupEntryLinks` function tool** — the traversal the toolbox lacks.
+2. **Force `view=ALL` on `lookup_entry`.** Its default `FULL` returns
+   non-required aspects as *keys only*, so `overview`, `descriptions` and
+   `queries` are all withheld — measured 4,064 chars against 17,080 on the same
+   entry. A `before_tool_callback` is deterministic where a prompt instruction
+   is not.
+3. **Prefer `lookup_context`** — the one call that returns the whole projection
+   resolved, glossary terms included.
 
 ---
 
@@ -548,7 +573,8 @@ hatch. The remedy for drift is always *fix the bundle and re-push* — also the
 remedy shown to work, since all four historical projection breakages recovered
 that way. `pull.ts` is **deleted**; that removes the last code path that could
 write into the bundle, which is what makes rule 3 structural rather than a
-convention.
+convention. HANDOFF §2.7 has the scratch-pull recipe for inspecting a raw pull
+by hand.
 
 ### 8.3 The multi-writer assumption
 
@@ -779,9 +805,23 @@ interop                   an UNMODIFIED kcmd pushed 44 concepts + 7 index entrie
 
 ## 12. Known gaps
 
-- **`Attested Computation` is not implemented.** §10 is the right end state —
-  and 22 of 26 measures have no liftable standalone SQL, while the attester
-  runs consumer-side where our harness runs none.
+- **`Attested Computation` is not implemented, and deferring it is a decision.**
+  §10.4 is explicit that `Metric` and `Attested Computation` are complementary
+  rather than alternatives — a Metric holds the meaning and *links to* a
+  computation carrying sanctioned SQL plus an attester. Two reasons to wait:
+  **22 of 26 measures have no liftable standalone SQL** (only the 4 window/PoP
+  measures emit executable `derived_table` blocks; the rest are measure
+  expressions needing Looker's compiler and the explore join graph, so deriving
+  standalone SQL is new work *and* a second definition free to drift), and **the
+  attester runs consumer-side**, where our harness runs none, so it would be
+  inert today. When it is built: one per measure, `runtime: bigquery`, linked
+  from the `Metric`. Note §10.6 — `verified` and attestation are different
+  guarantees and we have only the first.
+- **The joins arm of Phase 7 was never run.** The original plan's arms 3 and 4 —
+  "joins kept (`userManaged: true`) preserved" and "joins deleted, re-created by
+  the generator" — remain untouched; nothing here has ever modified an entry
+  link's contents. `okf-review/join_triage.yaml` holds the verdicts (11 keep, 1
+  JT2 reject) written before the deletion that never happened.
 - **The bundle has no reach into a BQ CA agent.** §3.1: that channel is
   BigQuery's own column descriptions, declared tier A, and writing them would
   make a third writer.
@@ -802,7 +842,12 @@ interop                   an UNMODIFIED kcmd pushed 44 concepts + 7 index entrie
   not been triggered since the differ landed.
 - **Retrieval, not content, is the binding constraint.** Across 75 Arm-D runs
   score tracked the *lookup rate*, not the metadata: Arm K 11/15 with lookups on
-  14/15, the D family 6–8/15 with 1–5/15. Everything above is necessary and none
+  14/15, the D family 6–8/15 with 1–5/15. On the two questions only the catalog
+  can settle, calling it gave **2 correct of 6 against 1 of 24 without**. Three
+  successive content improvements — `overview`, then `descriptions`/`queries`,
+  then forcing `view=ALL` — moved the D family by two points. **The bottleneck
+  is that the agent does not ask**, so the tool surface has to make retrieval
+  the path of least resistance. Everything above is necessary and none
   of it is sufficient. The `# Related concepts` back-links are the first change
   aimed squarely at reachability rather than content, and **their effect on the
   score is unmeasured** — no eval has been re-run since they landed.

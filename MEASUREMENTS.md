@@ -3,6 +3,14 @@
 Running log. Each entry records what was measured, the raw result, and what it
 constrains. Final synthesis goes in `RESULTS.md`.
 
+**Append-only.** Entries are corrected by a later entry, never by editing an
+earlier one — several findings here exist only because a previous session's
+reasoning was still on the page to be checked. Two consequences for a reader:
+older entries may be superseded further down, and **citations to `PROPOSAL.md`
+and `okf-review/TESTS.md` no longer resolve** — both were delivered in full and
+deleted on 2026-08-16. They are in git history, and what remained open from them
+is in `DESIGN.md` §12.
+
 Environment: project `royston-dev-8253`, dataset `cymbal_bank_v6z_scaffold_demo_copy`
 (13 tables, byte-copy of `lakehouse_dev_cymbal_bank_demo`, itself a copy of
 `cymbal_bank_v6z_scaffold_005a_demo`). Branch `v6z-okf-projector`.

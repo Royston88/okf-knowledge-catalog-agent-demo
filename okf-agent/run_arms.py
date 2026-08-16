@@ -37,6 +37,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import sys
 
 import yaml
@@ -93,6 +94,29 @@ def _force_full_view(tool, args, tool_context):  # noqa: ANN001
     return None
 
 
+def _refresh_armk_bundle() -> None:
+    """Re-copy `okf-bundle/` into the Arm K workspace before every run.
+
+    Arm K reads a COPY of the bundle over MCP, and nothing used to create that
+    copy — it was made by hand once and then read on every subsequent run.
+    Found stale: it was missing the `# Related concepts` back-links, the
+    `# Data characteristics` mirror and `log.md`, so an Arm K run would have
+    scored a bundle two days behind the source of truth and reported it as the
+    bundle's score.
+
+    Same failure as the retired `okf-kb-workspace/catalog/` copy: a second
+    on-disk copy of the source of truth that can silently diverge, and did.
+    Regenerating it here means the copy cannot be older than the run.
+    """
+    src = ROOT / "okf-bundle"
+    dst = ROOT / "okf-agent" / "armk-workspace" / "bundle"
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+    n = len(list(dst.rglob("*.md")))
+    print(f"[arm K] refreshed workspace bundle from okf-bundle/ ({n} md files)")
+
+
 def build_agent(arm: str):
     from google.adk.agents import Agent
     from google.adk.models import Gemini
@@ -110,6 +134,7 @@ def build_agent(arm: str):
         # `list-entries` return ZERO — the Phase 5 blocker resurfacing on the
         # read path. Run 1 of this experiment did exactly that; its transcripts
         # are kept in results_run1_armK_empty_catalog.json.
+        _refresh_armk_bundle()
         params = StdioServerParameters(
             command="node",
             args=[str(ROOT / "kcmd" / "run_mcp_server.js"),
