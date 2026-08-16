@@ -17,11 +17,18 @@ This branch adds a **substrate** — a bundle in git, a catalog that provably
 matches it, and the machinery that keeps the two in agreement. It does not
 replace the agent work that consumes them. Three tracks share the repo:
 
-| track | what it does | consumes | this document |
+| track | what it does | consumes | documented in |
 |---|---|---|---|
-| **the projector** | makes the catalog match the bundle, and reports when it stops matching | — it *produces* both | **is about this** |
-| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | see [its own README](bq-kc-agent/README.md) |
+| **the projector** | makes the catalog match the bundle, and reports when it stops matching | — it *produces* both | **this document** |
+| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | [its own README](bq-kc-agent/README.md), and [the demo guide](docs/UPSTREAM_DEMO.md) |
+| [`kcmd-sync-service/`](kcmd-sync-service/) | event-triggered pull/push against a GCS-hosted workspace | the catalog, and the workspace | [the demo guide](docs/UPSTREAM_DEMO.md) — **and read the overlap note below** |
 | [`okf-eval/`](okf-eval/) | not an agent — the **rig** that scores one arm against another | both paths, to compare them | [ARCHITECTURE §2](docs/ARCHITECTURE.md) |
+
+**The repository's original README is [docs/UPSTREAM_DEMO.md](docs/UPSTREAM_DEMO.md),
+preserved verbatim.** This branch took the root README over to document the
+projector; that would otherwise have deleted the only setup guide the demo, the
+agent and the sync service have. If you came here to run the upstream demo
+rather than the projector, read that file instead of this one.
 
 The seam matters because the tracks are easy to mistake for rivals.
 `okf-eval/run_arms.py` is a measurement harness with a deliberately minimal
