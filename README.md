@@ -1,3 +1,18 @@
+> [!IMPORTANT]
+> **This is not the repository's original README — this branch replaced it.**
+> The original is preserved verbatim at **[README.upstream.md](README.upstream.md)**:
+> the BigQuery setup, the `kcmd` build, the pull walkthrough, how to run
+> `bq-kc-agent`, the Docker images and both deploy procedures. **If you came here
+> to run the demo, the agent or the sync service, read that file, not this one.**
+>
+> Whether the projector should own the root README at all is still open, and is
+> the repository owner's call — it is one of the questions in
+> **[PR #2](https://github.com/Royston88/okf-knowledge-catalog-agent-demo/pull/2)**,
+> which proposes this branch for `main`. Nothing on the branch is deleted
+> relative to `main`; `bq-kc-agent/` and `kcmd-sync-service/` are present and
+> byte-identical. One caveat before you deploy the sync service against an OKF
+> bundle: see [the overlap note](#the-one-thing-that-does-overlap-kcmd-sync-service).
+
 # OKF ⇄ Knowledge Catalog — the bundle is the source of truth
 
 An **OKF v0.2 bundle in git is the system of record** for what a BigQuery
@@ -20,11 +35,11 @@ replace the agent work that consumes them. Three tracks share the repo:
 | track | what it does | consumes | documented in |
 |---|---|---|---|
 | **the projector** | makes the catalog match the bundle, and reports when it stops matching | — it *produces* both | **this document** |
-| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | [its own README](bq-kc-agent/README.md), and [the demo guide](docs/UPSTREAM_DEMO.md) |
-| [`kcmd-sync-service/`](kcmd-sync-service/) | event-triggered pull/push against a GCS-hosted workspace | the catalog, and the workspace | [the demo guide](docs/UPSTREAM_DEMO.md) — **and read the overlap note below** |
+| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | [its own README](bq-kc-agent/README.md), and [the demo guide](README.upstream.md) |
+| [`kcmd-sync-service/`](kcmd-sync-service/) | event-triggered pull/push against a GCS-hosted workspace | the catalog, and the workspace | [the demo guide](README.upstream.md) — **and read the overlap note below** |
 | [`okf-eval/`](okf-eval/) | not an agent — the **rig** that scores one arm against another | both paths, to compare them | [ARCHITECTURE §2](docs/ARCHITECTURE.md) |
 
-**The repository's original README is [docs/UPSTREAM_DEMO.md](docs/UPSTREAM_DEMO.md),
+**The repository's original README is [README.upstream.md](README.upstream.md),
 preserved verbatim.** This branch took the root README over to document the
 projector; that would otherwise have deleted the only setup guide the demo, the
 agent and the sync service have. If you came here to run the upstream demo
