@@ -2,7 +2,7 @@
 # and every one has a distinct correct answer AND a distinct naive-trap answer,
 # so an arm's response can be classified rather than judged.
 #
-# Ground truth computed directly against BigQuery (see RESULTS.md).
+# Ground truth computed directly against BigQuery (see docs/RESULTS.md).
 - id: q1
   question: "How many accounts does Cymbal Bank have?"
   hazard: "accounts carries duplicate loads (batch 2 re-loads 60 rows)"

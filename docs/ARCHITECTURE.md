@@ -1,6 +1,6 @@
 # ARCHITECTURE — `v6z-okf-projector`
 
-The [README](README.md) diagram describes the *upstream* demo: one CLI, one
+The [README](../README.md) diagram describes the *upstream* demo: one CLI, one
 bundle, `pull` → enrich → `push`. This branch keeps that spine and adds four
 things around it — a **frozen capture** to ground authoring, **two producers**
 that write the bundle, a **review surface** between authoring and projection,

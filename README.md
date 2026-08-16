@@ -4,6 +4,31 @@ This project demonstrates how to manage BigQuery metadata as code using the **Op
 
 It shows how to extract BigQuery table schemas and Dataplex metadata into a local, version-controlled OKF bundle (Markdown files with YAML frontmatter), enrich it, and synchronize it back to the Google Cloud Dataplex Knowledge Catalog.
 
+> **This README describes the upstream demo.** The `v6z-okf-projector` branch
+> takes it considerably further — the bundle becomes the *source of truth*, the
+> catalog becomes a projection of it, and a differ reports when the two
+> disagree. Everything below still holds; `docs/` is where the as-built system
+> is written down.
+
+## Where to start
+
+Five documents, split by **kind** rather than by topic, so each has one job.
+**Read them in this order** — each assumes the one before it.
+
+| # | document | what it is for | read it when |
+|---|---|---|---|
+| 1 | **[docs/DESIGN.md](docs/DESIGN.md)** | **Start here.** What exists, why it is shaped this way, and what was wrong with the tooling underneath: the model, the three ownership tiers, the differ, the direction of authority, the kcmd defects, the verification commands, the known gaps. | always |
+| 2 | [docs/RESULTS.md](docs/RESULTS.md) | The conclusions. Does this work, is it worth using, and which claims are measured **false**. §7 corrects three that did not survive scrutiny. | deciding whether to adopt any of this |
+| 3 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The as-built diagrams, what each hop costs you, and the Phase 8 evaluation harness. A companion to DESIGN, not a second home for the reasoning. | you want the picture rather than the prose |
+| 4 | [docs/HANDOFF.md](docs/HANDOFF.md) | Operational state: environment, credentials, the exact commands, what is done, what is next, and any blocker in symptom → ruled-out → prime-suspect → ways-forward form. | you are about to **run** something |
+| 5 | [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) | The raw evidence log, append-only. Every "measured" claim in the other four cites it. Long, and not meant to be read front to back. | you want to check a number |
+
+There is no separate forward plan: what remains open is **DESIGN §12, Known
+gaps**.
+
+**All commands in those documents are written to run from the repository root**,
+not from `docs/`.
+
 ## Architecture
 
 ```mermaid
@@ -47,6 +72,14 @@ graph LR
 
 ## Repository Structure
 
+-   `docs/`: The as-built documentation for this branch — see **Where to start** above.
+-   `okf-bundle/`: **The source of truth.** A clean OKF v0.2 bundle, tool-agnostic, in git.
+-   `okf-emitter/`, `okf-author/`: the two producers that write the bundle.
+-   `okf-review/`: conformance, canonicalisation, the post-authoring pass, and the
+    tier-A mirror. All have a `--check` mode so CI can assert the bundle is final.
+-   `okf-agent/`: the Phase 8 evaluation harness (Arm K vs Arm D).
+-   `kc-capture/`: a frozen, hash-manifested capture of Knowledge Catalog, used as
+    reproducible *input* to authoring — never as a source of truth.
 -   `bq-okf-workspace/`: The local metadata catalog workspace.
     -   `catalog.yaml`: Configuration defining the scope of metadata to sync (parameterized).
     -   `bundle/`: The local cache of metadata (Markdown files in OKF format) synced from Dataplex.

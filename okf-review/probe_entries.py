@@ -19,7 +19,7 @@ change the design (plan Phase 0a):
 
 Read-only. Writes `_state/probe_entries.json` (tracked, as Measurement
 evidence, alongside `g_*.json`) and prints the summary that goes in
-MEASUREMENTS.md.
+docs/MEASUREMENTS.md.
 
     python okf-review/probe_entries.py
 """

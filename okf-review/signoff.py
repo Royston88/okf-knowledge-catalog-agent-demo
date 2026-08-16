@@ -15,7 +15,7 @@ WHAT THE FLAG CLAIMS. Our aspect schema defines `human:<id>` as human-reviewed.
 The review this records is a real pass over the canonical diff and the
 warehouse, and it found real things (the dedup conflict was empty, the profile
 distinct count is off by one, one join fails JT2). It is NOT a deep per-concept
-audit of all 53 bodies. Depth is stated in MEASUREMENTS.md; do not read the flag
+audit of all 53 bodies. Depth is stated in docs/MEASUREMENTS.md; do not read the flag
 as more than "reviewed at Phase 6 depth".
 
   signoff.py --apply        the original half/half split (Phase 7 control)

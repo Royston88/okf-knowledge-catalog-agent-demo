@@ -738,6 +738,8 @@ are 58.
 
 ## 11. Verification
 
+All of these run **from the repository root**, not from `docs/`.
+
 ```bash
 # offline — no GCP, no credentials
 python okf-review/conformance.py                 # CONFORMANT, 58 concepts, 9 index files

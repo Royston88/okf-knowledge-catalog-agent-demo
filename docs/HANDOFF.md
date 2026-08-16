@@ -206,6 +206,8 @@ this work has modified `kcmd/src/` — see §2.8.
 
 ### 2.7 Working incantations
 
+**Run everything from the repository root**, not from `docs/`.
+
 **The shared prelude.** Every command below assumes it.
 
 ```bash
@@ -581,19 +583,49 @@ entries.
 ## 6. File map on the branch
 
 ```
-okf-bundle/            THE SOURCE OF TRUTH — 53 concepts, 6 indexes
-  datasets/ tables/      14 concepts, generated.by reference_agent/gemini-3.5-flash
-  references/joins/      13 concepts, generated.by generate_models/okf
-  references/metrics/    26 concepts, generated.by generate_models/okf
-kc-capture/            frozen rich KC snapshot (profile/, insights/, relationships.json)
-okf-emitter/           copied generator + spec + gen_okf.py + PROVENANCE.md
+okf-bundle/            THE SOURCE OF TRUTH — 58 concepts, 9 indexes, log.md
+  tables/ datasets/      14 concepts, generated.by reference_agent/gemini-3.5-flash
+  references/            44 concepts, generated.by generate_models/okf
+                           joins/ 13 · metrics/ 26 · grain/ 3 · hierarchies/ 1 · derived/ 1
+kc-capture/            frozen, hash-manifested KC snapshot — INPUT to authoring only
+                         (profile/, insights/, relationships.json, kc_digest.md)
+_state/                tracked evidence: g_*.json (Measurement G),
+                         probe_entries.json (the live-entry probe),
+                         last_push.json (the drift baseline)
+
+--- producers ---
+okf-emitter/           copied generator + spec.yaml + gen_okf.py + PROVENANCE.md
 okf-author/            author_bundle.py — KCBigQuerySource (profile -> the author)
-okf-review/            canonicalize.py — the review surface (Measurement F)
-kcmd/demo/okf/         ported shim: okf.ts, config.ts, push.ts, pull.ts, setup.ts,
-                       push-track-a.ts, okf-aspect.json. ALL our fixes live here.
-kcmd/src/              the fork, UNMODIFIED. Two known defects, see §3.
-okf-kb-workspace/      Track B workspace (EntryGroup concepts)
-bq-okf-workspace/      Track A workspace (okf aspect on @bigquery entries)
-MEASUREMENTS.md        B, E, A, C, D, Track A, the Phase 5 resolution + original blocker
+
+--- passes over the whole bundle, in this order ---
+okf-review/mirror.py         the tier-A cache, computed from BigQuery
+okf-review/postauthor.py     absolute links, explicit status, `# Related concepts`
+okf-review/canonicalize.py   canonical frontmatter — ALWAYS LAST
+okf-review/conformance.py    OKF v0.2 §11 + the link-form counts
+okf-review/{signoff,measure_g,probe_glossary,probe_entries}.py
+okf-review/{count_entrygroup,count_links}.py   what actually landed, counted
+
+--- the projector ---
+kcmd/demo/okf/         ours. okf.ts (translation) · bundle.ts + targets.ts (pure
+                         derivations) · tiers.ts + plan.ts + planner.ts + drift.ts
+                         (the differ / push planner) · push.ts + push-track-a.ts ·
+                         link-concepts.ts · config.ts · setup.ts · okf-aspect.json
+                         · ownership.test.ts + drift.test.ts + fixtures/
+                       NOTE: pull.ts is DELETED, deliberately — see §2.7.
+kcmd/src/              the fork, PATCHED: 8 defects fixed at source. Rebuild with
+                         `npm run build:mcp`; `build/` is gitignored.
+kcmd/docs/             vendored from Google's repo — the tenet and spec quoted in
+                         DESIGN §9. Not ours; do not edit.
+
+--- workspaces (manifests only; .staging/ is disposable and gitignored) ---
+okf-kb-workspace/      Track B  (the 44 concept entries + 7 index entries)
+bq-okf-workspace/      Track A  (4 aspects on the 14 @bigquery entries)
+okf-agent/             Phase 8 harness — run_arms.py, questions.yaml, armk-workspace/
+
+--- docs/ ---
+DESIGN.md              start here: the model, tiers, differ, defects, gaps
+RESULTS.md             the conclusions, incl. §7's three corrections
+ARCHITECTURE.md        diagrams + the Phase 8 harness
 HANDOFF.md             this file
+MEASUREMENTS.md        the append-only evidence log
 ```
