@@ -72,4 +72,4 @@ bq-okf-workspace/bundle/
 okf-kb-workspace/catalog/
 
 # Phase 8 Arm K workspace bundle copy (regenerated from okf-bundle)
-okf-agent/armk-workspace/bundle/
+okf-eval/armk-workspace/bundle/

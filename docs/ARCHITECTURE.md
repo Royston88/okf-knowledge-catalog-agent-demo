@@ -8,10 +8,11 @@ catalog stops matching, and a **measurement harness** that reads the result
 back. This file is the as-built picture; the [README](../README.md) is the
 index.
 
-§3 below compares the two directly. The upstream demo's own diagram, and its
-Cloud Run sync service and ADK agent application, are on `main` — they were
-removed from this branch because none of them was exercised in any measurement
-here.
+§3 below compares the two directly. The upstream demo's Cloud Run sync service
+and its ADK agent application are **still here and untouched** — but neither was
+exercised in any measurement on this branch, so nothing in RESULTS or
+MEASUREMENTS should be read as covering them. DESIGN §8.4 sets out what the push
+planner does and does not take over from the sync service.
 
 Read [RESULTS.md](RESULTS.md) for what the measurements concluded,
 [MEASUREMENTS.md](MEASUREMENTS.md) for the raw evidence, and
@@ -115,7 +116,7 @@ intended variable.
 
 ```mermaid
 graph LR
-    Q["okf-agent/questions.yaml<br/>5 hazard questions<br/>each with a distinct correct AND trap answer"]
+    Q["okf-eval/questions.yaml<br/>5 hazard questions<br/>each with a distinct correct AND trap answer"]
     RUN["run_arms.py — ADK · gemini-2.5-flash<br/>minimal instruction, identical to both arms<br/>3 reps"]
 
     Q --> RUN
@@ -164,8 +165,8 @@ retrieval beat a rich one that **permits** skipping it.
 | — | **Two projection tracks**: Track B (concepts into a new EntryGroup) and Track A (the `okf` aspect onto the existing `@bigquery` entries) |
 | — | **A read-back loop** — the forward differ, the canonical diff, the re-scan — which is where every finding came from |
 | — | **A mirrored tier**: the bundle caches what the warehouse authors, computed from BigQuery, never pushed back |
-| Cloud Run `kcmd-sync-service` automates pull/push | **Removed from this branch.** It was never exercised — every run here was manual and single-writer — and keeping unexercised deployment scaffolding next to a measured result invites the reader to assume it was part of the measurement. It is on `main` and in git history. Multi-writer conflict is now handled by the differ instead (DESIGN §8.3), not by that service. |
-| `bq-kc-agent` is the consuming ADK agent | **Removed from this branch**, and deliberately not reused: its system prompt ships ten hand-written modelling rules — fan traps, de-duplication, zero-fill cohorts, SCD2 — which are exactly the knowledge the bundle is supposed to supply. Reusing it would have answered the questions from the prompt and measured nothing. `okf-agent/run_arms.py` uses a minimal instruction instead. |
+| Cloud Run `kcmd-sync-service` automates pull/push | **Present but never exercised here** — every run was manual and single-writer, so no measurement on this branch covers it. Multi-writer conflict is handled by the differ and the push planner instead (DESIGN §8.3), which is why DESIGN §8.4 argues the service's job has moved. That argument is not a measurement, and the code stands until its owner decides otherwise. |
+| `bq-kc-agent` is the consuming ADK agent | **Present, and deliberately not reused as the eval agent**: its system prompt ships ten hand-written modelling rules — fan traps, de-duplication, zero-fill cohorts, SCD2 — which are exactly the knowledge the bundle is supposed to supply. Reusing it would have answered the questions from the prompt and measured nothing. `okf-eval/run_arms.py` uses a minimal instruction instead. That is a statement about what makes a valid control, not about the agent's quality. |
 
 ---
 

@@ -110,7 +110,7 @@ def _refresh_armk_bundle() -> None:
     Regenerating it here means the copy cannot be older than the run.
     """
     src = ROOT / "okf-bundle"
-    dst = ROOT / "okf-agent" / "armk-workspace" / "bundle"
+    dst = ROOT / "okf-eval" / "armk-workspace" / "bundle"
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
@@ -139,7 +139,7 @@ def build_agent(arm: str):
         params = StdioServerParameters(
             command="node",
             args=[str(ROOT / "kcmd" / "run_mcp_server.js"),
-                  "--workspace", str(ROOT / "okf-agent" / "armk-workspace")],
+                  "--workspace", str(ROOT / "okf-eval" / "armk-workspace")],
             env=env,
         )
     elif arm in ("D", "Dall"):
@@ -209,10 +209,10 @@ async def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--arms", default="K,D")
     ap.add_argument("--repeats", type=int, default=1)
-    ap.add_argument("--out", default=str(ROOT / "okf-agent" / "results.json"))
+    ap.add_argument("--out", default=str(ROOT / "okf-eval" / "results.json"))
     a = ap.parse_args()
 
-    qs = yaml.safe_load((ROOT / "okf-agent" / "questions.yaml").read_text())
+    qs = yaml.safe_load((ROOT / "okf-eval" / "questions.yaml").read_text())
     results = []
     for rep in range(a.repeats):
       for arm in a.arms.split(","):

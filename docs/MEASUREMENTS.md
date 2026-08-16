@@ -869,7 +869,7 @@ Phase 5 blocker, resurfacing on read. Fixed by giving Arm K a workspace with
 `layout: okf`, whose `OkfLayout` derives names from paths; `list-entries` then
 returns 59 and `lookup-entry` returns the 5,190-character concept including the
 de-duplication guidance. Run 1's transcripts are kept in
-`okf-agent/results_run1_armK_empty_catalog.json`.
+`okf-eval/results_run1_armK_empty_catalog.json`.
 
 **This is the third time one bug has produced a silent, plausible-looking wrong
 answer** — success on an empty push, an empty body on pull, and now a scored

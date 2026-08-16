@@ -584,6 +584,56 @@ timestamps are unforgeable, a violation is **visible rather than silent**. The
 differ reports a third-party write as *unexplained*: newer than our recorded
 push, and not a scan.
 
+### 8.4 What this replaces in `kcmd-sync-service`, and what it does not
+
+`kcmd-sync-service/` is on this branch, untouched, and **nothing here has been
+measured against it** — every run in MEASUREMENTS was manual, single-writer and
+driven from the shim. What follows is read off `index.js`, not observed, and it
+is an argument for the owner to weigh rather than a result.
+
+The service is a Pub/Sub-triggered Cloud Run app over a GCS-hosted workspace: a
+BigQuery update event runs `sync.pull()` and uploads the result back to the
+bucket; a GCS update runs `sync.push()`. Both call **stock** `CatalogSync`.
+
+Three things follow from that, in descending order of how much they matter:
+
+**1. The `pull` direction is the inversion this branch exists to reject.** It
+writes the catalog's version of the workspace back over the workspace. If that
+workspace ever holds an OKF bundle, the service enacts on every BigQuery event
+exactly the damage §9.2 measured by hand: `type` overwritten with
+`dataplex-types.global.generic`, the OKF type demoted into a stash, **44 of 54
+bodies emptied**, and every entry renamed into the KB source's path form. This
+is not a performance argument or a taste argument — it is rule 3, and it is why
+`pull.ts` was deleted here rather than fixed. A service that can pull into the
+source of truth reintroduces the one code path we removed structurally.
+
+**2. The `push` direction predates the patches and the planner.** Stock
+`sync.push()` is what §10 defect 6 describes: it pushes the whole workspace and
+**eats the link layer** on the way. It also has no compare step, so every event
+rewrites every entry — which moves `updateTime` on 54 entries and destroys the
+freshness signal §7.2 depends on — and no fail-fast, so a third-party write is
+overwritten silently instead of aborting the run (§8.2). Pointing it at the
+patched `kcmd/src/` fixes the first of those; the other two live in the planner,
+which is ours and outside the tool.
+
+**3. What it has that we do not.** Event-triggering and a workspace that is not
+a git checkout. Neither is replaced by anything on this branch — our runs are
+manual and the bundle's home is git. If automated projection is wanted, that is
+the part worth keeping.
+
+**So the proposal is a transplant, not a deletion.** Keep the service, its
+Pub/Sub trigger and its GCS round-trip; replace the body of the `push` branch
+with the planner (`kcmd/demo/okf/push.ts`), build against the patched
+`kcmd/src/`, and either delete the `pull` branch or point it at a scratch
+directory that is not the workspace — the recipe in HANDOFF §2.7. That yields
+event-driven projection with compare-first, stage-only-the-diff, abort-on-
+foreign-write, and a differ exit code, none of which the service can do today.
+
+Until someone runs that, the honest summary is narrow: **the planner covers the
+job the service's `push` branch does, with four properties it lacks; the
+service's `pull` branch does a job this branch has concluded should not be done
+at all; and its deployment mode is unreplaced.**
+
 ---
 
 ## 9. Direction of authority — kcmd's stated intent vs its implementation

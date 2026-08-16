@@ -620,7 +620,7 @@ kcmd/docs/             vendored from Google's repo — the tenet and spec quoted
 --- workspaces (manifests only; .staging/ is disposable and gitignored) ---
 okf-kb-workspace/      Track B  (the 44 concept entries + 7 index entries)
 bq-okf-workspace/      Track A  (4 aspects on the 14 @bigquery entries)
-okf-agent/             Phase 8 harness — run_arms.py, questions.yaml, armk-workspace/
+okf-eval/             Phase 8 harness — run_arms.py, questions.yaml, armk-workspace/
 
 --- docs/ ---
 DESIGN.md              start here: the model, tiers, differ, defects, gaps

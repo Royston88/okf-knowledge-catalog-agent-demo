@@ -11,6 +11,25 @@ of the result is *why* it was, and what had to change.
 **58 concepts · 190 cross-concept links · 82 catalog links · two projection
 tracks · a forward differ that exits 0 when the catalog still matches.**
 
+## One substrate, several consumers
+
+This branch adds a **substrate** — a bundle in git, a catalog that provably
+matches it, and the machinery that keeps the two in agreement. It does not
+replace the agent work that consumes them. Three tracks share the repo:
+
+| track | what it does | consumes | this document |
+|---|---|---|---|
+| **the projector** | makes the catalog match the bundle, and reports when it stops matching | — it *produces* both | **is about this** |
+| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | see [its own README](bq-kc-agent/README.md) |
+| [`okf-eval/`](okf-eval/) | not an agent — the **rig** that scores one arm against another | both paths, to compare them | [ARCHITECTURE §2](docs/ARCHITECTURE.md) |
+
+The seam matters because the tracks are easy to mistake for rivals.
+`okf-eval/run_arms.py` is a measurement harness with a deliberately minimal
+instruction; `bq-kc-agent/` is the product agent. A third consumer reading SQL
+off the bundle path directly would sit alongside them, not replace either.
+
+Everything below this line is the projector.
+
 ## Where to start
 
 Five documents, split by **kind** rather than by topic, so each has one job.
@@ -73,7 +92,7 @@ The same walk again, as directories — top to bottom is stage 1 to stage 5.
 | 4 | [`okf-kb-workspace/`](okf-kb-workspace/), [`bq-okf-workspace/`](bq-okf-workspace/) | `catalog.yaml` in each | the two push manifests (Track B, Track A). No copy of the bundle lives here |
 | 4–5 | [`kcmd/`](kcmd/) | [`demo/okf/push.ts`](kcmd/demo/okf/push.ts), [`push-track-a.ts`](kcmd/demo/okf/push-track-a.ts), [`drift.ts`](kcmd/demo/okf/drift.ts) | the vendored fork that projects and differs. `src/` is patched (8 defects, upstreamable); `demo/okf/` is ours; `docs/` is Google's and is quoted in DESIGN §9 |
 | out | [`_state/`](_state/) | — | tracked evidence: Measurement G, the live-entry probe, the drift baseline |
-| out | [`okf-agent/`](okf-agent/) | [`run_arms.py`](okf-agent/run_arms.py) | the Phase 8 evaluation harness (Arm K vs Arm D) — reads the catalog back |
+| out | [`okf-eval/`](okf-eval/) | [`run_arms.py`](okf-eval/run_arms.py) | the Phase 8 evaluation harness (Arm K vs Arm D) — reads the catalog back |
 
 The rest of `okf-review/` is **one-off evidence, not pipeline**: `count_entrygroup.py`
 and `count_links.py` (what actually landed, following pagination), `probe_entries.py`
@@ -182,8 +201,11 @@ truth, with kcmd projecting it into Knowledge Catalog and an agent reading it
 back? Enrichment *quality* is deliberately out of scope.
 
 The upstream demo's Cloud Run sync service and its ADK agent application were
-never exercised here and have been removed from this branch, so what remains is
-the projector and the evidence for it. They are in git history and on `main`.
+**never exercised here** — every run was manual, single-writer, and driven from
+the shim. So nothing measured on this branch says anything about either of them,
+and no result here should be read as covering them. They are present and
+untouched; DESIGN §8.4 argues that the push planner has taken over the sync
+service's job, which is an argument to weigh rather than a change already made.
 
 **The finding that should shape expectations:** retrieval, not content, is the
 binding constraint. Across 75 runs the score tracked how often the agent *asked*
