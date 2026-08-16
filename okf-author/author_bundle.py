@@ -15,10 +15,15 @@ existing tool follows.
 
 Run (identity comes from the gc wrapper + an explicit ADC file — see README):
 
-    OKF_KC_DIR=../kc-capture python author_bundle.py \
+    OKF_KC_DIR=kc-capture python okf-author/author_bundle.py \
         --dataset royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy \
-        --out ../okf-kb-workspace/catalog \
+        --out okf-bundle \
         --model gemini-3.5-flash
+
+`--out` is the **bundle root** and the only correct value is `okf-bundle`. It
+used to read `../okf-kb-workspace/catalog`, from when the push workspace held a
+copy of the bundle; that copy is gone and must not come back — the source of
+truth existed twice on disk and diverged. See HANDOFF §2.7.
 """
 from __future__ import annotations
 
