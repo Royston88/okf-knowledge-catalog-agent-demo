@@ -1,0 +1,14 @@
+{
+  "name": "kcmd-sync-service",
+  "version": "1.0.0",
+  "description": "Cloud Run service to sync OKF metadata between GCS, BQ, and Knowledge Catalog",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.7.0",
+    "express": "^4.19.2",
+    "kcmd": "file:../kcmd"
+  }
+}

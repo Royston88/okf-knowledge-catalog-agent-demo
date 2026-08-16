@@ -1,0 +1,14 @@
+.gcloudignore
+.git
+.gitignore
+node_modules/
+**/node_modules/
+bq-okf-workspace/
+knowledge-catalog/
+kcmd/dist/
+kcmd/src/
+kcmd/tests/
+kcmd/demo/
+kcmd/BUILD
+kcmd/tsconfig.json
+kcmd-sync-service/node_modules/
