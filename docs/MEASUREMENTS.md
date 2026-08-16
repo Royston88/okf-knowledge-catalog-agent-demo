@@ -3,6 +3,11 @@
 Running log. Each entry records what was measured, the raw result, and what it
 constrains. Final synthesis goes in `RESULTS.md`.
 
+**`RESULTS.md` cites this file by section anchor**, so a `##` heading here is
+part of an interface: renaming one silently breaks a link in the synthesis.
+Append a new section instead. `okf-review/check_doc_links.py` fails if any
+citation stops resolving.
+
 **Append-only.** Entries are corrected by a later entry, never by editing an
 earlier one — several findings here exist only because a previous session's
 reasoning was still on the page to be checked. Two consequences for a reader:

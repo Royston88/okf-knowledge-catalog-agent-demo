@@ -81,6 +81,7 @@ python okf-review/conformance.py                 # OKF v0.2 §11 + link-form cou
 python okf-review/canonicalize.py --check okf-bundle
 python okf-review/postauthor.py --check
 python okf-review/mirror.py --selftest
+python okf-review/check_doc_links.py             # the docs' cross-references
 kcmd/node_modules/.bin/bun kcmd/demo/okf/ownership.test.ts   # 38 assertions
 kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.test.ts       # 27 assertions
 ```

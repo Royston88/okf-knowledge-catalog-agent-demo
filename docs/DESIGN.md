@@ -747,6 +747,7 @@ python okf-review/canonicalize.py --check okf-bundle
 python okf-review/canonicalize.py --selftest
 python okf-review/postauthor.py --check
 python okf-review/mirror.py --selftest
+python okf-review/check_doc_links.py           # RESULTS' citations into MEASUREMENTS
 kcmd/node_modules/.bin/bun kcmd/demo/okf/ownership.test.ts   # 38 assertions
 kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.test.ts       # 27 assertions
 
