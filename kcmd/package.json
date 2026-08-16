@@ -8,7 +8,7 @@
   },
   "types": "./build/ts/kcmd/index.d.ts",
   "exports": {
-    ".": "./build/ts/kcmd/index.js"
+    ".": "./build/ts/tool/libts/index.js"
   },
   "scripts": {
     "build:libts": "npx tsc -p src/libts/tsconfig.json",

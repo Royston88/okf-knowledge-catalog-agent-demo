@@ -34,6 +34,16 @@ const STASH_KEY = 'x-kcmd';
  * hidden `x-kcmd` frontmatter key so entries round-trip losslessly, while the
  * file remains a spec-valid OKF concept readable by other OKF consumers.
  */
+// FIX: the pull path aliases `dataplex-types.global.overview` to the short form
+// `overview` (`ResourceAlias._defaultResource`, applied by `toLocalEntry`), but
+// this layout only ever looked for the long key. Push therefore worked and pull
+// silently returned every concept with an EMPTY BODY. Accept both forms.
+function overviewKeyOf(aspects: Record<string, unknown> | undefined): string | undefined {
+  if (!aspects) return undefined;
+  if (aspects[OVERVIEW_ASPECT_KEY] !== undefined) return OVERVIEW_ASPECT_KEY;
+  return Object.keys(aspects).find((k) => k === 'overview' || k.endsWith('.overview'));
+}
+
 export class OkfLayout implements CatalogLayout {
   private readonly _catalogPath: string;
   private readonly manifest?: CatalogManifestLike;
@@ -239,15 +249,16 @@ export class OkfLayout implements CatalogLayout {
 
     // Pull the overview content out to become the markdown body.
     let body = '';
-    if (entryClone.aspects?.[OVERVIEW_ASPECT_KEY]) {
-      const aspect = entryClone.aspects[OVERVIEW_ASPECT_KEY];
+    const ovKey = overviewKeyOf(entryClone.aspects) ?? OVERVIEW_ASPECT_KEY;
+    if (entryClone.aspects?.[ovKey]) {
+      const aspect = entryClone.aspects[ovKey];
       if (aspect.content !== undefined) {
         body = aspect.content;
         delete aspect.content;
         delete aspect.contentType;
       }
       if (Object.keys(aspect).length === 0) {
-        delete entryClone.aspects[OVERVIEW_ASPECT_KEY];
+        delete entryClone.aspects[ovKey];
       }
     }
 

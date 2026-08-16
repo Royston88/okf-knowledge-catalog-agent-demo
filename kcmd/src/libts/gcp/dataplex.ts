@@ -40,6 +40,18 @@ export interface AspectType {
 export interface Aspect {
   aspectType?: string;
   data?: Record<string, unknown>;
+  // FIX (defect 7): the API returns these on every aspect and this interface
+  // declared none of them, so nothing downstream could see that an individual
+  // CHANNEL of an entry had moved. `aspectSource` is populated only on
+  // ingestion-authored aspects (`dataVersion: Ingestion/1.0.0`), which makes it
+  // a provenance marker as well as a clock.
+  createTime?: string;
+  updateTime?: string;
+  aspectSource?: {
+    createTime?: string;
+    updateTime?: string;
+    dataVersion?: string;
+  };
 }
 
 /**
@@ -196,15 +208,25 @@ export class CatalogClient extends api.ApiClient {
     return await this._get(name);
   }
 
+  // FIX (defect 8): the client could express BASIC and CUSTOM and had no way to
+  // ask for ALL. That is not a missing convenience — CUSTOM returns only the
+  // aspect types the caller NAMES, so a client restricted to it can never
+  // observe an aspect it did not already expect. Detecting a foreign or
+  // unexpected aspect (another team's custom type, an aspect a scan added) is
+  // therefore impossible through this API surface, and so is any honest
+  // "what is actually on this entry" inventory. FULL is no help either: it
+  // returns required aspects plus the KEYS ONLY of non-required ones, which is
+  // why `overview`, `descriptions` and `queries` all read as absent under it.
   async getEntry(
     project: string,
     location: string,
     entryGroup: string,
     entry: string,
     aspects?: string[],
+    view?: 'BASIC' | 'FULL' | 'ALL',
   ): Promise<api.ApiResult<Entry>> {
     const name = `${catalogContainer(project, location, entryGroup)}/entries/${entry}`;
-    const params: Record<string, string | string[]> = {'view': 'BASIC'};
+    const params: Record<string, string | string[]> = {'view': view ?? 'BASIC'};
     if (aspects && aspects.length) {
       params['view'] = 'CUSTOM';
       params['aspectTypes'] = aspects;
@@ -315,6 +337,15 @@ export class CatalogClient extends api.ApiClient {
     } while (pageToken);
   }
 
+  /**
+   * All EntryLinks touching `entryName`, following pagination.
+   *
+   * FIX: this used to issue a single request and return only the first page,
+   * even though `LookupEntryLinksResponse` declares `nextPageToken`. A caller
+   * reconciling links against an entry with more links than fit one page saw a
+   * partial set — it re-created links that already existed (HTTP 409) and could
+   * never see, let alone clean up, anything past page one.
+   */
   async lookupEntryLinks(
     project: string,
     location: string,
@@ -322,23 +353,36 @@ export class CatalogClient extends api.ApiClient {
     entryLinkTypes?: string[],
   ): Promise<api.ApiResult<LookupEntryLinksResponse>> {
     const container = `${catalogContainer(project, location)}:lookupEntryLinks`;
-    const params: Record<string, string | string[]> = {
-      'entry': entryName,
-    };
-    if (entryLinkTypes && entryLinkTypes.length) {
-      // Send as a REPEATED query param (`?entryLinkTypes=A&entryLinkTypes=B`).
-      // `api._get` expands arrays into repeated params; a comma-joined string
-      // gets parsed by the server as one resource name and fails with
-      // INVALID_ARGUMENT once there are 2+ types in the list.
-      params['entryLinkTypes'] = entryLinkTypes;
-    }
-    const res = await this._get<LookupEntryLinksResponse>(container, params);
-    if (res.status === 200 && res.result?.entryLinks) {
-      for (const link of res.result.entryLinks) {
-        await _fixEntryLink(link, this.context);
+    const all: EntryLink[] = [];
+    let pageToken: string | undefined = undefined;
+    let last: api.ApiResult<LookupEntryLinksResponse> | undefined;
+
+    do {
+      const params: Record<string, string | string[]> = {'entry': entryName};
+      if (entryLinkTypes && entryLinkTypes.length) {
+        // Send as a REPEATED query param (`?entryLinkTypes=A&entryLinkTypes=B`).
+        // `api._get` expands arrays into repeated params; a comma-joined string
+        // gets parsed by the server as one resource name and fails with
+        // INVALID_ARGUMENT once there are 2+ types in the list.
+        params['entryLinkTypes'] = entryLinkTypes;
       }
-    }
-    return res;
+      if (pageToken) {
+        params['pageToken'] = pageToken;
+      }
+      const res: api.ApiResult<LookupEntryLinksResponse> =
+        await this._get<LookupEntryLinksResponse>(container, params);
+      last = res;
+      if (res.status !== 200 || !res.result) {
+        return res;
+      }
+      for (const el of res.result.entryLinks || []) {
+        await _fixEntryLink(el, this.context);
+        all.push(el);
+      }
+      pageToken = res.result.nextPageToken;
+    } while (pageToken);
+
+    return {...last!, result: {entryLinks: all}};
   }
 
   async createEntryLink(
@@ -737,7 +781,21 @@ async function _fixEntry(entry: Entry, ctx: context.ApiContext): Promise<void> {
       }
       aspectType = await crm.fixProject(aspectType, ctx);
 
+      // FIX (defect 7): this used to build `{aspectType, data}` and drop
+      // everything else the API returned — including the aspect's own
+      // `createTime`, `updateTime` and `aspectSource`. MEASURED: a live
+      // `view=ALL` response carries all three on 109 of 109 aspects, so this
+      // was discarding real data at the CLIENT, one layer earlier than
+      // `toLocalEntry` (which then drops all but `.data` again).
+      //
+      // The cost is not cosmetic. Per-aspect `updateTime` is the only signal
+      // that says WHICH CHANNEL of an entry changed and WHEN, which is what a
+      // drift detector needs to distinguish "our push landed" from "a scan
+      // overwrote us"; and `aspectSource.dataVersion` is `Ingestion/1.0.0`
+      // exactly on the platform-authored aspects, i.e. a provenance marker.
+      // Spread first so the normalized key and type still win.
       fixedAspects[_nameToTypeRef(aspectType)] = {
+        ...aspectValue,
         aspectType,
         data: aspectValue['data'] ?? {},
       };

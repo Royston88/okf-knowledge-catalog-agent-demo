@@ -10,6 +10,14 @@ import * as md from '../core/metadata';
 
 const OVERVIEW_ASPECT_KEY = 'dataplex-types.global.overview';
 
+/** Bundle-relative path minus `.md` / `.ref.md` — the id a file indexes under. */
+function deriveEntryNameFromPath(localPath: string, catalogPath: string): string {
+  let rel = path.relative(catalogPath, localPath).replace(/\\/g, '/');
+  if (rel.endsWith('.ref.md')) rel = rel.slice(0, -'.ref.md'.length);
+  else if (rel.endsWith('.md')) rel = rel.slice(0, -'.md'.length);
+  return rel;
+}
+
 /**
  * Shape of the YAML frontmatter found at the top of a documents-layout
  * Markdown file. These fields mirror the human-authored frontmatter and the
@@ -30,6 +38,16 @@ interface DocumentFrontmatter {
  * YAML frontmatter for structured metadata and the Markdown body as the
  * entry's overview aspect) under a directory tree rooted at `catalogPath`.
  */
+// FIX: the pull path aliases `dataplex-types.global.overview` to the short form
+// `overview` (`ResourceAlias._defaultResource`, applied by `toLocalEntry`), but
+// this layout only ever looked for the long key. Push therefore worked and pull
+// silently returned every concept with an EMPTY BODY. Accept both forms.
+function overviewKeyOf(aspects: Record<string, unknown> | undefined): string | undefined {
+  if (!aspects) return undefined;
+  if (aspects[OVERVIEW_ASPECT_KEY] !== undefined) return OVERVIEW_ASPECT_KEY;
+  return Object.keys(aspects).find((k) => k === 'overview' || k.endsWith('.overview'));
+}
+
 export class DocumentsLayout implements CatalogLayout {
   private _catalogPath = '';
 
@@ -56,8 +74,17 @@ export class DocumentsLayout implements CatalogLayout {
       try {
         const content = await fs.promises.readFile(localPath, 'utf8');
         const {entry} = parseMarkdown(content);
-        if (entry && entry.name) {
-          this._index.set(entry.name, localPath);
+        // FIX: this used to require `entry.name`, which `parseMarkdown` never
+        // sets — it rebuilds the entry from `catalogEntry` and derives no name
+        // from the path. Any file without an explicit `catalogEntry.name` was
+        // therefore skipped SILENTLY, and `push` then reported success over an
+        // empty index. Fall back to a path-derived id, matching what
+        // `OkfLayout.deriveEntryName` already does for hand-authored files.
+        const name =
+          entry?.name || deriveEntryNameFromPath(localPath, this._catalogPath);
+        if (entry && name) {
+          entry.name = name;
+          this._index.set(name, localPath);
         }
       } catch (err) {
         // Skip unreadable/invalid files during indexing
@@ -88,6 +115,14 @@ export class DocumentsLayout implements CatalogLayout {
       );
     }
 
+    // `init()` derives a name for the index, but `parseMarkdown` re-reads the
+    // file here and sets none, so `loadEntry` used to return `name: undefined`
+    // for any file without an explicit `catalogEntry.name`. It is latent rather
+    // than fatal — `sync.ts` supplies the name separately via
+    // `source.serviceName(name)` — but it left the layout incoherent: the entry
+    // you get back could not say what it was called. Derive it the same way.
+    entry.name = entry.name || name;
+
     const bodyTrimmed = body.trim();
     if (bodyTrimmed) {
       if (!entry.aspects) {
@@ -110,8 +145,9 @@ export class DocumentsLayout implements CatalogLayout {
     const clonedEntry = JSON.parse(JSON.stringify(entry)) as md.Entry;
     let body = '';
 
-    if (clonedEntry.aspects?.[OVERVIEW_ASPECT_KEY]) {
-      const aspect = clonedEntry.aspects[OVERVIEW_ASPECT_KEY];
+    const ovKey = overviewKeyOf(clonedEntry.aspects) ?? OVERVIEW_ASPECT_KEY;
+    if (clonedEntry.aspects?.[ovKey]) {
+      const aspect = clonedEntry.aspects[ovKey];
       if (aspect.content !== undefined) {
         body = aspect.content;
         delete aspect.content;
