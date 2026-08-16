@@ -28,6 +28,32 @@ The seam matters because the tracks are easy to mistake for rivals.
 instruction; `bq-kc-agent/` is the product agent. A third consumer reading SQL
 off the bundle path directly would sit alongside them, not replace either.
 
+### The one thing that does overlap: `kcmd-sync-service/`
+
+It is still here and untouched, but **read this before deploying it against an
+OKF bundle**, because the overlap is not symmetric and one half of it is
+destructive:
+
+- **Its `pull` half should not be run against a bundle at all.** A BigQuery
+  event runs `sync.pull()` and uploads the result back *over* the workspace. If
+  that workspace holds the source of truth, the service enacts on every event
+  the damage measured by hand in DESIGN §9.2: `type` overwritten, the OKF type
+  demoted into a stash, **44 of 54 bodies emptied**, every entry renamed. This
+  is the reason `pull.ts` was deleted here rather than fixed.
+- **Its `push` half is superseded by the push planner**, which compares first,
+  stages only what differs, aborts when something else wrote to a channel the
+  bundle owns, and reports drift as an exit code. Stock `sync.push()` does none
+  of those, and being pre-patch it also eats the link layer (defect 4/6).
+- **What it has and the planner does not** is event-triggering and a workspace
+  that is not a git checkout. Neither is replaced by anything here.
+
+So the suggestion is a **transplant, not a deletion**: keep the service, its
+trigger and its GCS round-trip, build it against the patched `kcmd/src/`, swap
+the body of the `push` branch for `kcmd/demo/okf/push.ts`, and delete the `pull`
+branch or point it at a scratch directory. Nothing on this branch was measured
+against the service, so this is an argument from reading its source — the full
+version, with what it does and does not license, is **DESIGN §8.4**.
+
 Everything below this line is the projector.
 
 ## Where to start
