@@ -6,7 +6,7 @@ It supports the full metadata lifecycle:
 1. **Extract & Bootstrap (Pull)**: Extract physical table schemas and Dataplex metadata into human-readable, version-controlled OKF Markdown files in Git.
 2. **Curate & Enrich (As Code)**: Define business metrics, joins, table grains, and semantic descriptions directly in code.
 3. **Bi-Directional Sync & Projection (Push Planner)**: Safely project Git-authored OKF bundles into Dataplex with forward diffing, drift detection, and conflict guards.
-4. **AI Consumption & Benchmarking**: Query metadata via an ADK-powered AI agent (`bq-kc-agent`) or benchmark retrieval accuracy (`okf-eval`).
+4. **AI Consumption & Benchmarking**: Query metadata via dual ADK-powered AI agents (`agent_okf`, `agent_kc`) or benchmark retrieval accuracy (`okf-eval`).
 
 ---
 
@@ -32,9 +32,10 @@ graph LR
     end
 
     subgraph S4 ["4. AI Consumption & Eval"]
-        TrackA3 & TrackB3 -->|"8. MCP Context"| Agent4["bq-kc-agent\n(ADK Agent)"]
-        Agent4 -->|"9. Execute SQL"| BQ4[("BigQuery")]
-        TrackA3 & TrackB3 -->|"Evaluate"| Eval4["okf-eval\n(Benchmarking Rig)"]
+        TrackA3 & TrackB3 -->|"Live MCP"| AgentKC["agent_kc\n(Dataplex Agent)"]
+        Bundle2 -->|"Local MCP"| AgentOKF["agent_okf\n(OKF Bundle Agent)"]
+        AgentKC & AgentOKF -->|"Execute SQL"| BQ4[("BigQuery")]
+        TrackA3 & Bundle2 -->|"Evaluate"| Eval4["okf-eval\n(Benchmarking Rig)"]
     end
 ```
 
@@ -44,7 +45,7 @@ graph LR
 
 | Directory | Role | Description |
 |---|---|---|
-| [`bq-kc-agent/`](bq-kc-agent/) | **Consumer** | Natural language → BigQuery SQL agent built with Agent Development Kit (ADK) and FastAPI. |
+| [`bq-kc-agent/`](bq-kc-agent/) | **Consumer** | Natural language → BigQuery SQL agents built with Agent Development Kit (ADK) and FastAPI. Includes both Local OKF (`agent_okf.py`) and Dataplex KC (`agent_kc.py`) agent implementations. |
 | [`kcmd/`](kcmd/) | **Core Engine** | TypeScript CLI, library, and MCP server for Knowledge Catalog. Includes `kcmd/demo/okf/` (push planner & forward differ). |
 | [`okf-bundle/`](okf-bundle/) | **System of Record** | 58 production OKF v0.2 concepts (14 tables/datasets, 13 joins, 26 metrics, 3 grains, hierarchies). |
 | [`okf-eval/`](okf-eval/) | **Evaluation** | Benchmarking harness (`run_arms.py`) scoring NL-to-SQL accuracy across metadata configurations. |
@@ -58,7 +59,7 @@ graph LR
 
 - **Google Cloud Project** with BigQuery and Dataplex APIs enabled.
 - **Node.js** (v18+) and npm.
-- **Python 3.10+** (recommended: `uv` or `venv`).
+- **Python 3.11+** (recommended: `uv` or `venv`).
 - **Google Cloud SDK** authenticated (`gcloud auth application-default login`).
 - *(Optional)* [Bun](https://bun.sh/) for running `kcmd` tests and standalone scripts.
 
@@ -73,6 +74,7 @@ Navigate to `kcmd` to install dependencies and compile the toolchain:
 ```bash
 cd kcmd
 npm install
+npm run build:libts
 npm run build:mcp
 cd ..
 ```
@@ -153,35 +155,65 @@ The push planner compares timestamps and staging state first, staging only chang
 
 ---
 
-## Workflow C: Running the AI Agent (`bq-kc-agent`)
+## Workflow C: Running the AI Agents (`bq-kc-agent`)
 
-The agent queries Dataplex Knowledge Catalog via MCP to retrieve schema context, joins, and metrics before formulating BigQuery SQL.
+The `bq-kc-agent` module provides two specialized agent implementations comparing different metadata access patterns:
+
+1. **Local OKF Bundle Agent (`agent_okf.py`)**: Directly reads version-controlled OKF markdown files via `kcmd` MCP server without requiring live Dataplex API calls.
+2. **Dataplex Knowledge Catalog Agent (`agent_kc.py`)**: Interactively queries live Google Cloud Dataplex Knowledge Catalog entries and aspects via `@toolbox-sdk/server` MCP server.
+3. **Full Reference Agent (`agent.py`)**: Comprehensive SQL generation agent equipped with domain guards (chasm/fan traps, `QUALIFY` clauses, and cohort averages).
 
 ### 1. Configure Environment
 ```bash
 cd bq-kc-agent
 cp .env.example .env
 ```
-Edit `.env` and set:
-- `GOOGLE_CLOUD_PROJECT`: Your GCP Project ID.
-- `BIGQUERY_DATASET`: The dataset to query (e.g., `demo_ecommerce`).
-- `GOOGLE_CLOUD_LOCATION`: Location of your dataset (e.g., `US` or `us-central1`).
+Edit `.env` and configure:
+```env
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
+GOOGLE_CLOUD_LOCATION=us-central1
+BIGQUERY_DATASET=YOUR_DATASET_ID
+```
 
-### 2. Install & Start Agent
+### 2. Install Dependencies
+Using `uv` (recommended) or `pip`:
 ```bash
 cd bq-kc-agent
-pip install -e .
-python app/fast_api_app.py
+uv sync
 ```
-The agent server starts at `http://localhost:8000`.
 
-### 3. Running with Docker
+### 3. Run Side-by-Side Smoke Test
+Compare both agents on the same natural language query:
 ```bash
-# Build the Agent image
+uv run python smoke_test_agents.py
+```
+
+### 4. Start Agent API / A2A Servers
+Each agent can be served as a standalone FastAPI & Agent-to-Agent (A2A) protocol server:
+
+```bash
+# Start Agent 1 (Local OKF Bundle Agent) on port 8000
+uv run python -m app.fast_api_okf
+
+# Start Agent 2 (Dataplex KC Agent) on port 8001
+uv run python -m app.fast_api_kc
+
+# Start Reference Agent on port 8000
+uv run python -m app.fast_api_app
+```
+
+Interactive OpenAPI docs and Web UI:
+- Local OKF Agent UI: `http://localhost:8000/docs`
+- Dataplex KC Agent UI: `http://localhost:8001/docs`
+
+### 5. Running with Docker
+```bash
+# Build the Agent container image
 docker build -t bq-kc-agent -f bq-kc-agent/Dockerfile .
 
 # Run the container with ADC credentials
-docker run -p 8000:8080 \
+docker run -p 8080:8080 \
   -e GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID \
   -e BIGQUERY_DATASET=YOUR_DATASET_ID \
   -e GOOGLE_APPLICATION_CREDENTIALS=/gcp/creds/application_default_credentials.json \
@@ -190,7 +222,7 @@ docker run -p 8000:8080 \
   bq-kc-agent
 ```
 
-### 4. Deploy Agent to Vertex AI Reasoning Engine
+### 6. Deploy Agent to Vertex AI Agent Engine
 ```bash
 cd bq-kc-agent
 gcloud config set project YOUR_PROJECT_ID
@@ -201,13 +233,13 @@ agents-cli deploy
 
 ## Benchmarking & Evaluation (`okf-eval`)
 
-To evaluate the impact of different metadata representations on NL-to-SQL retrieval accuracy:
+To evaluate the impact of different metadata representations on NL-to-SQL retrieval accuracy across experimental arms:
 
 ```bash
-python okf-eval/run_arms.py --questions okf-eval/questions.yaml --model gemini-3.5-flash
+python okf-eval/run_arms.py --questions okf-eval/questions.yaml --model gemini-2.5-flash
 ```
 
-For empirical findings and methodology across 7 experimental phases, see:
+For empirical findings and methodology across experimental phases, see:
 - [`docs/DESIGN.md`](docs/DESIGN.md): The ownership model, differ, and defect taxonomy.
 - [`docs/RESULTS.md`](docs/RESULTS.md): Key findings and benchmark scores.
 - [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md): Append-only evidence log.
