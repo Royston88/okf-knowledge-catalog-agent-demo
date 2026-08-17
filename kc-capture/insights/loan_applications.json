@@ -1,0 +1,136 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_applications",
+    "overview": "This table stores comprehensive records of financial product applications. It tracks the lifecycle of each application from submission through various stages of approval and funding. The data supports analysis of application volumes, processing times, and the overall flow of financial product requests.",
+    "schema": {
+      "fields": [
+        {
+          "name": "amount",
+          "description": "This column holds the monetary value associated with the application."
+        },
+        {
+          "name": "applied_date",
+          "description": "This column holds the date when the application was submitted."
+        },
+        {
+          "name": "approved_date",
+          "description": "This column holds the date when the application received approval."
+        },
+        {
+          "name": "funded_date",
+          "description": "This column holds the date when the funds for the application were disbursed."
+        },
+        {
+          "name": "closed_date",
+          "description": "This column holds the date when the application's lifecycle was concluded."
+        },
+        {
+          "name": "application_id",
+          "description": "This column holds a unique identifier for each loan application."
+        },
+        {
+          "name": "customer_id",
+          "description": "This column holds a unique identifier for the customer submitting the application."
+        },
+        {
+          "name": "product_type",
+          "description": "This column holds the type of financial product being applied for."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH CustomerApplicationCounts AS (\n  SELECT\n    customer_id,\n    COUNT(application_id) AS total_applications,\n    MIN(applied_date) AS first_application_date,\n    MAX(applied_date) AS last_application_date,\n    DATE_DIFF(MAX(applied_date), MIN(applied_date), DAY) AS days_between_first_and_last\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\n  GROUP BY\n    customer_id\n),\nAggregatedStats AS (\n  SELECT\n    AVG(total_applications) AS avg_applications,\n    STDDEV(total_applications) AS stddev_applications\n  FROM CustomerApplicationCounts\n  WHERE days_between_first_and_last <= 30\n)\nSELECT\n  cac.customer_id,\n  cac.total_applications,\n  cac.first_application_date,\n  cac.last_application_date\nFROM CustomerApplicationCounts AS cac\nCROSS JOIN AggregatedStats AS ags\nWHERE\n  cac.days_between_first_and_last <= 30\n  AND cac.total_applications > ags.avg_applications + (2 * ags.stddev_applications);",
+        "description": "Find customers who have an unusually high number of loan applications within a short period (e.g., 30 days), indicating potential fraud or unusual activity, by comparing their application count to the average and standard deviation of applications per customer."
+      },
+      {
+        "sql": "SELECT\n  product_type,\n  COVAR_POP(amount, DATE_DIFF(closed_date, applied_date, DAY)) AS amount_to_closure_covariance\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE\n  closed_date IS NOT NULL AND applied_date BETWEEN '2023-01-01' AND '2023-12-31'\nGROUP BY\n  product_type\nHAVING\n  COUNT(application_id) > 1;",
+        "description": "Calculate the population covariance between the loan amount and the duration from application to closure, for each product type, to understand how these two variables move together within different loan categories."
+      },
+      {
+        "sql": "SELECT\n  product_type,\n  CORR(amount, DATE_DIFF(approved_date, applied_date, DAY)) AS amount_to_approval_time_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE\n  applied_date BETWEEN '2023-01-01' AND '2023-12-31'\nGROUP BY\n  product_type\nHAVING\n  COUNT(application_id) > 1;",
+        "description": "Calculate the correlation between the loan amount and the time taken from application to approval, grouped by product type, to understand if larger loans or specific product types have longer approval processes."
+      },
+      {
+        "sql": "WITH ProductAmountStats AS (\n  SELECT\n    product_type,\n    PERCENTILE_CONT(amount, 0.25) OVER (PARTITION BY product_type) AS q1,\n    PERCENTILE_CONT(amount, 0.75) OVER (PARTITION BY product_type) AS q3\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\n),\nOutlierThresholds AS (\n  SELECT\n    product_type,\n    q1,\n    q3,\n    q1 - 1.5 * (q3 - q1) AS lower_bound,\n    q3 + 1.5 * (q3 - q1) AS upper_bound\n  FROM ProductAmountStats\n  GROUP BY product_type, q1, q3\n)\nSELECT\n  la.application_id,\n  la.product_type,\n  la.amount,\n  ots.lower_bound,\n  ots.upper_bound\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` AS la\nJOIN OutlierThresholds AS ots\n  ON la.product_type = ots.product_type\nWHERE\n  la.amount < ots.lower_bound OR la.amount > ots.upper_bound;",
+        "description": "Identify loan applications where the approved amount is significantly higher or lower than the typical amount for that product type, defined as outside 1.5 times the interquartile range (IQR)."
+      },
+      {
+        "sql": "SELECT\n  product_type,\n  VAR_SAMP(amount) AS loan_amount_variance,\n  AVG(DATE_DIFF(closed_date, approved_date, DAY)) AS avg_approval_to_closure_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE\n  approved_date IS NOT NULL AND closed_date IS NOT NULL AND applied_date BETWEEN '2023-01-01' AND '2023-12-31'\nGROUP BY\n  product_type\nORDER BY\n  loan_amount_variance DESC, avg_approval_to_closure_days ASC\nLIMIT 5;",
+        "description": "Find the product types with the highest variance in loan amounts and the lowest average time from approval to closure, indicating potentially volatile but efficiently managed product lines."
+      },
+      {
+        "sql": "WITH CustomerAverages AS ( SELECT customer_id, AVG(amount) AS overall_avg_amount, AVG(CASE WHEN funded_date IS NOT NULL THEN amount ELSE NULL END) AS funded_avg_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` GROUP BY customer_id ) SELECT customer_id, funded_avg_amount FROM CustomerAverages WHERE funded_avg_amount > overall_avg_amount AND funded_avg_amount IS NOT NULL ORDER BY funded_avg_amount DESC;",
+        "description": "Identify customers who have a higher average loan amount for their funded applications compared to their overall average loan amount across all applications, and list their average funded amount."
+      },
+      {
+        "sql": "WITH OverallFundingRate AS ( SELECT CAST(COUNTIF(funded_date IS NOT NULL) AS FLOAT64) / COUNTIF(approved_date IS NOT NULL) AS overall_rate FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) ), ProductFundingRates AS ( SELECT product_type, CAST(COUNTIF(funded_date IS NOT NULL) AS FLOAT64) / COUNTIF(approved_date IS NOT NULL) AS product_rate FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) GROUP BY product_type ) SELECT pfr.product_type, pfr.product_rate FROM ProductFundingRates pfr, OverallFundingRate ofr WHERE pfr.product_rate < ofr.overall_rate ORDER BY pfr.product_rate ASC;",
+        "description": "Find the product types that have a funding rate (funded applications / approved applications) lower than the overall average funding rate, considering applications approved in the last year."
+      },
+      {
+        "sql": "SELECT product_type, VAR_SAMP(DATE_DIFF(funded_date, approved_date, DAY)) AS funding_duration_variance FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NOT NULL AND funded_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) GROUP BY product_type HAVING VAR_SAMP(DATE_DIFF(funded_date, approved_date, DAY)) IS NOT NULL ORDER BY funding_duration_variance DESC LIMIT 5;",
+        "description": "Find the product types with the highest variance in funding duration (time from approved to funded) for applications funded in the last two years."
+      },
+      {
+        "sql": "WITH MonthlyApprovals AS (\n  SELECT\n    DATE_TRUNC(applied_date, MONTH) AS application_month,\n    product_type,\n    COUNT(DISTINCT application_id) AS total_applications,\n    COUNT(DISTINCT CASE WHEN approved_date IS NOT NULL THEN application_id END) AS approved_applications\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\n  WHERE applied_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2\n),\nApprovalRates AS (\n  SELECT\n    application_month,\n    product_type,\n    SAFE_DIVIDE(approved_applications, total_applications) AS approval_rate,\n    LAG(SAFE_DIVIDE(approved_applications, total_applications), 1, 0) OVER (PARTITION BY product_type ORDER BY application_month) AS previous_month_approval_rate\n  FROM MonthlyApprovals\n)\nSELECT\n  application_month,\n  product_type,\n  approval_rate,\n  previous_month_approval_rate,\n  (approval_rate - previous_month_approval_rate) AS approval_rate_change\nFROM ApprovalRates\nORDER BY product_type, application_month;",
+        "description": "Analyze the monthly approval rate of loan applications for each product type, comparing it to the previous month's rate."
+      },
+      {
+        "sql": "SELECT product_type, MAX(DATE_DIFF(funded_date, approved_date, DAY)) AS max_approval_to_funding_gap FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NOT NULL AND EXTRACT(YEAR FROM approved_date) = EXTRACT(YEAR FROM funded_date) GROUP BY product_type ORDER BY max_approval_to_funding_gap DESC;",
+        "description": "For each product type, find the maximum gap in days between an application being approved and then funded, considering only applications approved and funded within the same calendar year."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  SUM(amount) AS total_approved_amount,\n  AVG(DATE_DIFF(closed_date, funded_date, DAY)) AS avg_funding_to_closure_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE\n  funded_date IS NOT NULL AND closed_date IS NOT NULL AND applied_date BETWEEN '2023-01-01' AND '2023-12-31'\nGROUP BY\n  customer_id\nORDER BY\n  total_approved_amount DESC, avg_funding_to_closure_days ASC\nLIMIT 3;",
+        "description": "Identify the top 3 customers who have the highest total approved loan amount and the lowest average time from funding to closure across all their loans."
+      },
+      {
+        "sql": "WITH QuarterlyFundedAmounts AS (\n  SELECT\n    customer_id,\n    DATE_TRUNC(funded_date, QUARTER) AS funding_quarter,\n    SUM(amount) AS total_funded_amount,\n    MAX(funded_date) AS last_funded_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\n  WHERE funded_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  GROUP BY 1, 2\n),\nRankedCustomers AS (\n  SELECT\n    customer_id,\n    funding_quarter,\n    total_funded_amount,\n    last_funded_date,\n    RANK() OVER (PARTITION BY funding_quarter ORDER BY total_funded_amount DESC) AS rank_in_quarter\n  FROM QuarterlyFundedAmounts\n)\nSELECT\n  customer_id,\n  funding_quarter,\n  total_funded_amount,\n  last_funded_date\nFROM RankedCustomers\nWHERE rank_in_quarter <= 5\nORDER BY funding_quarter, rank_in_quarter;",
+        "description": "Identify the top 5 customers with the highest cumulative funded amount within each quarter, showing their total funded amount and the date of their last funded loan."
+      },
+      {
+        "sql": "SELECT product_type, AVG(DATE_DIFF(funded_date, applied_date, DAY)) AS avg_funding_duration_days, STDDEV(DATE_DIFF(funded_date, applied_date, DAY)) AS stddev_funding_duration_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NOT NULL GROUP BY product_type ORDER BY avg_funding_duration_days DESC;",
+        "description": "Calculate the average time taken from application to funding for each product type, considering only applications that were both approved and funded, and also show the standard deviation of this duration."
+      },
+      {
+        "sql": "SELECT\n  EXTRACT(YEAR FROM applied_date) AS application_year,\n  product_type,\n  AVG(DATE_DIFF(approved_date, applied_date, DAY)) AS avg_days_to_approve,\n  AVG(DATE_DIFF(funded_date, approved_date, DAY)) AS avg_days_to_fund\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE applied_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\n  AND approved_date IS NOT NULL\n  AND funded_date IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1, 2;",
+        "description": "Calculate the average time taken from application to approval and from approval to funding for each product type, broken down by year."
+      },
+      {
+        "sql": "SELECT product_type, APPROX_QUANTILES(amount, 100)[OFFSET(75)] AS p75_approved_unfunded_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NULL GROUP BY product_type ORDER BY p75_approved_unfunded_amount DESC;",
+        "description": "Calculate the 75th percentile of the loan amount for applications that were approved but not yet funded, grouped by product type."
+      },
+      {
+        "sql": "SELECT product_type, EXTRACT(YEAR FROM applied_date) AS application_year, APPROX_QUANTILES(amount, 2)[OFFSET(1)] AS median_approved_unfunded_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NULL GROUP BY product_type, application_year ORDER BY application_year DESC, product_type ASC;",
+        "description": "Calculate the median loan amount for applications that were approved but not yet funded, broken down by product type and the year of application."
+      },
+      {
+        "sql": "SELECT product_type, funded_date, SUM(amount) OVER (PARTITION BY product_type ORDER BY funded_date) AS cumulative_funded_amount FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE funded_date IS NOT NULL ORDER BY product_type, funded_date;",
+        "description": "Calculate the cumulative sum of funded amounts over time for each product type, ordered by funded date."
+      },
+      {
+        "sql": "SELECT customer_id, SUM(amount) AS total_funded_amount, COUNT(application_id) AS funded_applications_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL AND funded_date IS NOT NULL GROUP BY customer_id ORDER BY total_funded_amount DESC LIMIT 5;",
+        "description": "Determine the top 5 customers with the highest total funded amount across all their approved and funded loan applications, along with the count of their funded applications."
+      },
+      {
+        "sql": "SELECT customer_id, ARRAY_AGG(DISTINCT product_type ORDER BY product_type) AS distinct_product_types FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL GROUP BY customer_id HAVING COUNT(DISTINCT product_type) > 1 ORDER BY customer_id;",
+        "description": "Identify customers who have applied for more than one loan product type and have at least one approved loan, showing their customer ID and the distinct product types they applied for."
+      },
+      {
+        "sql": "SELECT product_type, MAX(CASE WHEN funded_date IS NOT NULL THEN DATE_DIFF(funded_date, approved_date, DAY) WHEN closed_date IS NOT NULL THEN DATE_DIFF(closed_date, approved_date, DAY) ELSE NULL END) AS max_approved_duration_days FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` WHERE approved_date IS NOT NULL GROUP BY product_type ORDER BY max_approved_duration_days DESC;",
+        "description": "Determine the maximum number of days an application remained in 'approved' status before being funded or closed, for each product type."
+      },
+      {
+        "sql": "SELECT product_type, FORMAT_DATE('%Y-Q%Q', applied_date) AS application_quarter, COUNTIF(closed_date IS NOT NULL AND funded_date IS NULL) * 100.0 / COUNT(application_id) AS percentage_closed_unfunded FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications` GROUP BY product_type, application_quarter HAVING COUNT(application_id) > 0 ORDER BY application_quarter DESC, percentage_closed_unfunded DESC;",
+        "description": "Determine the percentage of applications that are closed without being funded, grouped by product type and the quarter of the application."
+      },
+      {
+        "sql": "SELECT\n  customer_id,\n  AVG(amount) AS average_loan_amount,\n  STDDEV_SAMP(amount) AS loan_amount_std_dev,\n  MAX(DATE_DIFF(funded_date, applied_date, DAY)) AS max_application_to_funding_days\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE\n  applied_date BETWEEN '2023-01-01' AND '2023-12-31'\nGROUP BY\n  customer_id\nHAVING\n  COUNT(application_id) > 1;",
+        "description": "Determine the average loan amount, its standard deviation, and the maximum time taken from application to funding, for each customer, but only for customers who have applied for more than one loan."
+      },
+      {
+        "sql": "SELECT\n  approved_date,\n  product_type,\n  SUM(amount) OVER (PARTITION BY product_type ORDER BY approved_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30_day_approved_amount\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.loan_applications`\nWHERE approved_date BETWEEN DATE('2023-01-01') AND DATE('2024-01-01')\nGROUP BY approved_date, product_type, amount\nORDER BY product_type, approved_date;",
+        "description": "Determine the rolling 30-day average of the total amount of approved loans, segmented by product type."
+      }
+    ]
+  }
+}

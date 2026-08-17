@@ -1,0 +1,112 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/balance_snapshots",
+    "overview": "This table stores historical financial information for various accounts. It provides a monthly record of financial holdings. This data supports analysis of account value trends over time. It is used for tracking financial performance and changes in account status.",
+    "schema": {
+      "fields": [
+        {
+          "name": "snapshot_month",
+          "description": "This column holds the specific month for which the account balance was recorded."
+        },
+        {
+          "name": "balance",
+          "description": "This column holds the recorded financial amount for the account at the specified month."
+        },
+        {
+          "name": "account_id",
+          "description": "This column holds a unique identifier for each individual account."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "SELECT\n  t1.account_id,\n  t1.snapshot_month,\n  t1.balance AS current_month_balance,\n  t2.balance AS previous_month_balance,\n  (t1.balance - t2.balance) AS balance_drop,\n  (t1.balance - t2.balance) / t2.balance AS percentage_drop\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots` AS t1\nJOIN `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots` AS t2\n  ON t1.account_id = t2.account_id\n  AND t1.snapshot_month = DATE_ADD(t2.snapshot_month, INTERVAL 1 MONTH)\nWHERE t2.balance > 1000\n  AND (t1.balance - t2.balance) / t2.balance < -0.5\nORDER BY t1.account_id, t1.snapshot_month;",
+        "description": "Identify accounts that have experienced a sudden and significant drop in balance, defined as a decrease of more than 50% from the previous month's balance, and where the previous month's balance was above a certain threshold (e.g., 1000)."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  CORR(balance, UNIX_DATE(snapshot_month)) AS balance_time_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nGROUP BY\n  account_id;",
+        "description": "Calculate the correlation between an account's balance and its snapshot month (represented as a numerical value) to understand if there's a linear relationship between time and balance changes for each account."
+      },
+      {
+        "sql": "SELECT\n    account_id\n  FROM (\n    SELECT\n      account_id,\n      snapshot_month,\n      balance,\n      LAG(balance, 1) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS prev_balance_1,\n      LAG(balance, 2) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS prev_balance_2\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n    WHERE\n      snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  )\n  WHERE\n    balance < prev_balance_1\n    AND prev_balance_1 < prev_balance_2\n  GROUP BY\n    account_id\n  HAVING\n    COUNT(*) >= 1;",
+        "description": "Identify accounts where the balance has consistently decreased for three consecutive months."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    balance,\n    LAG(balance, 1) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS previous_month_balance\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  QUALIFY\n    balance > (LAG(balance, 1) OVER (PARTITION BY account_id ORDER BY snapshot_month) * 1.20)\n  ORDER BY\n    account_id, snapshot_month;",
+        "description": "Identify accounts whose balance has increased by more than 20% in any given month compared to the previous month."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    AVG(balance) AS average_monthly_balance,\n    (AVG(balance) - LAG(AVG(balance), 1, 0) OVER (PARTITION BY account_id ORDER BY snapshot_month)) / LAG(AVG(balance), 1, 1) OVER (PARTITION BY account_id ORDER BY snapshot_month) * 100 AS percentage_change_from_previous_month\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    account_id, snapshot_month\n  ORDER BY\n    account_id, snapshot_month;",
+        "description": "Calculate the average monthly balance for each account, showing the percentage change from the previous month's average balance."
+      },
+      {
+        "sql": "SELECT\n  account_id\nFROM\n  (\n    SELECT\n      account_id,\n      snapshot_month,\n      balance,\n      LAG(balance, 1) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS prev_month_balance,\n      LAG(balance, 2) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS prev_2_month_balance\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  )\nWHERE\n  balance > prev_month_balance AND prev_month_balance > prev_2_month_balance\nGROUP BY\n  account_id\nHAVING\n  COUNT(DISTINCT snapshot_month) >= 3;",
+        "description": "Identify accounts where the balance has consistently increased over the last three recorded months, indicating a positive trend."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    balance,\n    LAG(balance, 1, 0) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS previous_month_balance,\n    balance - LAG(balance, 1, 0) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS monthly_balance_change\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nWHERE\n    snapshot_month BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\nORDER BY\n    account_id, snapshot_month;",
+        "description": "Calculate the month-over-month balance change for each account and identify accounts with significant fluctuations."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    MAX(balance) AS max_balance,\n    ARRAY_AGG(snapshot_month ORDER BY balance DESC LIMIT 1)[OFFSET(0)] AS month_of_max_balance,\n    MIN(balance) AS min_balance,\n    ARRAY_AGG(snapshot_month ORDER BY balance ASC LIMIT 1)[OFFSET(0)] AS month_of_min_balance\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    account_id\n  ORDER BY\n    account_id;",
+        "description": "For each account, find the maximum balance recorded and the month it occurred, along with the minimum balance and its corresponding month, to understand the range and timing of balance fluctuations."
+      },
+      {
+        "sql": "SELECT\n  snapshot_month,\n  AVG(balance) AS average_balance,\n  (AVG(balance) - LAG(AVG(balance), 1) OVER (ORDER BY snapshot_month)) / LAG(AVG(balance), 1) OVER (ORDER BY snapshot_month) * 100 AS mom_percentage_change\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nGROUP BY\n  snapshot_month\nORDER BY\n  snapshot_month;",
+        "description": "Calculate the month-over-month percentage change in the average balance across all accounts, highlighting periods of significant growth or decline."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    balance,\n    PERCENT_RANK() OVER (PARTITION BY snapshot_month ORDER BY balance) AS balance_percent_rank\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nWHERE\n    snapshot_month BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH) AND CURRENT_DATE()\nORDER BY\n    snapshot_month, balance_percent_rank DESC;",
+        "description": "Calculate the percentile rank of each account's balance within its respective snapshot month, indicating its relative standing."
+      },
+      {
+        "sql": "SELECT\n    account_id\n  FROM (\n    SELECT\n      account_id,\n      COUNTIF(balance > 1000) AS months_above_threshold,\n      COUNT(snapshot_month) AS total_months\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n    WHERE\n      snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n    GROUP BY\n      account_id\n  )\n  WHERE\n    months_above_threshold >= 0.75 * total_months\n  ORDER BY\n    account_id;",
+        "description": "Identify accounts that have maintained a balance above a certain threshold (e.g., 1000) for at least 75% of the recorded months."
+      },
+      {
+        "sql": "SELECT\n    snapshot_month,\n    APPROX_QUANTILES(balance, 100)[OFFSET(90)] AS ninety_percentile_balance\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    snapshot_month\n  ORDER BY\n    snapshot_month;",
+        "description": "For each month, determine the 90th percentile balance across all accounts, indicating the balance level of the top 10% of accounts."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    balance,\n    SUM(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS cumulative_balance\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  ORDER BY\n    account_id, snapshot_month;",
+        "description": "Calculate the cumulative sum of balances for each account over time, showing the running total."
+      },
+      {
+        "sql": "SELECT\n  t1.account_id,\n  t1.max_balance,\n  t2.snapshot_month AS month_of_max_balance,\n  t1.min_balance,\n  (t1.max_balance - t1.min_balance) AS balance_range\nFROM\n  (\n    SELECT\n      account_id,\n      MAX(balance) AS max_balance,\n      MIN(balance) AS min_balance\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n    GROUP BY\n      account_id\n  ) AS t1\nJOIN\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots` AS t2\nON\n  t1.account_id = t2.account_id AND t1.max_balance = t2.balance;",
+        "description": "For each account, find the maximum monthly balance, the minimum monthly balance, and the range (max - min) of balances, along with the month in which the maximum balance occurred."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    AVG(balance) AS average_balance_last_6_months\n  FROM (\n    SELECT\n      account_id,\n      balance,\n      snapshot_month,\n      ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY snapshot_month DESC) AS rn\n    FROM\n      `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n    WHERE\n      snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  )\n  WHERE\n    rn <= 6\n  GROUP BY\n    account_id\n  ORDER BY\n    account_id;",
+        "description": "Calculate the average balance for each account, but only considering the last 6 months of available data, to focus on recent trends."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    EXTRACT(YEAR FROM snapshot_month) AS snapshot_year,\n    MAX(balance) AS max_yearly_balance,\n    ARRAY_AGG(snapshot_month ORDER BY balance DESC LIMIT 1)[OFFSET(0)] AS month_of_max_balance\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nWHERE\n    snapshot_month BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 5 YEAR) AND CURRENT_DATE()\nGROUP BY\n    account_id, snapshot_year\nORDER BY\n    account_id, snapshot_year;",
+        "description": "Identify the maximum balance achieved by each account within each calendar year."
+      },
+      {
+        "sql": "SELECT\n    snapshot_month,\n    APPROX_QUANTILES(balance, 2)[OFFSET(1)] AS median_balance\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    snapshot_month\n  ORDER BY\n    snapshot_month;",
+        "description": "Find the median balance for each month across all accounts."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    FIRST_VALUE(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS first_recorded_balance,\n    LAST_VALUE(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_recorded_balance,\n    FIRST_VALUE(snapshot_month) OVER (PARTITION BY account_id ORDER BY snapshot_month) AS first_balance_date,\n    LAST_VALUE(snapshot_month) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_balance_date,\n    DATE_DIFF(LAST_VALUE(snapshot_month) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), FIRST_VALUE(snapshot_month) OVER (PARTITION BY account_id ORDER BY snapshot_month), MONTH) AS duration_in_months\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nWHERE\n    snapshot_month BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR) AND CURRENT_DATE()\nQUALIFY\n    ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY snapshot_month DESC) = 1\nORDER BY\n    account_id;",
+        "description": "Find the first and last recorded balance for each account and the duration between these snapshots."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    STDDEV(balance) AS balance_std_dev\n  FROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\n  WHERE\n    snapshot_month BETWEEN '2023-01-01' AND '2023-12-31'\n  GROUP BY\n    account_id\n  ORDER BY\n    balance_std_dev DESC\n  LIMIT 5;",
+        "description": "Determine the top 5 accounts with the highest standard deviation in their monthly balances over the last year, indicating volatile accounts."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  (STDDEV_SAMP(balance) / AVG(balance)) AS coefficient_of_variation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nGROUP BY\n  account_id\nHAVING\n  AVG(balance) IS NOT NULL AND AVG(balance) <> 0\nORDER BY\n  coefficient_of_variation DESC\nLIMIT 10;",
+        "description": "Determine the coefficient of variation (standard deviation divided by the mean) for each account's balance over time, indicating the relative variability of balances, and identify accounts with the highest relative variability."
+      },
+      {
+        "sql": "SELECT\n    account_id,\n    snapshot_month,\n    balance,\n    AVG(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS three_month_moving_avg_balance\nFROM\n    `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nWHERE\n    snapshot_month BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR) AND CURRENT_DATE()\nORDER BY\n    account_id, snapshot_month;",
+        "description": "Determine the average balance for each account over the last three months, providing a smoothed trend."
+      },
+      {
+        "sql": "SELECT\n  account_id,\n  snapshot_month,\n  STDDEV(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS six_month_stddev_balance\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.balance_snapshots`\nQUALIFY STDDEV(balance) OVER (PARTITION BY account_id ORDER BY snapshot_month ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) < 10\nORDER BY account_id, snapshot_month;",
+        "description": "Detect accounts whose balance has remained unusually stagnant over a 6-month period, defined as the standard deviation of their monthly balances being below a very low threshold (e.g., 10)."
+      }
+    ]
+  }
+}

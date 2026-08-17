@@ -1,0 +1,3 @@
+# Hierarchies
+
+* [geography](geography.md)

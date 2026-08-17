@@ -1,0 +1,290 @@
+{
+  "row_count": "1500",
+  "profile": {
+    "fields": [
+      {
+        "name": "ticket_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "1500",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1499",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1498",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1497",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1496",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1495",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1494",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1493",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1492",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            },
+            {
+              "value": "1491",
+              "count": "1",
+              "ratio": 0.0006666666666666666
+            }
+          ],
+          "integer_profile": {
+            "average": 750.4999999999998,
+            "standard_deviation": 433.15701541127095,
+            "min_": "1",
+            "max_": "1500",
+            "quartiles": [
+              "375",
+              "750",
+              "1125"
+            ]
+          }
+        }
+      },
+      {
+        "name": "customer_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.314,
+          "top_n_values": [
+            {
+              "value": "430",
+              "count": "9",
+              "ratio": 0.006
+            },
+            {
+              "value": "364",
+              "count": "9",
+              "ratio": 0.006
+            },
+            {
+              "value": "346",
+              "count": "9",
+              "ratio": 0.006
+            },
+            {
+              "value": "200",
+              "count": "9",
+              "ratio": 0.006
+            },
+            {
+              "value": "441",
+              "count": "8",
+              "ratio": 0.005333333333333333
+            },
+            {
+              "value": "263",
+              "count": "8",
+              "ratio": 0.005333333333333333
+            },
+            {
+              "value": "212",
+              "count": "8",
+              "ratio": 0.005333333333333333
+            },
+            {
+              "value": "91",
+              "count": "8",
+              "ratio": 0.005333333333333333
+            },
+            {
+              "value": "499",
+              "count": "7",
+              "ratio": 0.004666666666666667
+            },
+            {
+              "value": "483",
+              "count": "7",
+              "ratio": 0.004666666666666667
+            }
+          ],
+          "integer_profile": {
+            "average": 247.64066666666668,
+            "standard_deviation": 144.99136483531274,
+            "min_": "1",
+            "max_": "500",
+            "quartiles": [
+              "123",
+              "248",
+              "373"
+            ]
+          }
+        }
+      },
+      {
+        "name": "created_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.536,
+          "top_n_values": [
+            {
+              "value": "2026-04-12",
+              "count": "6",
+              "ratio": 0.004
+            },
+            {
+              "value": "2025-04-26",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2025-01-20",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2025-01-05",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2025-01-04",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2024-11-12",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2024-10-05",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2024-05-03",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2024-03-08",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            },
+            {
+              "value": "2024-02-27",
+              "count": "5",
+              "ratio": 0.0033333333333333335
+            }
+          ]
+        }
+      },
+      {
+        "name": "channel",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0026666666666666666,
+          "top_n_values": [
+            {
+              "value": "phone",
+              "count": "600",
+              "ratio": 0.4
+            },
+            {
+              "value": "chat",
+              "count": "455",
+              "ratio": 0.30333333333333334
+            },
+            {
+              "value": "email",
+              "count": "297",
+              "ratio": 0.198
+            },
+            {
+              "value": "branch",
+              "count": "148",
+              "ratio": 0.09866666666666667
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "6",
+            "average_length": 4.795333333333335
+          }
+        }
+      },
+      {
+        "name": "priority",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0033333333333333335,
+          "top_n_values": [
+            {
+              "value": "3",
+              "count": "708",
+              "ratio": 0.472
+            },
+            {
+              "value": "4",
+              "count": "382",
+              "ratio": 0.25466666666666665
+            },
+            {
+              "value": "2",
+              "count": "189",
+              "ratio": 0.126
+            },
+            {
+              "value": "5",
+              "count": "148",
+              "ratio": 0.09866666666666667
+            },
+            {
+              "value": "1",
+              "count": "73",
+              "ratio": 0.048666666666666664
+            }
+          ],
+          "integer_profile": {
+            "average": 3.2286666666666703,
+            "standard_deviation": 0.9582921117295886,
+            "min_": "1",
+            "max_": "5",
+            "quartiles": [
+              "3",
+              "3",
+              "4"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "row_count": "1380",
+  "profile": {
+    "fields": [
+      {
+        "name": "account_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.8702898550724638,
+          "top_n_values": [
+            {
+              "value": "1195",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1163",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1159",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1143",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1131",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1126",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1124",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1115",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1095",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            },
+            {
+              "value": "1088",
+              "count": "2",
+              "ratio": 0.0014492753623188406
+            }
+          ],
+          "integer_profile": {
+            "average": 594.9746376811594,
+            "standard_deviation": 345.94191721834034,
+            "min_": "1",
+            "max_": "1200",
+            "quartiles": [
+              "296",
+              "599",
+              "890"
+            ]
+          }
+        }
+      },
+      {
+        "name": "customer_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.34057971014492755,
+          "top_n_values": [
+            {
+              "value": "469",
+              "count": "8",
+              "ratio": 0.005797101449275362
+            },
+            {
+              "value": "161",
+              "count": "8",
+              "ratio": 0.005797101449275362
+            },
+            {
+              "value": "108",
+              "count": "8",
+              "ratio": 0.005797101449275362
+            },
+            {
+              "value": "431",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "382",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "172",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "145",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "89",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "64",
+              "count": "7",
+              "ratio": 0.005072463768115942
+            },
+            {
+              "value": "462",
+              "count": "6",
+              "ratio": 0.004347826086956522
+            }
+          ],
+          "integer_profile": {
+            "average": 254.33260869565223,
+            "standard_deviation": 143.39276611932252,
+            "min_": "1",
+            "max_": "500",
+            "quartiles": [
+              "131",
+              "249",
+              "380"
+            ]
+          }
+        }
+      },
+      {
+        "name": "ownership_role",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0014492753623188406,
+          "top_n_values": [
+            {
+              "value": "primary",
+              "count": "1200",
+              "ratio": 0.8695652173913043
+            },
+            {
+              "value": "joint",
+              "count": "180",
+              "ratio": 0.13043478260869565
+            }
+          ],
+          "string_profile": {
+            "min_length": "5",
+            "max_length": "7",
+            "average_length": 6.7391304347826075
+          }
+        }
+      }
+    ]
+  }
+}

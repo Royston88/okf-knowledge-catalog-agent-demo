@@ -18,30 +18,6 @@
 # Declaring `entryLinks: [related]` instead makes every push delete our related
 # links and `reconcileRelatedLinks` recreate them seconds later — correct end
 # state, pointless churn, and a window where the catalog has no links at all.
-# Track A: the okf signal layer on the ingested @bigquery entries.
-#
-# `publishing.aspects` carries the okf signal aspect AND the concept body as
-# `overview`.
-#
-# Publishing `overview` here is what lets Track B stop duplicating. The 14
-# asset-backed concepts used to be pushed as standalone entries in
-# okf_cymbal_v6z as well, so a catalog search returned two objects per table.
-# They now live only on their native @bigquery entry, and the body needs
-# somewhere to go — `overview` is EMPTY on these entries (Measurement G found it
-# absent, not merely blank), so nothing is being displaced.
-#
-# `descriptions` and `queries` ARE scan-owned, and the bundle now takes
-# ownership of them too — written with `userManaged: true`, without which
-# Measurement G showed the next scan destroys them silently. Verified: a
-# successful re-scan afterwards left them byte-identical.
-#
-# This buys UI correctness and ownership, NOT agent reach: overview,
-# descriptions and queries are all non-required aspects, and Dataplex's default
-# `view=FULL` returns non-required aspects as keys only. All three need
-# `view=ALL` to be read.
-#
-# Every aspect listed under publishing must also appear under snapshot, or kcmd
-# refuses the push.
 # `kcmd push` unconditionally reconciles EntryLinks on every entry it touches
 # (sync.ts ~425, no guard). It calls lookupEntryLinks with the types listed
 # HERE as the filter — and when the list is absent the lookup is UNFILTERED, so
@@ -71,23 +47,19 @@
 # `OKF_STAGING_FORM=catalogEntry` reverts to the documents layout, which is the
 # only form that works against a fork WITHOUT `OkfLayout` — i.e. every checkout
 # of Google's repo, since `layouts/okf.ts` is fork-only.
-scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
+scope: kb.royston-dev-8253.us.okf_cymbal_v6z
 layout: okf
 snapshot:
   entries:
-    - dataplex-types.global.bigquery-dataset
-    - dataplex-types.global.bigquery-table
+    - dataplex-types.global.generic
   aspects:
+    - dataplex-types.global.generic
     - dataplex-types.global.overview
-    - dataplex-types.global.descriptions
-    - dataplex-types.global.queries
     - royston-dev-8253.us.okf
 publishing:
   entries:
-    - dataplex-types.global.bigquery-dataset
-    - dataplex-types.global.bigquery-table
+    - dataplex-types.global.generic
   aspects:
-    - royston-dev-8253.us.okf
+    - dataplex-types.global.generic
     - dataplex-types.global.overview
-    - dataplex-types.global.descriptions
-    - dataplex-types.global.queries
+    - royston-dev-8253.us.okf

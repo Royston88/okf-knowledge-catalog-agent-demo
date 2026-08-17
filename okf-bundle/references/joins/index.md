@@ -1,0 +1,15 @@
+# Joins
+
+* [accounts__balance_snapshots](accounts__balance_snapshots.md)
+* [accounts__customers__via_account_owners](accounts__customers__via_account_owners.md)
+* [accounts__transactions](accounts__transactions.md)
+* [calendar__wire_transfers__received_cal](calendar__wire_transfers__received_cal.md)
+* [calendar__wire_transfers__sent_cal](calendar__wire_transfers__sent_cal.md)
+* [customer_segment_history__wire_transfers__segment_asof](customer_segment_history__wire_transfers__segment_asof.md)
+* [customers__accounts](customers__accounts.md)
+* [customers__customers__referrer](customers__customers__referrer.md)
+* [customers__loan_applications](customers__loan_applications.md)
+* [customers__payments](customers__payments.md)
+* [customers__support_tickets](customers__support_tickets.md)
+* [customers__wire_transfers](customers__wire_transfers.md)
+* [loan_applications__investors__via_loan_investors](loan_applications__investors__via_loan_investors.md)

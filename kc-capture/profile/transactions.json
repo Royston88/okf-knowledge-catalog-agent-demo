@@ -1,0 +1,345 @@
+{
+  "row_count": "20000",
+  "profile": {
+    "fields": [
+      {
+        "name": "transaction_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "20000",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19999",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19998",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19997",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19996",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19995",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19994",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19993",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19992",
+              "count": "1",
+              "ratio": 5e-05
+            },
+            {
+              "value": "19991",
+              "count": "1",
+              "ratio": 5e-05
+            }
+          ],
+          "integer_profile": {
+            "average": 10000.499999999985,
+            "standard_deviation": 5773.6470276593855,
+            "min_": "1",
+            "max_": "20000",
+            "quartiles": [
+              "4998",
+              "9998",
+              "14995"
+            ]
+          }
+        }
+      },
+      {
+        "name": "account_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.05405,
+          "top_n_values": [
+            {
+              "value": "123",
+              "count": "47",
+              "ratio": 0.00235
+            },
+            {
+              "value": "63",
+              "count": "44",
+              "ratio": 0.0022
+            },
+            {
+              "value": "78",
+              "count": "42",
+              "ratio": 0.0021
+            },
+            {
+              "value": "28",
+              "count": "42",
+              "ratio": 0.0021
+            },
+            {
+              "value": "107",
+              "count": "41",
+              "ratio": 0.00205
+            },
+            {
+              "value": "98",
+              "count": "41",
+              "ratio": 0.00205
+            },
+            {
+              "value": "136",
+              "count": "40",
+              "ratio": 0.002
+            },
+            {
+              "value": "124",
+              "count": "40",
+              "ratio": 0.002
+            },
+            {
+              "value": "93",
+              "count": "40",
+              "ratio": 0.002
+            },
+            {
+              "value": "70",
+              "count": "40",
+              "ratio": 0.002
+            }
+          ],
+          "integer_profile": {
+            "average": 491.6835500000004,
+            "standard_deviation": 327.8116926448617,
+            "min_": "1",
+            "max_": "1080",
+            "quartiles": [
+              "181",
+              "478",
+              "779"
+            ]
+          }
+        }
+      },
+      {
+        "name": "txn_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.05485,
+          "top_n_values": [
+            {
+              "value": "2025-06-29",
+              "count": "32",
+              "ratio": 0.0016
+            },
+            {
+              "value": "2025-05-22",
+              "count": "32",
+              "ratio": 0.0016
+            },
+            {
+              "value": "2026-04-07",
+              "count": "31",
+              "ratio": 0.00155
+            },
+            {
+              "value": "2024-01-03",
+              "count": "31",
+              "ratio": 0.00155
+            },
+            {
+              "value": "2025-09-01",
+              "count": "30",
+              "ratio": 0.0015
+            },
+            {
+              "value": "2023-07-05",
+              "count": "30",
+              "ratio": 0.0015
+            },
+            {
+              "value": "2026-03-26",
+              "count": "29",
+              "ratio": 0.00145
+            },
+            {
+              "value": "2025-03-03",
+              "count": "29",
+              "ratio": 0.00145
+            },
+            {
+              "value": "2024-12-19",
+              "count": "29",
+              "ratio": 0.00145
+            },
+            {
+              "value": "2024-10-10",
+              "count": "29",
+              "ratio": 0.00145
+            }
+          ]
+        }
+      },
+      {
+        "name": "amount",
+        "type_": "FLOAT",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.49555,
+          "top_n_values": [
+            {
+              "value": "25.57",
+              "count": "11",
+              "ratio": 0.00055
+            },
+            {
+              "value": "10.47",
+              "count": "11",
+              "ratio": 0.00055
+            },
+            {
+              "value": "25.92",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "18.05",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "16.17",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "16.0",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "11.41",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "7.62",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "6.09",
+              "count": "10",
+              "ratio": 0.0005
+            },
+            {
+              "value": "30.93",
+              "count": "9",
+              "ratio": 0.00045
+            }
+          ],
+          "double_profile": {
+            "average": 52.9430385000001,
+            "standard_deviation": 81.63923522497568,
+            "min_": -568.65,
+            "max_": 4950.46,
+            "quartiles": [
+              16.03,
+              32.28,
+              63.66
+            ]
+          }
+        }
+      },
+      {
+        "name": "merchant_category",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.0005,
+          "top_n_values": [
+            {
+              "value": "other",
+              "count": "2086",
+              "ratio": 0.1043
+            },
+            {
+              "value": "retail",
+              "count": "2065",
+              "ratio": 0.10325
+            },
+            {
+              "value": "utilities",
+              "count": "2052",
+              "ratio": 0.1026
+            },
+            {
+              "value": "fuel",
+              "count": "2025",
+              "ratio": 0.10125
+            },
+            {
+              "value": "restaurants",
+              "count": "2015",
+              "ratio": 0.10075
+            },
+            {
+              "value": "travel",
+              "count": "1988",
+              "ratio": 0.0994
+            },
+            {
+              "value": "entertainment",
+              "count": "1972",
+              "ratio": 0.0986
+            },
+            {
+              "value": "healthcare",
+              "count": "1951",
+              "ratio": 0.09755
+            },
+            {
+              "value": "groceries",
+              "count": "1938",
+              "ratio": 0.0969
+            },
+            {
+              "value": "education",
+              "count": "1908",
+              "ratio": 0.0954
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "13",
+            "average_length": 8.162049999999972
+          }
+        }
+      }
+    ]
+  }
+}

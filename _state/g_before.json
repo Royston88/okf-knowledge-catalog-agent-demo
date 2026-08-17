@@ -1,0 +1,93 @@
+{
+  "account_owners": {
+    "description": "<!-- curated:v1 --> CURATED by Phase 6 sign-off. This description was written by a human reviewer and deliberately replaces the generated text for account_owners.",
+    "has_sentinel": true,
+    "job": "kc-doc-v6z-scaffold-copy-account-owners/jobs/ee89b666-1c0d-494c-ae7b-03b0718545fd",
+    "run_time": "2026-08-12T20:24:45Z",
+    "userManaged": true
+  },
+  "accounts": {
+    "description": "<!-- curated:v1 --> CURATED by Phase 6 sign-off. This description was written by a human reviewer and deliberately replaces the generated text for accounts.",
+    "has_sentinel": true,
+    "job": "kc-doc-v6z-scaffold-copy-accounts/jobs/e781c61c-2f86-4b51-bf6a-25580e67ee94",
+    "run_time": "2026-08-12T20:24:45Z",
+    "userManaged": false
+  },
+  "balance_snapshots": {
+    "description": "<!-- curated:v1 --> CURATED by Phase 6 sign-off. This description was written by a human reviewer and deliberately replaces the generated text for balance_snapshots.",
+    "has_sentinel": true,
+    "job": "kc-doc-v6z-scaffold-copy-balance-snapshots/jobs/333350a1-66b6-49a7-bf0e-4c26b2340e57",
+    "run_time": "2026-08-12T20:25:37Z",
+    "userManaged": false
+  },
+  "calendar": {
+    "description": "This table provides a comprehensive calendar of dates. It includes information about each specific date, its corresponding year, and its quarterly designation. The table also indicates whether a given date is a holiday and specifies the day of the week. This resource supports time-based analysis and reporting.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-calendar/jobs/2006ebe6-e282-4dd4-9a3d-25f2c460460f",
+    "run_time": "2026-08-12T20:25:47Z",
+    "userManaged": false
+  },
+  "customer_segment_history": {
+    "description": "This table tracks the historical segmentation of customers. It records the different segments a customer belonged to over time. This data supports analysis of customer segment changes and their impact. It also enables understanding customer lifecycle within various segments.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-customer-segment-history/jobs/9027b9aa-4219-411e-b484-35ef87a1de24",
+    "run_time": "2026-08-12T20:26:31Z",
+    "userManaged": false
+  },
+  "customers": {
+    "description": "<!-- curated:v1 --> CURATED by Phase 6 sign-off. This description was written by a human reviewer and deliberately replaces the generated text for customers.",
+    "has_sentinel": true,
+    "job": "kc-doc-v6z-scaffold-copy-customers/jobs/6b104833-1d1c-487b-a6f4-9b58dde00ed9",
+    "run_time": "2026-08-12T20:26:50Z",
+    "userManaged": true
+  },
+  "investors": {
+    "description": "This table stores information about individuals or entities that provide financial capital. It serves as a central repository for identifying and categorizing these financial contributors. The data supports analysis of different types of financial backing and their associated details. This table is essential for understanding the sources of funding.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-investors/jobs/8e2c4891-682c-445f-b1b4-5f203da74ffd",
+    "run_time": "2026-08-12T20:27:24Z",
+    "userManaged": false
+  },
+  "loan_applications": {
+    "description": "This table stores comprehensive records of financial product applications. It tracks the lifecycle of each application from submission through various stages of approval and funding. The data supports analysis of application volumes, processing times, and the overall flow of financial product requests.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-loan-applications/jobs/33ec3f2c-b7f0-4dcc-833e-f2e640f5893a",
+    "run_time": "2026-08-12T20:27:43Z",
+    "userManaged": false
+  },
+  "loan_investors": {
+    "description": "This table records the involvement of various investors in loan applications. It details how different investors contribute to specific loan applications. The table supports analysis of investor participation across the loan portfolio. It also helps in understanding the distribution of loan allocations among investors.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-loan-investors/jobs/da0534e4-9d48-4b1c-9716-0bc778ddfdde",
+    "run_time": "2026-08-12T20:28:17Z",
+    "userManaged": false
+  },
+  "payments": {
+    "description": "This table records individual financial transactions. It captures details about monetary transfers and their associated attributes. The data supports analysis of transaction volumes, customer spending patterns, and payment channel usage. It provides a historical record of financial movements.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-payments/jobs/7a714fa9-7303-4294-80e0-a4047a773c08",
+    "run_time": "2026-08-12T20:28:46Z",
+    "userManaged": false
+  },
+  "support_tickets": {
+    "description": "This table stores information about customer support interactions. It tracks individual requests for assistance. The data supports analysis of customer service operations. It helps in understanding the volume and nature of customer inquiries. This table is essential for monitoring and improving customer support efficiency.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-support-tickets/jobs/4fcf94f6-6dcd-4015-b523-1ad8b7cf7dbe",
+    "run_time": "2026-08-12T20:29:09Z",
+    "userManaged": false
+  },
+  "transactions": {
+    "description": "This table stores individual financial transactions. It provides a record of monetary movements associated with accounts. This data supports analysis of spending patterns and financial activity. It is useful for tracking account debits and credits.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-transactions/jobs/bf675501-5237-4de3-b490-6d998067b1ea",
+    "run_time": "2026-08-12T20:29:38Z",
+    "userManaged": false
+  },
+  "wire_transfers": {
+    "description": "This table stores records of financial transfers between accounts. It captures details about the movement of funds, including the amounts and timing of these transactions. The table supports analysis of transfer activity and financial flows. It provides a historical record of all completed transfers.",
+    "has_sentinel": false,
+    "job": "kc-doc-v6z-scaffold-copy-wire-transfers/jobs/5f20475c-e9af-4ccb-8da6-9a182a97e9f8",
+    "run_time": "2026-08-12T20:30:01Z",
+    "userManaged": false
+  }
+}

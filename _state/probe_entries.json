@@ -1,0 +1,1760 @@
+{
+  "bigqueryNative": {
+    "datasets/cymbal_bank_v6z_scaffold_demo_copy": {
+      "description": "Copy of lakehouse_dev_cymbal_bank_demo for the OKF/kcmd mechanism proof (v6z-okf-projector)."
+    },
+    "tables/account_owners": {
+      "columnCount": 3,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/accounts": {
+      "columnCount": 7,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/balance_snapshots": {
+      "columnCount": 3,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/calendar": {
+      "columnCount": 6,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/customer_segment_history": {
+      "columnCount": 4,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/customers": {
+      "columnCount": 8,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/investors": {
+      "columnCount": 3,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/loan_applications": {
+      "columnCount": 8,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/loan_investors": {
+      "columnCount": 4,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/payments": {
+      "columnCount": 6,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/support_tickets": {
+      "columnCount": 5,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/transactions": {
+      "columnCount": 5,
+      "columnsWithDescription": 0,
+      "description": null
+    },
+    "tables/wire_transfers": {
+      "columnCount": 6,
+      "columnsWithDescription": 0,
+      "description": null
+    }
+  },
+  "dataset": "cymbal_bank_v6z_scaffold_demo_copy",
+  "entries": {
+    "datasets/cymbal_bank_v6z_scaffold_demo_copy": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:22.807886Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:33.353487Z"
+        },
+        "655216118709.global.bigquery-dataset": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:11:51.382Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:11:51.382Z"
+          },
+          "createTime": "2026-08-12T20:11:52.986185Z",
+          "dataKeys": [
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:11:52.986185Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:33:55.081481Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:25:47.050719Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:00.454032Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:33.353487Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:33:55.081481Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:25:47.050719Z"
+        }
+      },
+      "createTime": "2026-08-12T20:11:52.986185Z",
+      "entrySource": {
+        "createTime": "2026-08-12T20:11:51.382Z",
+        "description": "Copy of lakehouse_dev_cymbal_bank_demo for the OKF/kcmd mechanism proof (v6z-okf-projector).",
+        "displayName": "cymbal_bank_v6z_scaffold_demo_copy",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:11:51.382Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-dataset",
+      "updateTime": "2026-08-15T16:26:33.372715Z"
+    },
+    "tables/account_owners": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:54.380722Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:44.974751Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:11:56.570Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:11:56.570Z"
+          },
+          "createTime": "2026-08-12T20:11:57.260926Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:11:57.260926Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:11:56.570Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:11:56.570Z"
+          },
+          "createTime": "2026-08-12T20:11:57.260926Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:11:57.260926Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:25:45.426480Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:18.856415Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:19.780481Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:44.974751Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:25:45.426480Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:18.856415Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:11:56.570Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:11:56.570Z"
+          },
+          "createTime": "2026-08-12T20:11:57.260926Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:11:57.260926Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:11:56.570Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:11:56.570Z"
+          },
+          "createTime": "2026-08-12T20:11:57.260926Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:11:57.260926Z"
+        }
+      },
+      "createTime": "2026-08-12T20:11:57.260926Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:11:56.570Z",
+        "displayName": "account_owners",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/account_owners",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:11:56.570Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 3,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:44.995905Z"
+    },
+    "tables/accounts": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:34:37.255809Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:44.142799Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:03.127Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:03.127Z"
+          },
+          "createTime": "2026-08-12T20:12:05.270736Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:05.270736Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:03.127Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:03.127Z"
+          },
+          "createTime": "2026-08-12T20:12:05.270736Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:05.270736Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:25:35.389070Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:44.142799Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:18.327116Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:44.142799Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:25:35.389070Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:26:04.178383Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:03.127Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:03.127Z"
+          },
+          "createTime": "2026-08-12T20:12:05.270736Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:05.270736Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:03.127Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:03.127Z"
+          },
+          "createTime": "2026-08-12T20:12:05.270736Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:05.270736Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:05.270736Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:03.127Z",
+        "displayName": "accounts",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/accounts",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:03.127Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 7,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:44.164175Z"
+    },
+    "tables/balance_snapshots": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:51.023964Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:43.309359Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:09.229Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:09.229Z"
+          },
+          "createTime": "2026-08-12T20:12:10.047633Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:10.047633Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:09.229Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:09.229Z"
+          },
+          "createTime": "2026-08-12T20:12:10.047633Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:10.047633Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:26:20.963149Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:16.325439Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:16.931880Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:43.309359Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:26:20.963149Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:43.309359Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:09.229Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:09.229Z"
+          },
+          "createTime": "2026-08-12T20:12:10.047633Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:10.047633Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:09.229Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:09.229Z"
+          },
+          "createTime": "2026-08-12T20:12:10.047633Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:10.047633Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:10.047633Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:09.229Z",
+        "displayName": "balance_snapshots",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/balance_snapshots",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:09.229Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 3,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:43.329738Z"
+    },
+    "tables/calendar": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:49.760707Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:42.506207Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:15.035Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:15.035Z"
+          },
+          "createTime": "2026-08-12T20:12:15.611573Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:15.611573Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:15.035Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:15.035Z"
+          },
+          "createTime": "2026-08-12T20:12:15.611573Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:15.611573Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:26:44.916487Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:26:01.599583Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:15.507736Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:42.506207Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:26:44.916487Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:42.506207Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:15.035Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:15.035Z"
+          },
+          "createTime": "2026-08-12T20:12:15.611573Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:15.611573Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:15.035Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:15.035Z"
+          },
+          "createTime": "2026-08-12T20:12:15.611573Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:15.611573Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:15.611573Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:15.035Z",
+        "displayName": "calendar",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/calendar",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:15.035Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 6,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:42.527470Z"
+    },
+    "tables/customer_segment_history": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:48.403366Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:41.664863Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:20.831Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:20.831Z"
+          },
+          "createTime": "2026-08-12T20:12:21.520848Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:21.520848Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:20.831Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:20.831Z"
+          },
+          "createTime": "2026-08-12T20:12:21.520848Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:21.520848Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:27:15.726713Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:41.664863Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:14.150871Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:41.664863Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:27:15.726713Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:13.850575Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:20.831Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:20.831Z"
+          },
+          "createTime": "2026-08-12T20:12:21.520848Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:21.520848Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:20.831Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:20.831Z"
+          },
+          "createTime": "2026-08-12T20:12:21.520848Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:21.520848Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:21.520848Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:20.831Z",
+        "displayName": "customer_segment_history",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customer_segment_history",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:20.831Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 4,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:41.689535Z"
+    },
+    "tables/customers": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:46.622283Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:40.879711Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:27.536Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:27.536Z"
+          },
+          "createTime": "2026-08-12T20:12:28.243694Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:28.243694Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:27.536Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:27.536Z"
+          },
+          "createTime": "2026-08-12T20:12:28.243694Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:28.243694Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:27:38.203496Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T08:50:04.764143Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:12.701757Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:40.879711Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:27:38.203496Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:25:58.919103Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:27.536Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:27.536Z"
+          },
+          "createTime": "2026-08-12T20:12:28.243694Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:28.243694Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:27.536Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:27.536Z"
+          },
+          "createTime": "2026-08-12T20:12:28.243694Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:28.243694Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:28.243694Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:27.536Z",
+        "displayName": "customers",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/customers",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:27.536Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 8,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:40.897481Z"
+    },
+    "tables/investors": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:45.382734Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:39.917471Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:32.761Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:32.761Z"
+          },
+          "createTime": "2026-08-12T20:12:33.939283Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:33.939283Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:32.761Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:32.761Z"
+          },
+          "createTime": "2026-08-12T20:12:33.939283Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:33.939283Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:28:13.591477Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:11.390223Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:11.189303Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:39.917471Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:28:13.591477Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:39.917471Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:32.761Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:32.761Z"
+          },
+          "createTime": "2026-08-12T20:12:33.939283Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:33.939283Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:32.761Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:32.761Z"
+          },
+          "createTime": "2026-08-12T20:12:33.939283Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:33.939283Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:33.939283Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:32.761Z",
+        "displayName": "investors",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/investors",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:32.761Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 3,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:39.941697Z"
+    },
+    "tables/loan_applications": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:43.655853Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:39.102879Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:38.671Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:38.671Z"
+          },
+          "createTime": "2026-08-12T20:12:39.404121Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:39.404121Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:38.671Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:38.671Z"
+          },
+          "createTime": "2026-08-12T20:12:39.404121Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:39.404121Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:28:43.131713Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:39.102879Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:09.748362Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:39.102879Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:28:43.131713Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T07:25:56.206879Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:38.671Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:38.671Z"
+          },
+          "createTime": "2026-08-12T20:12:39.404121Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:39.404121Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:38.671Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:38.671Z"
+          },
+          "createTime": "2026-08-12T20:12:39.404121Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:39.404121Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:39.404121Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:38.671Z",
+        "displayName": "loan_applications",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_applications",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:38.671Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 8,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:39.125988Z"
+    },
+    "tables/loan_investors": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:42.003430Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:38.318511Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:44.238Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:44.238Z"
+          },
+          "createTime": "2026-08-12T20:12:44.960226Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:44.960226Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:44.238Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:44.238Z"
+          },
+          "createTime": "2026-08-12T20:12:44.960226Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:44.960226Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:06.722037Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:38.318511Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:08.320069Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:38.318511Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:06.722037Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:08.729935Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:44.238Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:44.238Z"
+          },
+          "createTime": "2026-08-12T20:12:44.960226Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:44.960226Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:44.238Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:44.238Z"
+          },
+          "createTime": "2026-08-12T20:12:44.960226Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:44.960226Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:44.960226Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:44.238Z",
+        "displayName": "loan_investors",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/loan_investors",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:44.238Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 4,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:38.335788Z"
+    },
+    "tables/payments": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:40.273033Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:37.474495Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:50.087Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:50.087Z"
+          },
+          "createTime": "2026-08-12T20:12:51.786174Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:51.786174Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:50.087Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:50.087Z"
+          },
+          "createTime": "2026-08-12T20:12:51.786174Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:51.786174Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:31.841483Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:37.474495Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:06.885274Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:37.474495Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:31.841483Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:37.474495Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:50.087Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:50.087Z"
+          },
+          "createTime": "2026-08-12T20:12:51.786174Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:51.786174Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:50.087Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:50.087Z"
+          },
+          "createTime": "2026-08-12T20:12:51.786174Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:51.786174Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:51.786174Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:50.087Z",
+        "displayName": "payments",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/payments",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:50.087Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 6,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:37.496101Z"
+    },
+    "tables/support_tickets": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:38.487568Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:36.629471Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:56.101Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:56.101Z"
+          },
+          "createTime": "2026-08-12T20:12:56.672438Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:12:56.672438Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:56.101Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:56.101Z"
+          },
+          "createTime": "2026-08-12T20:12:56.672438Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:12:56.672438Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:53.235140Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:36.629471Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:05.440960Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:36.629471Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:29:53.235140Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:36.629471Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:56.101Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:56.101Z"
+          },
+          "createTime": "2026-08-12T20:12:56.672438Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:12:56.672438Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:12:56.101Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:12:56.101Z"
+          },
+          "createTime": "2026-08-12T20:12:56.672438Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:12:56.672438Z"
+        }
+      },
+      "createTime": "2026-08-12T20:12:56.672438Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:12:56.101Z",
+        "displayName": "support_tickets",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/support_tickets",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:12:56.101Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 5,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:36.646400Z"
+    },
+    "tables/transactions": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:36.718306Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:35.791759Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:03.875Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:03.875Z"
+          },
+          "createTime": "2026-08-12T20:13:05.580419Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:13:05.580419Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:03.875Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:03.875Z"
+          },
+          "createTime": "2026-08-12T20:13:05.580419Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:13:05.580419Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:30:19.270401Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:35.791759Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:03.998979Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:35.791759Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:30:19.270401Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:35.791759Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:03.875Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:03.875Z"
+          },
+          "createTime": "2026-08-12T20:13:05.580419Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:13:05.580419Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:03.875Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:03.875Z"
+          },
+          "createTime": "2026-08-12T20:13:05.580419Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:13:05.580419Z"
+        }
+      },
+      "createTime": "2026-08-12T20:13:05.580419Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:13:03.875Z",
+        "displayName": "transactions",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/transactions",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:13:03.875Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 5,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:35.815148Z"
+    },
+    "tables/wire_transfers": {
+      "aspects": {
+        "404799090046.us.okf": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T00:40:24.831158Z",
+          "dataKeys": [
+            "generated",
+            "okf_type",
+            "sources",
+            "status",
+            "tags",
+            "title",
+            "verified"
+          ],
+          "updateTime": "2026-08-15T16:26:34.935439Z"
+        },
+        "655216118709.global.bigquery-policy": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:12.396Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:12.396Z"
+          },
+          "createTime": "2026-08-12T20:13:13.930302Z",
+          "dataKeys": [
+            "numColumnDataPolicies",
+            "numRowAccessPolicies",
+            "numTags"
+          ],
+          "updateTime": "2026-08-12T20:13:13.930302Z"
+        },
+        "655216118709.global.bigquery-table": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:12.396Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:12.396Z"
+          },
+          "createTime": "2026-08-12T20:13:13.930302Z",
+          "dataKeys": [
+            "tableType",
+            "type"
+          ],
+          "updateTime": "2026-08-12T20:13:13.930302Z"
+        },
+        "655216118709.global.descriptions": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:31:01.189009Z",
+          "dataKeys": [
+            "description",
+            "fields",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-15T16:26:34.935439Z"
+        },
+        "655216118709.global.overview": {
+          "aspectSource": {},
+          "createTime": "2026-08-13T01:59:02.526243Z",
+          "dataKeys": [
+            "content",
+            "contentType"
+          ],
+          "updateTime": "2026-08-15T16:26:34.935439Z"
+        },
+        "655216118709.global.queries": {
+          "aspectSource": {},
+          "createTime": "2026-08-12T20:31:01.189009Z",
+          "dataKeys": [
+            "queries",
+            "userManaged"
+          ],
+          "updateTime": "2026-08-13T09:59:03.422031Z"
+        },
+        "655216118709.global.schema": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:12.396Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:12.396Z"
+          },
+          "createTime": "2026-08-12T20:13:13.930302Z",
+          "dataKeys": [
+            "fields"
+          ],
+          "updateTime": "2026-08-12T20:13:13.930302Z"
+        },
+        "655216118709.global.storage": {
+          "aspectSource": {
+            "createTime": "2026-08-12T20:13:12.396Z",
+            "dataVersion": "Ingestion/1.0.0",
+            "updateTime": "2026-08-12T20:13:12.396Z"
+          },
+          "createTime": "2026-08-12T20:13:13.930302Z",
+          "dataKeys": [
+            "resourceName",
+            "service"
+          ],
+          "updateTime": "2026-08-12T20:13:13.930302Z"
+        }
+      },
+      "createTime": "2026-08-12T20:13:13.930302Z",
+      "entrySource": {
+        "ancestors": [
+          {
+            "name": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy",
+            "type": "dataplex-types.global.bigquery-dataset"
+          }
+        ],
+        "createTime": "2026-08-12T20:13:12.396Z",
+        "displayName": "wire_transfers",
+        "location": "us",
+        "platform": "GCP",
+        "resource": "projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/wire_transfers",
+        "system": "BIGQUERY",
+        "updateTime": "2026-08-12T20:13:12.396Z"
+      },
+      "entryType": "projects/655216118709/locations/global/entryTypes/bigquery-table",
+      "schemaFieldCount": 6,
+      "schemaFieldKeys": [
+        "dataType",
+        "metadataType",
+        "mode",
+        "name"
+      ],
+      "schemaFieldsWithDescription": 0,
+      "updateTime": "2026-08-15T16:26:34.963341Z"
+    }
+  },
+  "location": "us",
+  "project": "royston-dev-8253"
+}

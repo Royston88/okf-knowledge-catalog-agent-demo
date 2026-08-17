@@ -1,0 +1,35 @@
+# Phase 8 question set. Every question targets a hazard the OKF bundle documents,
+# and every one has a distinct correct answer AND a distinct naive-trap answer,
+# so an arm's response can be classified rather than judged.
+#
+# Ground truth computed directly against BigQuery (see docs/RESULTS.md).
+- id: q1
+  question: "How many accounts does Cymbal Bank have?"
+  hazard: "accounts carries duplicate loads (batch 2 re-loads 60 rows)"
+  correct: 1200
+  trap: 1260
+  trap_means: "counted rows instead of distinct accounts"
+- id: q2
+  question: "What is the total balance across all accounts?"
+  hazard: "same duplicate load; summing raw rows double-counts 60 accounts"
+  correct: 6073496.58
+  trap: 6416658.57
+  trap_means: "summed undeduplicated rows"
+- id: q3
+  question: "How many accounts have more than one owner?"
+  hazard: "M:N ownership lives in the account_owners bridge, not accounts.customer_id"
+  correct: 180
+  trap: 0
+  trap_means: "used accounts.customer_id, which only names the primary owner"
+- id: q4
+  question: "What is the average number of transactions per account?"
+  hazard: "accounts with zero transactions must be in the denominator"
+  correct: 16.6667
+  trap: 18.5185
+  trap_means: "averaged over accounts that have transactions only"
+- id: q5
+  question: "How many customers are currently in each segment? Give the total number of current segment rows."
+  hazard: "customer_segment_history is SCD2; current rows are valid_to = 9999-12-31"
+  correct: 500
+  trap: 827
+  trap_means: "counted all history rows instead of current ones"

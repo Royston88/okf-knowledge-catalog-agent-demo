@@ -1,0 +1,253 @@
+project: royston-dev-8253
+dataset: cymbal_bank_v6z_scaffold_demo_copy
+graph_name: cymbal_graph
+root: customers
+
+looker:
+  project: cymbal_bank_v6z_scaffold_009
+  model: cymbal_bank_v6z_scaffold_009
+  connection: cymbal_bank_v6z_scaffold_009_bq
+  bq_dataset_constant: cymbal_bank_v6z_scaffold_009l_demo
+
+defaults:
+  ratio_format:    "0.00"
+  rate_format:     "0.0000"
+  currency_format: usd
+  timeframes:      [raw, date, month, year]
+
+layer1_structure:
+  tables:
+    customers:              {primary_key: customer_id,     singular_label: customer}
+    accounts:               {primary_key: account_id,      singular_label: account}
+    investors:              {primary_key: investor_id,     singular_label: investor}
+    loan_applications:      {primary_key: application_id,   singular_label: loan_application}
+    payments:               {primary_key: payment_id,      singular_label: payment}
+    support_tickets:        {primary_key: ticket_id,       singular_label: support_ticket}
+    transactions:           {primary_key: transaction_id,  singular_label: transaction}
+    wire_transfers:         {primary_key: transfer_id,     singular_label: wire_transfer}
+    calendar:               {primary_key: cal_date,        singular_label: calendar_day}
+    customer_segment_history: {primary_key: [customer_id, valid_from], singular_label: segment_version}
+
+  relationships:
+    # customers hub (1:N fan-safe children)
+    - {parent: customers, child: accounts,          fk: customer_id, label: owns}
+    - {parent: customers, child: payments,          fk: customer_id, label: made}
+    - {parent: customers, child: support_tickets,   fk: customer_id, label: opened}
+    - {parent: customers, child: wire_transfers,    fk: customer_id, label: sent}
+    - {parent: customers, child: loan_applications, fk: customer_id, label: applied_for}
+    # accounts -> its children (reachable from root via customers, 2 hops)
+    - {parent: accounts, child: transactions,       fk: account_id, label: has_txn}
+    # SNAPSHOT edge: accounts -> balance_snapshots (REQUIRED to make the snapshot reachable from root)
+    - {parent: accounts, child: balance_snapshots,  fk: account_id, label: snapshotted}
+    # RECURSIVE self-ref: referral tree (customer referred_by customer)
+    - {parent: customers, child: customers, fk: referred_by, label: referred_by, alias: referrer}
+    # ROLE-PLAYING calendar on wire_transfers (two date roles: sent / received)
+    - {parent: calendar, child: wire_transfers, fk: sent_date,     label: wire_sent_on,     alias: sent_cal}
+    - {parent: calendar, child: wire_transfers, fk: received_date, label: wire_received_on, alias: received_cal}
+    # AS-OF / SCD2: attribute a wire transfer to the customer segment valid AT THE TIME of the wire (sent_date)
+    - {parent: customer_segment_history, child: wire_transfers, fk: customer_id, label: segment_at_wire,
+       alias: segment_asof,
+       as_of: {fact_date: sent_date, entity_key: customer_id, valid_from: valid_from, valid_to: valid_to}}
+
+  bridges:
+    account_owners: {between: {accounts: account_id, customers: customer_id}}
+    loan_investors: {between: {loan_applications: application_id, investors: investor_id}}
+
+  snapshots:
+    balance_snapshots: {singular_label: balance_snapshot, entity_key: account_id, period: snapshot_month}
+
+  accumulating:
+    loan_applications: {milestones: [applied_date, approved_date, funded_date, closed_date]}
+
+  hierarchies:
+    geography: {table: customers, levels: [region, state, city]}
+
+  columns:
+    customers:
+      customer_id:  {type: number, hidden: true}
+      name:         string
+      segment:      {type: string, description: "The customer's CURRENT segment (retail/premier/private). For the segment at a past point in time, use segment_asof."}
+      region:       string
+      signup_date:  time
+      referred_by:  {type: number, hidden: true}
+      state:        string
+      city:         string
+    accounts:
+      account_id:     {type: number, hidden: true}
+      customer_id:    {type: number, hidden: true}
+      account_type:   string
+      balance:        number
+      interest_rate:  number
+      open_date:      time
+      load_batch_id:  {type: number, hidden: true}
+    investors:
+      investor_id:    {type: number, hidden: true}
+      name:           string
+      investor_type:  string
+    loan_applications:
+      application_id: {type: number, hidden: true}
+      customer_id:    {type: number, hidden: true}
+      product_type:   string
+      amount:         number
+      applied_date:   time
+      approved_date:  time
+      funded_date:    time
+      closed_date:    time
+    payments:
+      payment_id:    {type: number, hidden: true}
+      customer_id:   {type: number, hidden: true}
+      amount:        number
+      payment_date:  time
+      payment_month: time
+      channel:       string
+    support_tickets:
+      ticket_id:    {type: number, hidden: true}
+      customer_id:  {type: number, hidden: true}
+      created_date: time
+      channel:      string
+      priority:     number
+    transactions:
+      transaction_id:    {type: number, hidden: true}
+      account_id:        {type: number, hidden: true}
+      txn_date:          time
+      amount:            number
+      merchant_category: string
+    wire_transfers:
+      transfer_id:   {type: number, hidden: true}
+      customer_id:   {type: number, hidden: true}
+      amount:        number
+      sent_date:     time
+      received_date: time
+      corridor:      string
+    calendar:
+      cal_date:       {type: date, description: "The reference calendar date (the join key for the sent_cal / received_cal role-played calendars). Declared as a plain date so it stays referenceable in role joins and holiday filters."}
+      cal_year:       number
+      cal_quarter:    string
+      fiscal_quarter: string
+      is_holiday:     {type: yesno, description: "True if the calendar date is a bank holiday. Use the pre-built measures wire_amount_sent_on_holiday / wire_amount_received_on_holiday for wires sent/received on a holiday."}
+      day_of_week:    string
+    customer_segment_history:
+      customer_id: {type: number, hidden: true}
+      segment:     {type: string, description: "The customer's segment AS OF a past date (the historical/point-in-time segment via the segment_asof as-of join). Use this for segment-at-time-of-event, NOT the current customers.segment."}
+      valid_from:  {type: date, description: "SCD2 version effective-start date (used by the segment_asof range join)."}
+      valid_to:    {type: date, description: "SCD2 version effective-end date (exclusive; used by the segment_asof range join)."}
+    account_owners:
+      account_id:     {type: number, hidden: true}
+      customer_id:    {type: number, hidden: true}
+      ownership_role: {type: string, description: "Ownership role of the customer on the account: primary or joint."}
+    loan_investors:
+      application_id:      {type: number, hidden: true}
+      investor_id:         {type: number, hidden: true}
+      allocation_pct:      number
+      participation_tier:  string
+    balance_snapshots:
+      account_id:     {type: number, hidden: true}
+      snapshot_month: {type: time, description: "The month-end date of a monthly account balance snapshot. This is the 'monthly snapshot' / 'snapshot history' time axis."}
+      balance:        {type: number, description: "The account balance recorded at each monthly snapshot (the snapshot-history balance, distinct from the current accounts.balance)."}
+
+layer2_semantics:
+  dedup:
+    accounts: {partition_by: account_id, order_by: load_batch_id}   # ETL double-load (load_batch_id 1 vs 2) -> keep 1 row/account
+
+  m2n:
+    account_owners: {entity: accounts, allocation: count_once}       # count-once: owner_count / is_joint (primary/joint); also feeds the equal split below
+    loan_investors: {entity: loan_applications, allocation: count_once}  # count-once enrichment for the WEIGHTED split below
+
+  measures:
+    # --- rule-derivable base sums ---
+    - {table: accounts, name: total_balance, type: additive, column: balance,
+       description: "Sum of the CURRENT account balance across accounts. For balance at a monthly snapshot use balance_period_end / avg_monthly_balance."}   # rule-derivable
+    - {table: payments, name: total_payments, type: additive, column: amount}   # rule-derivable (PoP base)
+    - {table: transactions, name: total_txn_amount, type: additive, column: amount}  # rule-derivable
+    - {table: wire_transfers, name: total_wire_amount, type: additive, column: amount}  # rule-derivable
+    - {table: loan_applications, name: total_loan_amount, type: additive, column: amount}  # rule-derivable
+
+    # --- ROLE-PLAYING holiday filters as PRE-BUILT named measures (avoids agent thrash on the two-role join) ---
+    - {table: wire_transfers, name: wire_amount_sent_on_holiday, type: filtered_sum,
+       column: amount, filter_field: sent_cal.is_holiday, filter_value: "Yes",
+       description: "Total wire amount for wires whose SENT date fell on a bank holiday (filters total_wire_amount by the sent_cal role-played calendar's is_holiday)."}   # rule-derivable (role-played filter)
+    - {table: wire_transfers, name: wire_amount_received_on_holiday, type: filtered_sum,
+       column: amount, filter_field: received_cal.is_holiday, filter_value: "Yes",
+       description: "Total wire amount for wires whose RECEIVED date fell on a bank holiday (filters total_wire_amount by the received_cal role-played calendar's is_holiday)."}   # rule-derivable (role-played filter)
+
+    # --- zero-fill ratios (denominator = parent grain) ---
+    - {table: customers, name: avg_accounts_per_customer, type: ratio,
+       numerator: accounts.count, denominator: customers.count}   # rule-derivable
+    - {table: customers, name: avg_tickets_per_customer, type: ratio,
+       numerator: support_tickets.count, denominator: customers.count}  # rule-derivable
+    # zero-fill avg transactions per ACCOUNT (across ALL accounts incl. zero-txn accounts)
+    - {table: accounts, name: avg_txns_per_account, type: ratio,
+       numerator: transactions.count, denominator: accounts.count,
+       description: "Average number of transactions per account across ALL accounts, including accounts with zero transactions."}  # rule-derivable
+
+    # --- child-side filter x zero-fill (does NOT ride free): avg txns per account in a given year ---
+    - {table: accounts, name: avg_txns_per_account_in_year, type: filtered_ratio,
+       numerator_table: transactions, numerator_period_col: txn_date, parameter: selected_year,
+       materialize_graph_years: [2024, 2025, 2026],
+       description: "Average transactions per account for a selected year, counted across ALL accounts (accounts with zero transactions in that year count as zero, not dropped). Set the selected_year parameter; do NOT put txn_date in a WHERE clause (that would drop zero-transaction accounts)."}
+    # keep the customer-level payments-per-year filtered ratio as well
+    - {table: customers, name: avg_payments_per_customer_in_year, type: filtered_ratio,
+       numerator_table: payments, numerator_period_col: payment_date, parameter: selected_pay_year,
+       materialize_graph_years: [2024, 2025, 2026]}
+
+    # --- WEIGHTED AVERAGE (avg-of-avg): weight interest_rate by balance ---
+    - {table: accounts, name: weighted_avg_interest_rate, type: rate,
+       column: interest_rate, weight_by: balance}   # business: weight
+
+    # --- SEMI-ADDITIVE stock: monthly balance snapshot (sum across accounts, NOT across months) ---
+    - {table: balance_snapshots, name: balance_period_end, type: semi_additive,
+       column: balance, period: snapshot_month,
+       description: "Total account balance AS OF the single most recent monthly snapshot (period-end stock; summed across accounts, never summed across months). For a specific or per-month total, group total_snapshot_balance by snapshot_month instead."}   # business: period
+    - {table: balance_snapshots, name: avg_monthly_balance, type: semi_additive_avg,
+       column: balance, period: snapshot_month,
+       description: "Average monthly TOTAL account balance across the snapshot history: sum balance per snapshot month, then average those monthly totals."}   # business: period
+    # plain per-month total balance (summable within a month) so 'balance at each of the two most recent month-ends' can group by month
+    - {table: balance_snapshots, name: total_snapshot_balance, type: additive, column: balance,
+       description: "Total snapshot balance summed across accounts WITHIN a snapshot month. Group by snapshot_month to get the month-end total for each month (e.g. the two most recent month-ends)."}   # rule-derivable
+
+    # --- M:N SPLIT (equal): split account balance among owners; group by ownership_role (primary vs joint) ---
+    - {table: account_owners, name: allocated_account_balance, type: allocated_sum,
+       amount_table: accounts, amount_column: balance, weight: owner_count,
+       description: "Account balance split EQUALLY among the account's owners, attributable by ownership_role (primary vs joint)."}   # business: allocation (equal)
+
+    # --- WEIGHTED M:N SPLIT: split loan amount among investors by allocation_pct; group by participation_tier ---
+    - {table: loan_investors, name: allocated_loan_amount, type: allocated_sum,
+       amount_table: loan_applications, amount_column: amount,
+       weight: owner_count, weight_column: allocation_pct}   # business: allocation (weighted)
+
+    # --- ACCUMULATING-snapshot durations (loan funnel) ---
+    - {table: loan_applications, name: avg_days_to_approve, type: milestone_lag,
+       from: applied_date, to: approved_date, agg: average, unit: DAY}   # business
+    - {table: loan_applications, name: avg_days_to_fund, type: milestone_lag,
+       from: applied_date, to: funded_date, agg: average, unit: DAY}     # business
+
+    # --- PERIOD-OVER-PERIOD (self-join/window; not a free time filter) ---
+    - {table: payments, name: payments_yoy, type: period_over_period,
+       base: total_payments, column: amount, period: year, based_on_time: payment_date,
+       kind: relative_change}   # business
+
+    # --- WINDOW measures ---
+    - {table: payments, name: cumulative_payments, type: cumulative,
+       column: amount, order_by: payment_month,
+       description: "Running (cumulative) total of payment amount by month. Lives in its OWN explore cumulative_payments_window; select the month dimension plus this measure there to get the full per-month running total series."}
+    - {table: transactions, name: txn_amount_3mo_moving_avg, type: moving_avg,
+       column: amount, order_by: txn_date, window: 3}
+    - {table: payments, name: payment_amount_pct_by_channel, type: percent_of_total,
+       column: amount, partition_by: channel}
+
+    # --- plain filtered / aggregate helpers ---
+    - {table: support_tickets, name: high_priority_ticket_count, type: aggregate,
+       agg: count_distinct, column: ticket_id, filter_field: priority, filter_value: "5"}   # rule-derivable (filtered count)
+    - {table: wire_transfers, name: max_wire_amount, type: aggregate, agg: max, column: amount}  # rule-derivable
+
+  unpivot:
+    loan_milestone_dates:
+      table: loan_applications
+      name_field: milestone
+      value_field: milestone_date
+      columns:
+        applied_date:  "Applied"
+        approved_date: "Approved"
+        funded_date:   "Funded"
+        closed_date:   "Closed"
+      keep: [product_type]

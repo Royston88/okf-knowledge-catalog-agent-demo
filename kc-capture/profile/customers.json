@@ -1,0 +1,480 @@
+{
+  "row_count": "500",
+  "profile": {
+    "fields": [
+      {
+        "name": "customer_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "500",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "499",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "498",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "497",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "496",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "495",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "494",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "493",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "492",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "491",
+              "count": "1",
+              "ratio": 0.002
+            }
+          ],
+          "integer_profile": {
+            "average": 250.49999999999983,
+            "standard_deviation": 144.48183276799887,
+            "min_": "1",
+            "max_": "500",
+            "quartiles": [
+              "125",
+              "250",
+              "375"
+            ]
+          }
+        }
+      },
+      {
+        "name": "name",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "Zachary Pittman",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "Zachary Allen",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "Yvonne Vargas",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "Yvette Lewis",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "Willie Miller",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "William Wright",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "William Russo",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "William Rivera",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "William Reed",
+              "count": "1",
+              "ratio": 0.002
+            },
+            {
+              "value": "William Perez",
+              "count": "1",
+              "ratio": 0.002
+            }
+          ],
+          "string_profile": {
+            "min_length": "9",
+            "max_length": "22",
+            "average_length": 13.26600000000001
+          }
+        }
+      },
+      {
+        "name": "segment",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.006,
+          "top_n_values": [
+            {
+              "value": "retail",
+              "count": "355",
+              "ratio": 0.71
+            },
+            {
+              "value": "premier",
+              "count": "126",
+              "ratio": 0.252
+            },
+            {
+              "value": "private",
+              "count": "19",
+              "ratio": 0.038
+            }
+          ],
+          "string_profile": {
+            "min_length": "6",
+            "max_length": "7",
+            "average_length": 6.290000000000003
+          }
+        }
+      },
+      {
+        "name": "region",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.012,
+          "top_n_values": [
+            {
+              "value": "Northwest",
+              "count": "94",
+              "ratio": 0.188
+            },
+            {
+              "value": "Midwest",
+              "count": "88",
+              "ratio": 0.176
+            },
+            {
+              "value": "Northeast",
+              "count": "81",
+              "ratio": 0.162
+            },
+            {
+              "value": "Southwest",
+              "count": "80",
+              "ratio": 0.16
+            },
+            {
+              "value": "West",
+              "count": "79",
+              "ratio": 0.158
+            },
+            {
+              "value": "Southeast",
+              "count": "78",
+              "ratio": 0.156
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "9",
+            "average_length": 7.857999999999999
+          }
+        }
+      },
+      {
+        "name": "signup_date",
+        "type_": "DATE",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.928,
+          "top_n_values": [
+            {
+              "value": "2022-12-05",
+              "count": "3",
+              "ratio": 0.006
+            },
+            {
+              "value": "2026-01-11",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2025-07-02",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2025-02-20",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2024-08-31",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2024-04-23",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2024-01-21",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2023-07-27",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2023-05-15",
+              "count": "2",
+              "ratio": 0.004
+            },
+            {
+              "value": "2022-10-09",
+              "count": "2",
+              "ratio": 0.004
+            }
+          ]
+        }
+      },
+      {
+        "name": "referred_by",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "null_ratio": 0.37,
+          "distinct_ratio": 0.198,
+          "top_n_values": [
+            {
+              "value": "1",
+              "count": "49",
+              "ratio": 0.098
+            },
+            {
+              "value": "2",
+              "count": "34",
+              "ratio": 0.068
+            },
+            {
+              "value": "4",
+              "count": "12",
+              "ratio": 0.024
+            },
+            {
+              "value": "6",
+              "count": "11",
+              "ratio": 0.022
+            },
+            {
+              "value": "9",
+              "count": "9",
+              "ratio": 0.018
+            },
+            {
+              "value": "12",
+              "count": "8",
+              "ratio": 0.016
+            },
+            {
+              "value": "7",
+              "count": "8",
+              "ratio": 0.016
+            },
+            {
+              "value": "5",
+              "count": "8",
+              "ratio": 0.016
+            },
+            {
+              "value": "3",
+              "count": "8",
+              "ratio": 0.016
+            },
+            {
+              "value": "17",
+              "count": "7",
+              "ratio": 0.014
+            }
+          ],
+          "integer_profile": {
+            "average": 44.057142857142864,
+            "standard_deviation": 76.35670921907357,
+            "min_": "1",
+            "max_": "386",
+            "quartiles": [
+              "2",
+              "12",
+              "51"
+            ]
+          }
+        }
+      },
+      {
+        "name": "state",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.036,
+          "top_n_values": [
+            {
+              "value": "Massachusetts",
+              "count": "39",
+              "ratio": 0.078
+            },
+            {
+              "value": "Idaho",
+              "count": "36",
+              "ratio": 0.072
+            },
+            {
+              "value": "North Carolina",
+              "count": "35",
+              "ratio": 0.07
+            },
+            {
+              "value": "Michigan",
+              "count": "33",
+              "ratio": 0.066
+            },
+            {
+              "value": "Montana",
+              "count": "32",
+              "ratio": 0.064
+            },
+            {
+              "value": "Oregon",
+              "count": "29",
+              "ratio": 0.058
+            },
+            {
+              "value": "New Mexico",
+              "count": "29",
+              "ratio": 0.058
+            },
+            {
+              "value": "Illinois",
+              "count": "29",
+              "ratio": 0.058
+            },
+            {
+              "value": "Washington",
+              "count": "26",
+              "ratio": 0.052
+            },
+            {
+              "value": "Texas",
+              "count": "26",
+              "ratio": 0.052
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "14",
+            "average_length": 8.294
+          }
+        }
+      },
+      {
+        "name": "city",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.072,
+          "top_n_values": [
+            {
+              "value": "Massachusetts Metro",
+              "count": "22",
+              "ratio": 0.044
+            },
+            {
+              "value": "Idaho City",
+              "count": "20",
+              "ratio": 0.04
+            },
+            {
+              "value": "Michigan City",
+              "count": "19",
+              "ratio": 0.038
+            },
+            {
+              "value": "North Carolina Metro",
+              "count": "18",
+              "ratio": 0.036
+            },
+            {
+              "value": "North Carolina City",
+              "count": "17",
+              "ratio": 0.034
+            },
+            {
+              "value": "Montana City",
+              "count": "17",
+              "ratio": 0.034
+            },
+            {
+              "value": "Massachusetts City",
+              "count": "17",
+              "ratio": 0.034
+            },
+            {
+              "value": "New Mexico Metro",
+              "count": "16",
+              "ratio": 0.032
+            },
+            {
+              "value": "Idaho Metro",
+              "count": "16",
+              "ratio": 0.032
+            },
+            {
+              "value": "Oregon City",
+              "count": "15",
+              "ratio": 0.03
+            }
+          ],
+          "string_profile": {
+            "min_length": "9",
+            "max_length": "20",
+            "average_length": 13.772000000000004
+          }
+        }
+      }
+    ]
+  }
+}

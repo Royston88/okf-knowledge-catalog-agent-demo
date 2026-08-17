@@ -1,0 +1,178 @@
+{
+  "row_count": "40",
+  "profile": {
+    "fields": [
+      {
+        "name": "investor_id",
+        "type_": "INTEGER",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "40",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "39",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "38",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "37",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "36",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "35",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "34",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "33",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "32",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "31",
+              "count": "1",
+              "ratio": 0.025
+            }
+          ],
+          "integer_profile": {
+            "average": 20.5,
+            "standard_deviation": 11.69045194450012,
+            "min_": "1",
+            "max_": "40",
+            "quartiles": [
+              "10",
+              "20",
+              "30"
+            ]
+          }
+        }
+      },
+      {
+        "name": "name",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 1.0,
+          "top_n_values": [
+            {
+              "value": "Wolf PLC",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Walker-Smith",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Tucker, Klein and Jackson",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Stevens, Heath and Greene",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Smith-Hull",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Silva, Chen and Mcgee",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Shaw-Hall",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Scott and Sons",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Ruiz, Gardner and Gonzalez",
+              "count": "1",
+              "ratio": 0.025
+            },
+            {
+              "value": "Rogers Group",
+              "count": "1",
+              "ratio": 0.025
+            }
+          ],
+          "string_profile": {
+            "min_length": "8",
+            "max_length": "27",
+            "average_length": 14.825
+          }
+        }
+      },
+      {
+        "name": "investor_type",
+        "type_": "STRING",
+        "mode": "NULLABLE",
+        "profile": {
+          "distinct_ratio": 0.1,
+          "top_n_values": [
+            {
+              "value": "retail",
+              "count": "15",
+              "ratio": 0.375
+            },
+            {
+              "value": "insurer",
+              "count": "12",
+              "ratio": 0.3
+            },
+            {
+              "value": "fund",
+              "count": "9",
+              "ratio": 0.225
+            },
+            {
+              "value": "bank",
+              "count": "4",
+              "ratio": 0.1
+            }
+          ],
+          "string_profile": {
+            "min_length": "4",
+            "max_length": "7",
+            "average_length": 5.65
+          }
+        }
+      }
+    ]
+  }
+}

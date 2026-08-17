@@ -1,0 +1,65 @@
+{
+  "name": "projects/royston-dev-8253/locations/us/entryGroups/okf_cymbal_v6z/entries/references/grain/accounts",
+  "entryType": "projects/dataplex-types/locations/global/entryTypes/generic",
+  "createTime": "2026-08-14T03:19:05.663069Z",
+  "updateTime": "2026-08-15T16:59:32.923149Z",
+  "aspects": {
+    "royston-dev-8253.us.okf": {
+      "aspectType": "projects/royston-dev-8253/locations/us/aspectTypes/okf",
+      "createTime": "2026-08-14T03:19:05.663069Z",
+      "updateTime": "2026-08-14T03:19:05.663069Z",
+      "data": {
+        "okf_type": "Grain Rule",
+        "generated": {
+          "by": "generate_models/okf",
+          "at": "2026-08-12T20:55:30+00:00"
+        },
+        "sources": [
+          {
+            "id": "spec",
+            "resource": "bq-modeling-spec://royston-dev-8253/cymbal_bank_v6z_scaffold_demo_copy",
+            "title": "Reviewed BI modeling spec (layer1_structure + layer2_semantics)"
+          }
+        ],
+        "status": "stable",
+        "title": "accounts grain",
+        "tags": [
+          "grain",
+          "accounts",
+          "dedup"
+        ]
+      },
+      "aspectSource": {}
+    },
+    "dataplex-types.global.generic": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/generic",
+      "createTime": "2026-08-14T03:19:05.663069Z",
+      "updateTime": "2026-08-14T03:19:05.663069Z",
+      "data": {
+        "type": "Grain Rule",
+        "system": "okf"
+      },
+      "aspectSource": {}
+    },
+    "dataplex-types.global.overview": {
+      "aspectType": "projects/dataplex-types/locations/global/aspectTypes/overview",
+      "createTime": "2026-08-14T03:19:05.663069Z",
+      "updateTime": "2026-08-15T16:59:32.887087Z",
+      "data": {
+        "content": "**Duplicate loads — de-duplicate before any aggregate.**\n\n| | |\n|---|---|\n| Table | [accounts](/tables/accounts.md) |\n| `partition_by` | `account_id` |\n| `order_by` | `load_batch_id` |\n\nEvery measure over this table is overstated if computed on the raw rows, and every join to it fans out. Take one row per `account_id` first:\n\n```sql\nSELECT * FROM `@{bq_dataset}.accounts`\nQUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1\n```",
+        "contentType": "MARKDOWN"
+      },
+      "aspectSource": {}
+    }
+  },
+  "entrySource": {
+    "displayName": "accounts grain",
+    "description": "Grain rules for accounts: it carries duplicate loads and MUST be de-duplicated on `account_id`.",
+    "labels": {
+      "grain": "true",
+      "accounts": "true",
+      "dedup": "true"
+    },
+    "location": "us"
+  }
+}

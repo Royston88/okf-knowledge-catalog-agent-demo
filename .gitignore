@@ -51,3 +51,25 @@ bq-okf-workspace/bundle/
 # Ignore local evaluation folder
 /eval/
 
+
+# kcmd OKF demo: throwaway push staging tree.
+#
+# `**/`, NOT a per-workspace list. This used to name `okf-kb-workspace/.staging/`
+# only, while Track A stages into `bq-okf-workspace/.staging/` (push-track-a.ts
+# uses `cwd() + '/.staging'`). Nothing was tracked purely because the tree is
+# deleted on exit — one run with `OKF_KEEP_STAGING=1` followed by `git add -A`
+# would have committed a full stash tree, which is rule 1 ("no stash in the
+# SOURCE; the stash is a build artifact") violated by accident rather than by
+# decision. Any future workspace is covered without a second edit.
+**/.staging/
+
+# Track B workspace catalog: RETIRED, and the ignore kept as a tripwire.
+# `push.ts` used to require a `cp -r ../okf-bundle/. catalog/` before every run,
+# so the source of truth existed twice on disk and could silently diverge —
+# which it did. It now reads `okf-bundle/` directly via OKF_BUNDLE and stages
+# straight to `.staging/bundle/`. If this directory ever reappears, something
+# resurrected the copy step.
+okf-kb-workspace/catalog/
+
+# Phase 8 Arm K workspace bundle copy (regenerated from okf-bundle)
+okf-eval/armk-workspace/bundle/

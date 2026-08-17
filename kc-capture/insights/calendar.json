@@ -1,0 +1,140 @@
+{
+  "table_result": {
+    "name": "//bigquery.googleapis.com/projects/royston-dev-8253/datasets/cymbal_bank_v6z_scaffold_demo_copy/tables/calendar",
+    "overview": "This table provides a comprehensive calendar of dates. It includes information about each specific date, its corresponding year, and its quarterly designation. The table also indicates whether a given date is a holiday and specifies the day of the week. This resource supports time-based analysis and reporting.",
+    "schema": {
+      "fields": [
+        {
+          "name": "day_of_week",
+          "description": "This column contains the day of the week for the date."
+        },
+        {
+          "name": "cal_date",
+          "description": "This column holds the specific date."
+        },
+        {
+          "name": "cal_year",
+          "description": "This column contains the year associated with the date."
+        },
+        {
+          "name": "cal_quarter",
+          "description": "This column stores the calendar quarter for the date."
+        },
+        {
+          "name": "fiscal_quarter",
+          "description": "This column holds the fiscal quarter for the date."
+        },
+        {
+          "name": "is_holiday",
+          "description": "This column indicates if the date is a holiday."
+        }
+      ]
+    },
+    "queries": [
+      {
+        "sql": "WITH FiscalQuarterHolidayStats AS (\n  SELECT\n    fiscal_quarter,\n    cal_year,\n    COUNTIF(is_holiday) AS num_holidays_in_quarter\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  GROUP BY\n    fiscal_quarter,\n    cal_year\n),\nOverallFiscalQuarterStats AS (\n  SELECT\n    fiscal_quarter,\n    AVG(num_holidays_in_quarter) AS avg_holidays_per_quarter,\n    STDDEV(num_holidays_in_quarter) AS stddev_holidays_per_quarter\n  FROM FiscalQuarterHolidayStats\n  GROUP BY\n    fiscal_quarter\n)\nSELECT\n  fqs.cal_year,\n  fqs.fiscal_quarter,\n  fqs.num_holidays_in_quarter,\n  ofs.avg_holidays_per_quarter,\n  ofs.stddev_holidays_per_quarter\nFROM FiscalQuarterHolidayStats AS fqs\nJOIN OverallFiscalQuarterStats AS ofs\n  ON fqs.fiscal_quarter = ofs.fiscal_quarter\nWHERE\n  ABS(fqs.num_holidays_in_quarter - ofs.avg_holidays_per_quarter) > 1.5 * ofs.stddev_holidays_per_quarter\nORDER BY\n  fqs.cal_year,\n  fqs.fiscal_quarter;",
+        "description": "Identify days where the number of holidays in a given fiscal quarter deviates significantly from the average number of holidays for that fiscal quarter across all years, using a 1.5 standard deviation threshold."
+      },
+      {
+        "sql": "WITH DayOfWeekHolidayCounts AS (\n  SELECT\n    cal_quarter,\n    day_of_week,\n    COUNTIF(is_holiday) AS holidays_on_day\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  GROUP BY\n    cal_quarter,\n    day_of_week\n),\nQuarterlyDayOfWeekHolidayPercentiles AS (\n  SELECT\n    cal_quarter,\n    day_of_week,\n    holidays_on_day,\n    PERCENTILE_CONT(holidays_on_day, 0.90) OVER (PARTITION BY cal_quarter) AS p90_holidays_on_day\n  FROM DayOfWeekHolidayCounts\n)\nSELECT\n  q.cal_quarter,\n  q.day_of_week,\n  q.holidays_on_day,\n  q.p90_holidays_on_day\nFROM QuarterlyDayOfWeekHolidayPercentiles AS q\nWHERE\n  q.holidays_on_day > q.p90_holidays_on_day\nORDER BY\n  q.cal_quarter,\n  q.holidays_on_day DESC;",
+        "description": "Identify specific days of the week that are unusually frequently marked as holidays within a given calendar quarter, by comparing their holiday count to the 90th percentile of holiday counts for other days of the week in that quarter."
+      },
+      {
+        "sql": "SELECT cal_quarter, STDDEV(holiday_count) AS stddev_holidays FROM (SELECT cal_year, cal_quarter, COUNTIF(is_holiday) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, cal_quarter) GROUP BY cal_quarter ORDER BY stddev_holidays ASC LIMIT 1;",
+        "description": "Identify the calendar quarter with the most consistent number of holidays across all years, measured by the lowest standard deviation of holiday counts."
+      },
+      {
+        "sql": "SELECT\n  t1.is_holiday,\n  COVAR_SAMP(t1.cal_year,\n    CASE WHEN t1.cal_quarter = 'Q1' THEN 1 WHEN t1.cal_quarter = 'Q2' THEN 2 WHEN t1.cal_quarter = 'Q3' THEN 3 WHEN t1.cal_quarter = 'Q4' THEN 4 ELSE NULL END\n  ) AS year_quarter_covar_samp\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` AS t1\nGROUP BY\n  t1.is_holiday;",
+        "description": "Calculate the sample covariance between the calendar year and a numerical representation of the calendar quarter, grouped by whether it's a holiday, to understand their relationship on holidays vs. non-holidays."
+      },
+      {
+        "sql": "SELECT cal_year, fiscal_quarter, COUNTIF(is_holiday) * 100.0 / COUNT(*) AS holiday_proportion FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, fiscal_quarter ORDER BY holiday_proportion DESC LIMIT 1;",
+        "description": "Find the year and fiscal quarter combination that had the highest proportion of holidays compared to the total number of days in that quarter."
+      },
+      {
+        "sql": "SELECT cal_year, MAX(holiday_count) - MIN(holiday_count) AS holiday_range FROM (SELECT cal_year, cal_quarter, COUNTIF(is_holiday) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, cal_quarter) GROUP BY cal_year ORDER BY holiday_range DESC;",
+        "description": "For each year, calculate the difference between the maximum and minimum number of holidays in any given quarter."
+      },
+      {
+        "sql": "WITH HolidayFlags AS (SELECT cal_date, fiscal_quarter, is_holiday, ROW_NUMBER() OVER (PARTITION BY fiscal_quarter ORDER BY cal_date) - ROW_NUMBER() OVER (PARTITION BY fiscal_quarter, is_holiday ORDER BY cal_date) AS grp FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`), NonHolidayStreaks AS (SELECT fiscal_quarter, COUNT(*) AS streak_length FROM HolidayFlags WHERE NOT is_holiday GROUP BY fiscal_quarter, grp) SELECT fiscal_quarter, MAX(streak_length) AS max_consecutive_non_holidays FROM NonHolidayStreaks GROUP BY fiscal_quarter ORDER BY max_consecutive_non_holidays DESC LIMIT 1;",
+        "description": "Identify the fiscal quarter that has the highest number of consecutive non-holiday days, considering all years."
+      },
+      {
+        "sql": "WITH holiday_streaks AS (\n  SELECT\n    cal_date,\n    cal_year,\n    is_holiday,\n    DATE_SUB(cal_date, INTERVAL ROW_NUMBER() OVER (PARTITION BY cal_year, is_holiday ORDER BY cal_date) DAY) AS holiday_group\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  WHERE is_holiday = TRUE\n)\nSELECT\n  cal_year,\n  MIN(cal_date) AS streak_start_date,\n  MAX(cal_date) AS streak_end_date,\n  COUNT(cal_date) AS streak_length_days\nFROM holiday_streaks\nGROUP BY cal_year, holiday_group\nORDER BY cal_year, streak_length_days DESC, streak_start_date;",
+        "description": "Identify the longest consecutive streak of holidays within each year."
+      },
+      {
+        "sql": "SELECT cal_year, day_of_week, COUNTIF(is_holiday) / COUNTIF(NOT is_holiday) AS holiday_non_holiday_ratio FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, day_of_week HAVING COUNTIF(NOT is_holiday) > 0 ORDER BY holiday_non_holiday_ratio DESC LIMIT 1;",
+        "description": "Find the year and day of the week combination that has the highest ratio of holidays to non-holidays."
+      },
+      {
+        "sql": "WITH YearlyHolidays AS (SELECT cal_year, COUNTIF(is_holiday) AS total_holidays_in_year FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year), OverallAvgHolidays AS (SELECT AVG(total_holidays_in_year) AS overall_avg FROM YearlyHolidays) SELECT c.day_of_week, AVG(CASE WHEN c.is_holiday THEN 1 ELSE 0 END) AS avg_holidays_per_year FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` c JOIN YearlyHolidays yh ON c.cal_year = yh.cal_year JOIN OverallAvgHolidays oah ON yh.total_holidays_in_year > oah.overall_avg GROUP BY c.day_of_week ORDER BY avg_holidays_per_year DESC;",
+        "description": "For each day of the week, calculate the average number of holidays per year, but only consider years where the total number of holidays was above the overall average number of holidays per year."
+      },
+      {
+        "sql": "WITH quarter_holiday_counts AS (\n  SELECT\n    cal_year,\n    fiscal_quarter,\n    COUNTIF(is_holiday) AS num_holidays\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  GROUP BY cal_year, fiscal_quarter\n),\noverall_avg AS (\n  SELECT AVG(num_holidays) AS avg_holidays_per_quarter\n  FROM quarter_holiday_counts\n)\nSELECT\n  qhc.cal_year,\n  qhc.fiscal_quarter,\n  qhc.num_holidays\nFROM quarter_holiday_counts qhc, overall_avg oa\nWHERE qhc.num_holidays > oa.avg_holidays_per_quarter\nORDER BY qhc.cal_year, qhc.fiscal_quarter;",
+        "description": "Identify the fiscal quarters that have a higher than average number of holidays compared to the overall average number of holidays per quarter."
+      },
+      {
+        "sql": "SELECT fiscal_quarter, AVG(holiday_count) AS average_holidays FROM (SELECT cal_year, fiscal_quarter, COUNTIF(is_holiday) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, fiscal_quarter) GROUP BY fiscal_quarter ORDER BY average_holidays DESC LIMIT 1;",
+        "description": "Find the fiscal quarter with the highest average number of holidays per year."
+      },
+      {
+        "sql": "SELECT day_of_week, COUNT(*) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` WHERE is_holiday AND fiscal_quarter = 'Q1' GROUP BY day_of_week ORDER BY holiday_count DESC LIMIT 3;",
+        "description": "Identify the top 3 days of the week that are most frequently holidays in the first fiscal quarter."
+      },
+      {
+        "sql": "SELECT day_of_week, COUNTIF(is_holiday) * 100.0 / COUNT(*) AS holiday_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` WHERE MOD(cal_year, 2) = 0 GROUP BY day_of_week ORDER BY holiday_percentage DESC LIMIT 1;",
+        "description": "Find the day of the week that has the highest percentage of holidays in even-numbered years."
+      },
+      {
+        "sql": "SELECT cal_quarter, APPROX_QUANTILES(holiday_count, 2)[OFFSET(1)] AS median_holidays FROM (SELECT cal_year, cal_quarter, COUNTIF(is_holiday) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, cal_quarter) GROUP BY cal_quarter ORDER BY cal_quarter;",
+        "description": "Calculate the median number of holidays per calendar quarter across all years."
+      },
+      {
+        "sql": "SELECT cal_year, MAX(cumulative_holidays) AS max_cumulative_holidays FROM (SELECT cal_year, cal_date, SUM(CASE WHEN is_holiday THEN 1 ELSE 0 END) OVER (PARTITION BY cal_year ORDER BY cal_date) AS cumulative_holidays FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`) GROUP BY cal_year ORDER BY cal_year;",
+        "description": "Calculate the cumulative sum of holidays for each year, ordered by calendar date, and then find the maximum cumulative holidays for each year."
+      },
+      {
+        "sql": "SELECT\n  t1.fiscal_quarter,\n  STDDEV_POP(\n    CASE WHEN t1.day_of_week = 'Monday' THEN 1 WHEN t1.day_of_week = 'Tuesday' THEN 2 WHEN t1.day_of_week = 'Wednesday' THEN 3 WHEN t1.day_of_week = 'Thursday' THEN 4 WHEN t1.day_of_week = 'Friday' THEN 5 WHEN t1.day_of_week = 'Saturday' THEN 6 WHEN t1.day_of_week = 'Sunday' THEN 7 ELSE NULL END\n  ) AS day_of_week_stddev_pop\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` AS t1\nGROUP BY\n  t1.fiscal_quarter;",
+        "description": "Calculate the population standard deviation of the day of the week, represented numerically, for each fiscal quarter, to understand the consistency of day distribution within quarters."
+      },
+      {
+        "sql": "SELECT\n  cal_year,\n  day_of_week,\n  COUNT(*) AS holiday_count\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\nWHERE is_holiday = TRUE\nGROUP BY cal_year, day_of_week\nQUALIFY ROW_NUMBER() OVER (PARTITION BY cal_year ORDER BY COUNT(*) DESC, day_of_week) = 1\nORDER BY cal_year;",
+        "description": "Find the day of the week that most frequently falls on a holiday for each calendar year."
+      },
+      {
+        "sql": "WITH quarter_stats AS (\n  SELECT\n    cal_year,\n    cal_quarter,\n    COUNT(cal_date) AS total_days_in_quarter,\n    SUM(CASE WHEN is_holiday THEN 1 ELSE 0 END) AS holiday_days_in_quarter\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  GROUP BY cal_year, cal_quarter\n)\nSELECT\n  cal_year,\n  cal_quarter,\n  (holiday_days_in_quarter * 100.0 / total_days_in_quarter) AS percentage_holidays\nFROM quarter_stats\nORDER BY cal_year, cal_quarter;",
+        "description": "Calculate the percentage of holidays within each calendar quarter for each year."
+      },
+      {
+        "sql": "SELECT day_of_week, COUNTIF(is_holiday) * 100.0 / COUNT(*) AS holiday_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY day_of_week ORDER BY holiday_percentage DESC;",
+        "description": "Calculate the percentage of holidays for each day of the week across all years."
+      },
+      {
+        "sql": "SELECT fiscal_quarter, CASE WHEN MOD(cal_year, 4) = 0 THEN 'Leap Year' ELSE 'Non-Leap Year' END AS year_type, AVG(holiday_count) AS avg_holidays FROM (SELECT cal_year, fiscal_quarter, COUNTIF(is_holiday) AS holiday_count FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` GROUP BY cal_year, fiscal_quarter) GROUP BY fiscal_quarter, year_type ORDER BY fiscal_quarter, year_type;",
+        "description": "Determine the average number of holidays per fiscal quarter, broken down by whether the year is a leap year (assuming a simple check for divisibility by 4 for demonstration)."
+      },
+      {
+        "sql": "SELECT fiscal_quarter, COUNTIF(is_holiday AND day_of_week IN ('Saturday', 'Sunday')) * 100.0 / COUNTIF(is_holiday) AS weekend_holiday_percentage FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` WHERE is_holiday GROUP BY fiscal_quarter ORDER BY fiscal_quarter;",
+        "description": "Determine the percentage of holidays that fall on weekends (Saturday or Sunday) for each fiscal quarter."
+      },
+      {
+        "sql": "SELECT\n  CORR(\n    CASE WHEN t1.day_of_week = 'Monday' THEN 1 WHEN t1.day_of_week = 'Tuesday' THEN 2 WHEN t1.day_of_week = 'Wednesday' THEN 3 WHEN t1.day_of_week = 'Thursday' THEN 4 WHEN t1.day_of_week = 'Friday' THEN 5 WHEN t1.day_of_week = 'Saturday' THEN 6 WHEN t1.day_of_week = 'Sunday' THEN 7 ELSE NULL END,\n    CASE WHEN t1.is_holiday THEN 1 ELSE 0 END\n  ) AS day_of_week_holiday_correlation\nFROM\n  `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar` AS t1;",
+        "description": "Determine the correlation between the day of the week and whether it's a holiday, to see if certain days are more likely to be holidays."
+      },
+      {
+        "sql": "WITH holiday_dates AS (\n  SELECT\n    cal_date,\n    fiscal_quarter,\n    LAG(cal_date) OVER (PARTITION BY fiscal_quarter ORDER BY cal_date) AS previous_holiday_date\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  WHERE is_holiday = TRUE\n)\nSELECT\n  fiscal_quarter,\n  AVG(DATE_DIFF(cal_date, previous_holiday_date, DAY)) AS average_days_between_holidays\nFROM holiday_dates\nWHERE previous_holiday_date IS NOT NULL\nGROUP BY fiscal_quarter\nORDER BY fiscal_quarter;",
+        "description": "Determine the average number of days between holidays for each fiscal quarter."
+      },
+      {
+        "sql": "SELECT\n  day_of_week,\n  MIN(cal_date) AS earliest_holiday_date,\n  MAX(cal_date) AS latest_holiday_date\nFROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\nWHERE is_holiday = TRUE\nGROUP BY day_of_week\nORDER BY day_of_week;",
+        "description": "Determine the earliest and latest holiday dates for each day of the week across all years."
+      },
+      {
+        "sql": "WITH YearHolidayProportion AS (\n  SELECT\n    cal_year,\n    COUNTIF(is_holiday) AS total_holidays,\n    COUNT(cal_date) AS total_days,\n    SAFE_DIVIDE(COUNTIF(is_holiday), COUNT(cal_date)) AS holiday_proportion\n  FROM `royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy.calendar`\n  GROUP BY\n    cal_year\n),\nHolidayProportionPercentiles AS (\n  SELECT\n    APPROX_QUANTILES(holiday_proportion, 100) AS percentiles\n  FROM YearHolidayProportion\n)\nSELECT\n  yp.cal_year,\n  yp.holiday_proportion\nFROM YearHolidayProportion AS yp, HolidayProportionPercentiles AS hpp\nWHERE\n  yp.holiday_proportion < hpp.percentiles[OFFSET(1)] OR yp.holiday_proportion > hpp.percentiles[OFFSET(99)]\nORDER BY\n  yp.cal_year;",
+        "description": "Detect calendar years where the proportion of holidays to total days is an outlier compared to the overall average proportion of holidays across all years, using a percentile-based approach."
+      }
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+[
+  {
+    "arm": "K",
+    "id": "q1",
+    "verdict": "correct",
+    "value": 1200.0,
+    "tools": [
+      "execute_sql",
+      "list-entries",
+      "lookup-entry"
+    ],
+    "n_tool_calls": 3,
+    "error": null,
+    "text": "ANSWER: 1200"
+  },
+  {
+    "arm": "K",
+    "id": "q2",
+    "verdict": "correct",
+    "value": 6073496.58,
+    "tools": [
+      "execute_sql",
+      "list-entries",
+      "lookup-entry"
+    ],
+    "n_tool_calls": 3,
+    "error": null,
+    "text": "ANSWER: 6073496.58"
+  },
+  {
+    "arm": "K",
+    "id": "q3",
+    "verdict": "correct",
+    "value": 180.0,
+    "tools": [
+      "execute_sql",
+      "list-entries",
+      "lookup-entry"
+    ],
+    "n_tool_calls": 4,
+    "error": null,
+    "text": "ANSWER: 180"
+  },
+  {
+    "arm": "K",
+    "id": "q4",
+    "verdict": "trap",
+    "value": 18.518518518518505,
+    "tools": [
+      "execute_sql",
+      "list-entries",
+      "lookup-entry"
+    ],
+    "n_tool_calls": 3,
+    "error": null,
+    "text": "ANSWER: 18.518518518518505"
+  },
+  {
+    "arm": "K",
+    "id": "q5",
+    "verdict": "correct",
+    "value": 500.0,
+    "tools": [
+      "execute_sql",
+      "list-entries",
+      "lookup-entry"
+    ],
+    "n_tool_calls": 4,
+    "error": null,
+    "text": "Here are the customer counts for each segment:\n- Premier: 126\n- Private: 19\n- Retail: 355\n\nThe total number of current segment rows is:\nANSWER: 500"
+  },
+  {
+    "arm": "D",
+    "id": "q1",
+    "verdict": "trap",
+    "value": 1260.0,
+    "tools": [
+      "execute_sql"
+    ],
+    "n_tool_calls": 2,
+    "error": null,
+    "text": "ANSWER: 1260\n"
+  },
+  {
+    "arm": "D",
+    "id": "q2",
+    "verdict": "trap",
+    "value": 6416658.570000001,
+    "tools": [
+      "execute_sql"
+    ],
+    "n_tool_calls": 2,
+    "error": null,
+    "text": "ANSWER: 6416658.5700000012"
+  },
+  {
+    "arm": "D",
+    "id": "q3",
+    "verdict": "correct",
+    "value": 180.0,
+    "tools": [
+      "execute_sql"
+    ],
+    "n_tool_calls": 6,
+    "error": null,
+    "text": "ANSWER: 180\n"
+  },
+  {
+    "arm": "D",
+    "id": "q4",
+    "verdict": "other",
+    "value": 15.873015873015873,
+    "tools": [
+      "execute_sql",
+      "lookup_entry",
+      "search_entries"
+    ],
+    "n_tool_calls": 7,
+    "error": null,
+    "text": "20000 / 1260 = 15.873015873015873\nANSWER: 15.873015873015873"
+  },
+  {
+    "arm": "D",
+    "id": "q5",
+    "verdict": "correct",
+    "value": 500.0,
+    "tools": [
+      "execute_sql"
+    ],
+    "n_tool_calls": 3,
+    "error": null,
+    "text": "Here is the breakdown of customers per segment:\n- premier: 126 customers\n- private: 19 customers\n- retail: 355 customers\n\nThe total number of current segment rows is:\nANSWER: 500"
+  }
+]
