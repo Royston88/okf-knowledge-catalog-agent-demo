@@ -71,7 +71,7 @@
 # `OKF_STAGING_FORM=catalogEntry` reverts to the documents layout, which is the
 # only form that works against a fork WITHOUT `OkfLayout` — i.e. every checkout
 # of Google's repo, since `layouts/okf.ts` is fork-only.
-scope: bq-dataset.royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy
+scope: bq-dataset.${GOOGLE_CLOUD_PROJECT}.${BIGQUERY_DATASET}
 layout: okf
 snapshot:
   entries:
@@ -81,13 +81,13 @@ snapshot:
     - dataplex-types.global.overview
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries
-    - royston-dev-8253.us.okf
+    - ${GOOGLE_CLOUD_PROJECT}.${GOOGLE_CLOUD_LOCATION}.okf
 publishing:
   entries:
     - dataplex-types.global.bigquery-dataset
     - dataplex-types.global.bigquery-table
   aspects:
-    - royston-dev-8253.us.okf
+    - ${GOOGLE_CLOUD_PROJECT}.${GOOGLE_CLOUD_LOCATION}.okf
     - dataplex-types.global.overview
     - dataplex-types.global.descriptions
     - dataplex-types.global.queries

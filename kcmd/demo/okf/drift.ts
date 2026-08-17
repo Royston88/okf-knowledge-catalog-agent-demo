@@ -47,8 +47,8 @@ import { okfKey, project, location, entryGroup } from './config';
 const REPO = path.resolve(import.meta.dirname ?? __dirname, '../../..');
 const BUNDLE = process.env.OKF_BUNDLE
   ? path.resolve(process.env.OKF_BUNDLE) : path.join(REPO, 'okf-bundle');
-const DATASET = process.env.OKF_BQ_DATASET;
-if (!DATASET) throw new Error('OKF_BQ_DATASET is not set');
+const DATASET = process.env.OKF_BQ_DATASET ?? process.env.BIGQUERY_DATASET;
+if (!DATASET) throw new Error('OKF_BQ_DATASET (or BIGQUERY_DATASET) is not set');
 
 const MANIFEST = {
   A: path.join(REPO, 'bq-okf-workspace', 'catalog.yaml'),

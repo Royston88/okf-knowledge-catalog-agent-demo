@@ -44,9 +44,9 @@ import { stagingEmitter } from './okf';
 import { planPush } from './planner';
 import { okfKey, kcmdMain, project, location } from './config';
 
-const BQ_DATASET = process.env.OKF_BQ_DATASET;
+const BQ_DATASET = process.env.OKF_BQ_DATASET ?? process.env.BIGQUERY_DATASET;
 if (!BQ_DATASET) {
-  throw new Error('OKF_BQ_DATASET is not set (e.g. cymbal_bank_v6z_scaffold_demo_copy)');
+  throw new Error('OKF_BQ_DATASET (or BIGQUERY_DATASET) is not set (e.g. demo_ecommerce)');
 }
 
 const root = process.cwd();

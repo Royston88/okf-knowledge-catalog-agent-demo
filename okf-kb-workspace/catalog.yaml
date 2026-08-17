@@ -47,7 +47,7 @@
 # `OKF_STAGING_FORM=catalogEntry` reverts to the documents layout, which is the
 # only form that works against a fork WITHOUT `OkfLayout` — i.e. every checkout
 # of Google's repo, since `layouts/okf.ts` is fork-only.
-scope: kb.royston-dev-8253.us.okf_cymbal_v6z
+scope: kb.${GOOGLE_CLOUD_PROJECT}.${GOOGLE_CLOUD_LOCATION}.${OKF_ENTRY_GROUP}
 layout: okf
 snapshot:
   entries:
@@ -55,11 +55,11 @@ snapshot:
   aspects:
     - dataplex-types.global.generic
     - dataplex-types.global.overview
-    - royston-dev-8253.us.okf
+    - ${GOOGLE_CLOUD_PROJECT}.${GOOGLE_CLOUD_LOCATION}.okf
 publishing:
   entries:
     - dataplex-types.global.generic
   aspects:
     - dataplex-types.global.generic
     - dataplex-types.global.overview
-    - royston-dev-8253.us.okf
+    - ${GOOGLE_CLOUD_PROJECT}.${GOOGLE_CLOUD_LOCATION}.okf

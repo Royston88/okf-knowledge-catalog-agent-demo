@@ -25,20 +25,20 @@
 
 import * as path from 'node:path';
 
-function required(name: string): string {
-  const v = process.env[name];
+function resolveEnv(name: string, fallbackName?: string, defaultVal?: string): string {
+  const v = process.env[name] ?? (fallbackName ? process.env[fallbackName] : undefined) ?? defaultVal;
   if (!v) {
     throw new Error(
-      `${name} is not set. Required: OKF_PROJECT, OKF_LOCATION, OKF_ENTRY_GROUP.\n` +
-      `  e.g. OKF_PROJECT=royston-dev-8253 OKF_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z`,
+      `${name}${fallbackName ? ` (or ${fallbackName})` : ''} is not set. Required: OKF_PROJECT/GOOGLE_CLOUD_PROJECT, OKF_LOCATION/GOOGLE_CLOUD_LOCATION, OKF_ENTRY_GROUP.\n` +
+      `  e.g. GOOGLE_CLOUD_PROJECT=your-project GOOGLE_CLOUD_LOCATION=us OKF_ENTRY_GROUP=okf_cymbal_v6z`,
     );
   }
   return v;
 }
 
-export const project = required('OKF_PROJECT');
-export const location = required('OKF_LOCATION');
-export const entryGroup = required('OKF_ENTRY_GROUP');
+export const project = resolveEnv('OKF_PROJECT', 'GOOGLE_CLOUD_PROJECT');
+export const location = resolveEnv('OKF_LOCATION', 'GOOGLE_CLOUD_LOCATION', 'us');
+export const entryGroup = resolveEnv('OKF_ENTRY_GROUP', undefined, 'okf_cymbal_v6z');
 
 /** Aspect key as Dataplex renders it: <project>.<location>.<aspectTypeId>. */
 export const okfKey = `${project}.${location}.okf`;

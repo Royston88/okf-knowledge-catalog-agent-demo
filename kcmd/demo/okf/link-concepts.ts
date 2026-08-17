@@ -40,8 +40,8 @@ import { desiredRelatedLinks } from './bundle';
 import { project, location, entryGroup, kcmdMain } from './config';
 
 const RELATED_TYPE = 'projects/655216118709/locations/global/entryLinkTypes/related';
-const BQ_DATASET = process.env.OKF_BQ_DATASET;
-if (!BQ_DATASET) throw new Error('OKF_BQ_DATASET is not set');
+const BQ_DATASET = process.env.OKF_BQ_DATASET ?? process.env.BIGQUERY_DATASET;
+if (!BQ_DATASET) throw new Error('OKF_BQ_DATASET (or BIGQUERY_DATASET) is not set');
 
 export async function reconcileRelatedLinks(): Promise<void> {
 const root = process.cwd();

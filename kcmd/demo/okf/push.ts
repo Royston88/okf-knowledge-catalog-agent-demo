@@ -160,11 +160,11 @@ if (n === 0 && indexes === 0) {
 // as Track A's does — measured: a Track B push alone took 53 links down to 14.
 // Set OKF_BQ_DATASET to enable; skipped with a warning when it is absent, since
 // Track B is otherwise usable without knowing the BigQuery dataset.
-if (process.env.OKF_BQ_DATASET) {
+if (process.env.OKF_BQ_DATASET || process.env.BIGQUERY_DATASET) {
   const { reconcileRelatedLinks } = await import('./link-concepts');
   await reconcileRelatedLinks();
 } else {
-  console.warn('OKF_BQ_DATASET unset — skipping `related` link reconciliation. ' +
+  console.warn('OKF_BQ_DATASET / BIGQUERY_DATASET unset — skipping `related` link reconciliation. ' +
                'Any table<->concept links this push deleted stay deleted.');
 }
 
