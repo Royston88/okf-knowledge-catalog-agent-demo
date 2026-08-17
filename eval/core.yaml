@@ -1,0 +1,966 @@
+# Golden 'core' suite for the v6z MERGED head-to-head (graph vs LookML) — 38 questions.
+#
+# Combines the v6x trap suite (24q) and the v6y enterprise-pattern suite (14q) over ONE
+# merged dataset/model, so ONE pair of agents answers everything. The SAME suite compiles
+# for cymbal_bank_ca_agent_v6z_graph and cymbal_bank_ca_agent_v6z_looker (answer is
+# agent-independent). Compile with the merged dataset (v6z is not in the auto-map):
+#   python evals/generate_prism_suite.py --agent cymbal_bank_ca_agent_v6z_graph  --suite core --dataset cymbal_bank_v6z_merged_demo
+#   python evals/generate_prism_suite.py --agent cymbal_bank_ca_agent_v6z_looker --suite core --dataset cymbal_bank_v6z_merged_demo
+#
+# Buckets: v6x controls(2)/BI(5)/carried traps(4)/new traps(6)/BI×trap(5)/combo(1)=23... plus
+# the v6x uncurated-ratio probe = 24; v6y controls(2) + 7 patterns + windows(3) + combo(1) = 14.
+questions:
+  # =================== v6x TRAPS (24) ===================
+  # ======================= CONTROLS (2) =======================
+  - question: "How many customers do we have?"
+    tier: control
+    reference_answer: "500 customers."
+    difficulty_justification: "# tests: control (single COUNT over one table; no trap)."
+    golden_sql: |
+      SELECT COUNT(*) AS customer_count
+      FROM `{project}.{dataset}.customers`
+    asserts:
+      - type: ai-judge
+        value: >-
+          The response must state the total number of customers as
+          {scalar:customer_count} (allowing thousands separators). PASS only if that
+          figure is clearly stated.
+
+  - question: "What is the total transaction amount by month?"
+    tier: control
+    reference_answer: "One row per month across May 2023 – Apr 2026 (36 months)."
+    difficulty_justification: "# tests: control (simple SUM grouped by month over one table; no trap)."
+    golden_sql: |
+      SELECT DATE_TRUNC(txn_date, MONTH) AS month, ROUND(SUM(amount), 2) AS total_amount
+      FROM `{project}.{dataset}.transactions`
+      GROUP BY month
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The result must break total transaction amount down by month, with one
+          figure per month for all {row_count} months. Judge the DATA the system
+          returned — the query result rows and/or the chart it plotted — NOT the
+          wording of the final text: a final answer that summarizes or highlights
+          instead of listing every month is ACCEPTABLE. FAIL only if the returned
+          data does not cover all {row_count} months at monthly grain.
+
+  # ======================= PURE TYPICAL BI (5) =======================
+  - question: "How many customers are in the premier segment?"
+    tier: bi_filter
+    reference_answer: "126 premier customers."
+    difficulty_justification: "# tests: bi_filter (conditional WHERE on one clean table; no trap)."
+    golden_sql: |
+      SELECT COUNT(*) AS premier_count
+      FROM `{project}.{dataset}.customers`
+      WHERE segment = 'premier'
+    asserts:
+      - type: ai-judge
+        value: >-
+          PASS only if the response states approximately {scalar:premier_count}
+          customers in the premier segment.
+
+  - question: "What are the top 3 support ticket channels by number of tickets?"
+    tier: bi_topn
+    reference_answer: "phone 600, chat 455, email 297."
+    difficulty_justification: "# tests: bi_topn (ORDER BY count DESC LIMIT on one clean fact; robust ranking)."
+    golden_sql: |
+      SELECT channel, COUNT(*) AS ticket_count
+      FROM `{project}.{dataset}.support_tickets`
+      GROUP BY channel
+      ORDER BY ticket_count DESC
+      LIMIT 3
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The top 3 support ticket channels by count are phone (~600), chat (~455),
+          and email (~297), in that order. PASS only if the response names these
+          three channels as the top three (order and approximate counts correct).
+
+  - question: "What was the total transaction amount in the most recent transaction month?"
+    tier: bi_recency
+    reference_answer: "Apr 2026 total ~= 27,730.45."
+    difficulty_justification: "# tests: bi_recency (filter to the latest data / MAX(month); no trap)."
+    golden_sql: |
+      SELECT ROUND(SUM(amount), 2) AS latest_month_amount
+      FROM `{project}.{dataset}.transactions`
+      WHERE DATE_TRUNC(txn_date, MONTH) = (
+        SELECT DATE_TRUNC(MAX(txn_date), MONTH)
+        FROM `{project}.{dataset}.transactions`
+      )
+    asserts:
+      - type: ai-judge
+        value: >-
+          The most recent transaction month is April 2026 with a total transaction
+          amount of approximately {scalar:latest_month_amount}. PASS only if the
+          response reports the latest month's total within ~2%.
+
+  - question: "How many transactions occurred in each merchant category?"
+    tier: bi_groupby
+    reference_answer: "10 categories, ~2,000 each."
+    difficulty_justification: "# tests: bi_groupby (COUNT grouped by a dimension over one clean fact; no trap)."
+    golden_sql: |
+      SELECT merchant_category, COUNT(*) AS txn_count
+      FROM `{project}.{dataset}.transactions`
+      GROUP BY merchant_category
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The response must return a transaction count per merchant category across
+          {row_count} categories (each roughly 2,000; ~20,000 total).
+
+  - question: "How many transactions larger than $200 occurred in 2026?"
+    tier: bi_multifilter
+    reference_answer: "88 transactions."
+    difficulty_justification: "# tests: bi_multifilter (two-condition WHERE: amount threshold AND year; no trap)."
+    golden_sql: |
+      SELECT COUNT(*) AS n
+      FROM `{project}.{dataset}.transactions`
+      WHERE amount > 200 AND EXTRACT(YEAR FROM txn_date) = 2026
+    asserts:
+      - type: ai-judge
+        value: >-
+          PASS only if the response reports approximately {scalar:n} transactions
+          larger than $200 that occurred in 2026 (both conditions applied).
+
+  # ======================= CARRIED v6 TRAPS (4) =======================
+  - question: "What is the total account balance across the bank?"
+    tier: duplication
+    reference_answer: "6,073,496.58 (de-duplicated on account_id)."
+    difficulty_justification: >-
+      # tests: duplication — ~5% of account rows are an ETL double-load (second
+      load_batch_id). Correct de-duplicates on account_id; raw SUM reports 6,416,658.57.
+    golden_sql: |
+      SELECT ROUND(SUM(balance), 2) AS total_balance
+      FROM (
+        SELECT balance
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      )
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct total account balance is {scalar:total_balance} (the accounts
+          table contains an ETL double-load that must be de-duplicated on account_id).
+          PASS only if the response reports approximately {scalar:total_balance}. FAIL
+          if it reports the duplicate-inflated ~6,416,658.57 (~$6.42M) or larger.
+
+  - question: "For each customer segment, what is the total account balance and how many support tickets have been filed?"
+    tier: chasm
+    reference_answer: "retail 4,448,474.74/1082; premier 1,340,529.15/366; private 284,492.69/52."
+    difficulty_justification: >-
+      # tests: chasm — accounts and support_tickets are two independent one-to-many
+      children of customer. A single customers×accounts×tickets join cross-multiplies
+      both; balance is also inflated by the double-load. Correct = aggregate each fact
+      independently (de-duping accounts) then join on segment.
+    golden_sql: |
+      WITH bal AS (
+        SELECT c.segment, SUM(a.balance) AS total_balance
+        FROM `{project}.{dataset}.customers` AS c
+        JOIN (
+          SELECT account_id, customer_id, balance
+          FROM `{project}.{dataset}.accounts`
+          QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+        ) AS a USING (customer_id)
+        GROUP BY c.segment
+      ),
+      tix AS (
+        SELECT c.segment, COUNT(t.ticket_id) AS ticket_count
+        FROM `{project}.{dataset}.customers` AS c
+        JOIN `{project}.{dataset}.support_tickets` AS t USING (customer_id)
+        GROUP BY c.segment
+      )
+      SELECT bal.segment, ROUND(bal.total_balance, 2) AS total_balance, tix.ticket_count
+      FROM bal JOIN tix USING (segment)
+      ORDER BY total_balance DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          Correct per-segment figures: {scalar:segment} = balance {scalar:total_balance}
+          with {scalar:ticket_count} tickets, and the other two segments proportionally
+          smaller (premier ~1,340,529 / 366, private ~284,493 / 52). PASS only if the
+          {scalar:segment} balance is within ~1% of {scalar:total_balance} AND its
+          ticket count equals {scalar:ticket_count}. FAIL on a materially larger
+          balance (e.g. ~4.66M for retail from the double-load, or far larger from a
+          customers×accounts×tickets cross-join) or cross-multiplied ticket counts.
+
+  - question: "By account type, what is the total account balance and the total transaction amount?"
+    tier: fan
+    reference_answer: "checking 3,180,101.99/581,806.55; savings 2,169,656.02/362,129.77; credit 723,738.57/114,924.45."
+    difficulty_justification: >-
+      # tests: fan — joining accounts->transactions then SUM(balance) repeats each
+      account's balance once per transaction (~x17). Correct = aggregate balance
+      (de-duped) and transactions separately, then join on account_type.
+    golden_sql: |
+      WITH bal AS (
+        SELECT account_type, SUM(balance) AS total_balance
+        FROM (
+          SELECT account_id, account_type, balance
+          FROM `{project}.{dataset}.accounts`
+          QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+        )
+        GROUP BY account_type
+      ),
+      txn AS (
+        SELECT a.account_type, SUM(t.amount) AS total_txn_amount
+        FROM `{project}.{dataset}.transactions` AS t
+        JOIN (
+          SELECT account_id, account_type
+          FROM `{project}.{dataset}.accounts`
+          QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+        ) AS a USING (account_id)
+        GROUP BY a.account_type
+      )
+      SELECT bal.account_type, ROUND(bal.total_balance, 2) AS total_balance,
+             ROUND(txn.total_txn_amount, 2) AS total_txn_amount
+      FROM bal JOIN txn USING (account_type)
+      ORDER BY total_balance DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          Correct: {scalar:account_type} = total balance {scalar:total_balance} and
+          total transaction amount {scalar:total_txn_amount}; the other account types
+          proportionally smaller (savings ~2,169,656, credit ~723,739). PASS only if
+          the {scalar:account_type} balance is within ~1% of {scalar:total_balance}.
+          FAIL on a materially larger balance (e.g. ~3.36M for checking from the
+          double-load, or tens of millions from joining through transactions).
+
+  - question: "What is the total account balance held in checking accounts?"
+    tier: filter
+    reference_answer: "3,180,101.99 (account_type = 'checking', de-duplicated)."
+    difficulty_justification: >-
+      # tests: filter — needs WHERE account_type='checking' AND de-duplication on
+      account_id. A raw SUM over the filtered rows counts the double-load (~3,403,841.53, +7%).
+    golden_sql: |
+      SELECT ROUND(SUM(balance), 2) AS total_balance
+      FROM (
+        SELECT account_id, account_type, balance
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      )
+      WHERE account_type = 'checking'
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct total balance in checking accounts is {scalar:total_balance}
+          (filter to account_type='checking' AND de-duplicate on account_id). PASS
+          only within ~1%. FAIL if no account-type filter, or a materially larger
+          figure (~3,403,841 / ~3.4M) counting the double-load.
+
+  # ======================= NEW TRAPS (6) =======================
+  - question: "How many accounts are jointly owned (owned by more than one customer), and what is their combined balance?"
+    tier: joint_ownership
+    reference_answer: "180 accounts; combined balance 836,807.03."
+    difficulty_justification: >-
+      # tests: joint_ownership (M:N) — account_owners is a many-to-many bridge; ~15%
+      of accounts have two owners. Joining the bridge to accounts and counting/summing
+      naively counts owner-rows (360) not accounts (180) and doubles each joint
+      account's balance. Correct = COUNT(DISTINCT account_id) / balance summed once,
+      over accounts with >=2 distinct owners.
+    golden_sql: |
+      WITH dedup AS (
+        SELECT account_id, balance
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      ),
+      joint AS (
+        SELECT account_id
+        FROM `{project}.{dataset}.account_owners`
+        GROUP BY account_id
+        HAVING COUNT(DISTINCT customer_id) >= 2
+      )
+      SELECT COUNT(*) AS joint_account_count, ROUND(SUM(d.balance), 2) AS joint_balance
+      FROM joint j JOIN dedup d USING (account_id)
+    asserts:
+      - type: ai-judge
+        value: >-
+          There are {scalar:joint_account_count} jointly-owned accounts with a
+          combined balance of {scalar:joint_balance}. PASS only if the response
+          reports approximately {scalar:joint_account_count} accounts AND a combined
+          balance within ~1% of {scalar:joint_balance}. FAIL if it reports the
+          owner-row count (~360) or a doubled balance (~1.67M) from counting each
+          joint account once per owner.
+
+  - question: "What is the balance-weighted average interest rate across all accounts?"
+    tier: weighted_avg
+    reference_answer: "0.0362 = SUM(rate*balance)/SUM(balance) on de-duplicated accounts."
+    difficulty_justification: >-
+      # tests: weighted_avg (avg-of-avg) — naive AVG(interest_rate) is an
+      average-of-averages and also counts the double-load. Correct = balance-weighted
+      mean over de-duplicated accounts. interest_rate is strongly anti-correlated with
+      balance, so the two differ widely (simple AVG ~0.0549 vs weighted 0.0362).
+    golden_sql: |
+      SELECT ROUND(SUM(interest_rate * balance) / SUM(balance), 4) AS weighted_avg_rate
+      FROM (
+        SELECT interest_rate, balance
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      )
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct balance-weighted average interest rate is
+          {scalar:weighted_avg_rate} (about 3.6%). PASS only if the response reports
+          approximately {scalar:weighted_avg_rate} (within ~5%). FAIL if it reports a
+          simple unweighted AVG(interest_rate) (~0.0549 / ~5.5%) or any figure that
+          ignores balance weighting.
+
+  - question: "What is our total account balance as of the most recent monthly snapshot?"
+    tier: semi_additive
+    reference_answer: "6,375,161.17 (latest snapshot_month only)."
+    difficulty_justification: >-
+      # tests: semi_additive — balance_snapshots holds 6 monthly point-in-time
+      balances per account. A naive SUM(balance) across all snapshots multiplies each
+      account ~6x. Correct = period-end: sum only the most recent snapshot_month.
+    golden_sql: |
+      SELECT ROUND(SUM(balance), 2) AS period_end_balance
+      FROM `{project}.{dataset}.balance_snapshots`
+      WHERE snapshot_month = (
+        SELECT MAX(snapshot_month) FROM `{project}.{dataset}.balance_snapshots`
+      )
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct total balance as of the most recent snapshot month
+          (April 2026) is {scalar:period_end_balance}. PASS only within ~1%. FAIL if
+          it sums balances across multiple months (several times larger, ~6x /
+          ~35.5M).
+
+  - question: "On average, how many transactions does each account have?"
+    tier: zero_fill
+    reference_answer: "16.67 (20,000 / 1,200 accounts, incl. 120 zero-txn accounts)."
+    difficulty_justification: >-
+      # tests: zero_fill — 120 of the 1,200 accounts have zero transactions. The
+      denominator must be ALL accounts. An inner join / graph traversal drops the
+      zero-transaction accounts, shrinking the denominator to 1,080 and inflating the
+      average to ~18.52.
+    golden_sql: |
+      SELECT ROUND(
+        (SELECT COUNT(*) FROM `{project}.{dataset}.transactions`)
+        / (SELECT COUNT(DISTINCT account_id) FROM `{project}.{dataset}.accounts`)
+      , 2) AS avg_txns_per_account
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average is {scalar:avg_txns_per_account} transactions per
+          account (20,000 transactions over all 1,200 accounts, including the ~120
+          accounts with zero transactions). PASS only within ~2%. FAIL if it reports
+          ~18.5 or higher, excluding zero-transaction accounts from the denominator.
+
+  - question: "Splitting each jointly-owned account's balance equally among its owners, what total balance is attributed to primary vs joint owners?"
+    tier: m2n_split
+    reference_answer: "primary 5,655,093.07; joint 418,403.52 (sum 6,073,496.58 = total balance)."
+    difficulty_justification: >-
+      # tests: M:N SPLIT allocation (the 'split' half of count-once/split/allocate) — attribute
+      each account's balance to its owner ROWS, splitting joint accounts equally by owner_count,
+      grouped by ownership_role. A naive owner->account join that does NOT divide by owner_count
+      double-counts the 180 joint accounts (joint role ~836,807 vs the split ~418,404; grand total
+      ~6.91M vs the conserved 6.07M). Graph: MATCH (a:Account)-[r:HasOwner]->() RETURN
+      r.ownership_role, SUM(a.balance/a.owner_count) — free (owner_count node prop + HasOwner edge).
+      LookML: a total_allocated_balance measure grouped by ownership_role. (Attributing by an OWNER
+      attribute like segment is deliberately avoided: a 2nd customers join duplicates 'segment' and
+      the agent conflates it, breaking plain segment-BI — see RESULTS.md.)
+    golden_sql: |
+      WITH dedup AS (
+        SELECT account_id, balance FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      ),
+      oc AS (
+        SELECT account_id, COUNT(DISTINCT customer_id) AS owner_count
+        FROM `{project}.{dataset}.account_owners` GROUP BY account_id
+      )
+      SELECT ao.ownership_role, ROUND(SUM(d.balance / oc.owner_count), 2) AS attributed_balance
+      FROM `{project}.{dataset}.account_owners` ao
+      JOIN dedup d USING (account_id)
+      JOIN oc USING (account_id)
+      GROUP BY ao.ownership_role
+      ORDER BY attributed_balance DESC
+    asserts:
+      # No data-check-row-count: the Looker explore root (customers) LEFT-joins outward, so
+      # childless customers can form a benign NULL-role / $0 bucket — an explore-root artifact,
+      # not a modeling error. Correctness is fully covered by the ai-judge (2 roles + conserved
+      # total). The graph returns a clean 2 rows.
+      - type: ai-judge
+        value: >-
+          The response must split jointly-owned accounts equally among their owners and attribute
+          balance by owner role: primary ~{scalar:attributed_balance} (~5,655,093) and joint
+          ~418,404, summing to ~6,073,497 (the total account balance). PASS only within ~2% AND if
+          the two role figures sum to ~6.07M. FAIL if joint accounts are NOT split (joint role
+          ~836,807, i.e. each joint account counted for both owners).
+
+  - question: "What is our average monthly total account balance across the snapshot history?"
+    tier: semi_additive_avg
+    reference_answer: "5,922,272.52 (average of the 6 monthly total balances = 35,533,635.11 / 6)."
+    difficulty_justification: >-
+      # tests: SEMI-ADDITIVE average-over-time (the 'or average' half of period-end/average) — the
+      average of the monthly TOTAL balances: SUM across accounts per month, then AVG across the 6
+      months. Wrong #1: SUM across months = 35.5M (the semi-additive sum trap, ~6x). Wrong #2: AVG
+      of per-account-month rows = ~4,935 (averages rows, not monthly totals). LookML: the identity
+      total_balance / COUNT(DISTINCT month). Graph: a materialized MonthlyBalance node.
+    golden_sql: |
+      WITH monthly AS (
+        SELECT snapshot_month, SUM(balance) AS monthly_total
+        FROM `{project}.{dataset}.balance_snapshots`
+        GROUP BY snapshot_month
+      )
+      SELECT ROUND(AVG(monthly_total), 2) AS avg_monthly_total_balance FROM monthly
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average monthly total account balance is
+          {scalar:avg_monthly_total_balance} (~5,922,273) — the average of the six monthly total
+          balances. PASS only within ~2%. FAIL if it reports ~35.5M (summing balance across all
+          months) or ~4,935 (averaging per-account-month rows instead of monthly totals).
+
+  # ======================= BI × TRAP COMBINATIONS (5) =======================
+  - question: "Which 5 regions hold the most total account balance?"
+    tier: bi_topn_dup
+    reference_answer: "Southwest 1,188,831.68; Midwest 1,046,920.56; Northwest 1,023,941.15; Northeast 1,019,677.73; West 962,867.42."
+    difficulty_justification: >-
+      # tests: duplication × top-N — rank regions by total (de-duplicated) balance.
+      A raw SUM over the double-loaded accounts inflates and can reorder the ranking.
+    golden_sql: |
+      WITH dedup AS (
+        SELECT account_id, customer_id, balance
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      )
+      SELECT c.region, ROUND(SUM(d.balance), 2) AS total_balance
+      FROM `{project}.{dataset}.customers` AS c
+      JOIN dedup d USING (customer_id)
+      GROUP BY c.region
+      ORDER BY total_balance DESC
+      LIMIT 5
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The top region by total de-duplicated account balance is {scalar:region}
+          with approximately {scalar:total_balance}, followed by Midwest (~1.05M),
+          Northwest (~1.02M), Northeast (~1.02M), and West (~0.96M). PASS only if
+          {scalar:region} is named first with a balance within ~2% of
+          {scalar:total_balance} and the five regions are correct. FAIL on a
+          dup-inflated ranking or balances materially larger than ~1.19M.
+
+  - question: "What is the balance-weighted average interest rate for checking accounts?"
+    tier: bi_filter_weighted
+    reference_answer: "0.0375 (balance-weighted over de-duped checking accounts)."
+    difficulty_justification: >-
+      # tests: weighted_avg × conditional filter (× dedup) — filter to
+      account_type='checking', de-duplicate, then balance-weight. Wrong = simple AVG
+      (~0.0549) or an unfiltered figure.
+    golden_sql: |
+      SELECT ROUND(SUM(interest_rate * balance) / SUM(balance), 4) AS weighted_avg_rate
+      FROM (
+        SELECT interest_rate, balance, account_type
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      )
+      WHERE account_type = 'checking'
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct balance-weighted average interest rate for checking accounts is
+          {scalar:weighted_avg_rate} (about 3.75%). PASS only within ~5%. FAIL if it
+          reports a simple AVG (~0.0549), omits the checking filter, or ignores
+          balance weighting.
+
+  - question: "Among premier-segment customers, on average how many transactions does each account have?"
+    tier: bi_filter_zerofill
+    reference_answer: "16.03 (txns / all premier accounts, incl. zero-txn)."
+    difficulty_justification: >-
+      # tests: zero_fill × conditional filter — average transactions per account for
+      premier-segment customers, keeping their zero-transaction accounts in the
+      denominator. An inner traversal drops dormant premier accounts (~18.09).
+    golden_sql: |
+      WITH prem AS (
+        SELECT a.account_id
+        FROM `{project}.{dataset}.accounts` AS a
+        JOIN `{project}.{dataset}.customers` AS c USING (customer_id)
+        WHERE c.segment = 'premier'
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY a.account_id ORDER BY a.load_batch_id) = 1
+      )
+      SELECT ROUND(
+        (SELECT COUNT(*) FROM `{project}.{dataset}.transactions` t JOIN prem USING (account_id))
+        / (SELECT COUNT(*) FROM prem)
+      , 2) AS avg_txns_premier
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average for premier-segment customers is
+          {scalar:avg_txns_premier} transactions per account (all premier accounts in
+          the denominator, including those with zero transactions). PASS only within
+          ~3%. FAIL if it reports ~18 or higher, dropping premier accounts with zero
+          transactions.
+
+  - question: "What was the total account balance at each of the two most recent month-ends?"
+    tier: bi_recency_semiadditive
+    reference_answer: "2026-04 = 6,375,161.17; 2026-03 = 6,196,676.14 (per month, not summed)."
+    difficulty_justification: >-
+      # tests: semi_additive × recency — per-month total balance for the two latest
+      snapshot months, NOT summed across them. Wrong = one cross-month SUM (~12.5M for
+      two months, or ~35.5M for all).
+    golden_sql: |
+      SELECT snapshot_month, ROUND(SUM(balance), 2) AS month_end_balance
+      FROM `{project}.{dataset}.balance_snapshots`
+      WHERE snapshot_month >= (
+        SELECT DATE_SUB(MAX(snapshot_month), INTERVAL 1 MONTH)
+        FROM `{project}.{dataset}.balance_snapshots`
+      )
+      GROUP BY snapshot_month
+      ORDER BY snapshot_month DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The response must give a SEPARATE total for each of the two most recent
+          month-ends: April 2026 ~= 6,375,161 and March 2026 ~= 6,196,676 (two rows,
+          per month). PASS only if both monthly figures are reported separately within
+          ~1%. FAIL if the two months are summed into one figure (~12.5M) or all
+          months are summed (~35.5M).
+
+  - question: "On average, how many transactions did each account have in 2026?"
+    tier: bi_timefilter_zerofill
+    reference_answer: "1.82 (2,187 transactions in 2026 / 1,200 accounts, incl. ~282 accounts with zero 2026 transactions)."
+    difficulty_justification: >-
+      # tests: zero_fill × child-side time filter — the numerator is filtered to 2026
+      transactions, but the denominator must stay ALL 1,200 accounts. Filtering the
+      child (transactions) in a WHERE turns the parent LEFT JOIN into an INNER join and
+      drops the ~282 accounts with zero 2026 transactions, shrinking the denominator to
+      918 and inflating the average to ~2.38. LookML cure: a parameter-driven
+      conditional-aggregate numerator (transactions.count_in_selected_year). Graph cure:
+      a precomputed transaction_count_2026 node property.
+    golden_sql: |
+      SELECT ROUND(
+        (SELECT COUNT(*) FROM `{project}.{dataset}.transactions`
+         WHERE EXTRACT(YEAR FROM txn_date) = 2026)
+        / (SELECT COUNT(DISTINCT account_id) FROM `{project}.{dataset}.accounts`)
+      , 2) AS avg_2026_txns_per_account
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average is {scalar:avg_2026_txns_per_account} transactions per
+          account in 2026 (2,187 transactions in 2026 over all 1,200 accounts, including
+          the ~282 accounts with zero 2026 transactions). PASS only within ~3%. FAIL if
+          it reports ~2.38 or higher, dropping accounts with zero 2026 transactions from
+          the denominator.
+
+  # ======================= ALL-TRAP COMBO (1) =======================
+  - question: "For each customer segment, what is the total account balance, the number of support tickets, and the balance-weighted average interest rate?"
+    tier: combo
+    reference_answer: "retail 4,448,474.74/1082/0.0362; premier 1,340,529.15/366/0.0365; private 284,492.69/52/0.0354."
+    difficulty_justification: >-
+      # tests: compositional multi-grain (dedup + chasm + weighted-avg in one ask) —
+      three metrics at three grains per segment: balance (de-duped), support tickets
+      (independent one-to-many), and balance-weighted interest rate. Must aggregate
+      each fact independently and join on segment; a single join cross-multiplies.
+    golden_sql: |
+      WITH dedup AS (
+        SELECT account_id, customer_id, balance, interest_rate
+        FROM `{project}.{dataset}.accounts`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY load_batch_id) = 1
+      ),
+      bal AS (
+        SELECT c.segment,
+               SUM(d.balance) AS total_balance,
+               SUM(d.interest_rate * d.balance) / SUM(d.balance) AS weighted_avg_rate
+        FROM `{project}.{dataset}.customers` AS c
+        JOIN dedup d USING (customer_id)
+        GROUP BY c.segment
+      ),
+      tix AS (
+        SELECT c.segment, COUNT(t.ticket_id) AS ticket_count
+        FROM `{project}.{dataset}.customers` AS c
+        JOIN `{project}.{dataset}.support_tickets` AS t USING (customer_id)
+        GROUP BY c.segment
+      )
+      SELECT bal.segment,
+             ROUND(bal.total_balance, 2) AS total_balance,
+             tix.ticket_count,
+             ROUND(bal.weighted_avg_rate, 4) AS weighted_avg_rate
+      FROM bal JOIN tix USING (segment)
+      ORDER BY total_balance DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          Correct per-segment figures: {scalar:segment} = balance {scalar:total_balance},
+          {scalar:ticket_count} tickets, weighted-avg interest rate
+          {scalar:weighted_avg_rate}; the other segments proportionally smaller
+          (premier ~1,340,529 / 366 / ~0.036, private ~284,493 / 52 / ~0.035). PASS
+          only if {scalar:segment}'s balance is within ~1% of {scalar:total_balance}
+          AND its ticket count equals {scalar:ticket_count} AND its weighted rate is
+          within ~10% of {scalar:weighted_avg_rate}. FAIL on cross-multiplied balances
+          or ticket counts, or a simple (unweighted) rate.
+
+  # ======================= PROBE: UN-CURATED RATIO (1) =======================
+  # DELIBERATELY not defined as a measure in either model. The graph agent composes it live; the
+  # LookML agent can only select DEFINED fields, so it is EXPECTED to be unable to answer —
+  # demonstrating that LookML derived ratios must be curated. See RESULTS.md / PLAYBOOK §5.
+  - question: "On average, how many support tickets does each customer have?"
+    tier: uncurated_ratio
+    reference_answer: "3.0 (1,500 tickets / 500 customers, incl. the 29 zero-ticket customers)."
+    difficulty_justification: >-
+      # tests: un-curated cross-view ratio (support_tickets.count / customers.count) DELIBERATELY
+      not defined as a measure in either model. The graph agent composes it live in GQL/SQL; the
+      LookML agent can only select DEFINED fields, so it cannot express an ad-hoc a/b and is
+      EXPECTED to fail (the un-named-ratio asymmetry). Also has a zero-fill aspect (29 zero-ticket
+      customers -> the denominator must be ALL 500, not 471).
+    golden_sql: |
+      SELECT ROUND(
+        (SELECT COUNT(*) FROM `{project}.{dataset}.support_tickets`)
+        / (SELECT COUNT(*) FROM `{project}.{dataset}.customers`)
+      , 2) AS avg_tickets_per_customer
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average is {scalar:avg_tickets_per_customer} support tickets per customer
+          (1,500 tickets over all 500 customers, including the ~29 with zero tickets). PASS only
+          within ~3%. FAIL if the agent does not produce a numerical answer (e.g. asks which field
+          to use, or says it cannot compute the ratio), or reports ~3.18 (dropping zero-ticket
+          customers).
+  # =================== v6y ENTERPRISE PATTERNS (14) ===================
+  # ======================= CONTROLS (2) =======================
+
+  - question: "How many loan applications do we have?"
+    tier: control
+    reference_answer: "The total loan-application count (single COUNT over one table)."
+    difficulty_justification: "# tests: control (single COUNT over one accumulating-snapshot fact; no pattern)."
+    golden_sql: |
+      SELECT COUNT(*) AS application_count
+      FROM `{project}.{dataset}.loan_applications`
+    asserts:
+      - type: ai-judge
+        value: >-
+          PASS only if the response states approximately {scalar:application_count}
+          loan applications.
+
+  # ======================= ROLE-PLAYING DIMENSION (1) =======================
+  - question: "How much total wire amount was SENT on a bank holiday, and separately how much was RECEIVED on a bank holiday?"
+    tier: role_playing
+    reference_answer: >-
+      Two figures from the SAME calendar dimension under two date roles: amount sent on
+      a holiday (join calendar on sent_date) and amount received on a holiday (join
+      calendar on received_date). They are different numbers.
+    difficulty_justification: >-
+      # tests: role_playing — the calendar dim must be joined TWICE to wire_transfers,
+      once per date role (sent vs received). Conflating the two roles (one calendar
+      join, or using one date for both) cannot separate sent-on-holiday from
+      received-on-holiday.
+    golden_sql: |
+      SELECT
+        ROUND(SUM(IF(cs.is_holiday, w.amount, 0)), 2) AS sent_on_holiday,
+        ROUND(SUM(IF(cr.is_holiday, w.amount, 0)), 2) AS received_on_holiday
+      FROM `{project}.{dataset}.wire_transfers` w
+      JOIN `{project}.{dataset}.calendar` cs ON w.sent_date = cs.cal_date
+      JOIN `{project}.{dataset}.calendar` cr ON w.received_date = cr.cal_date
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct figures are ~{scalar:sent_on_holiday} sent on a holiday and
+          ~{scalar:received_on_holiday} received on a holiday, resolved via the SAME
+          calendar dimension under two distinct date roles. PASS only if BOTH figures
+          are reported (each within ~2%) and clearly distinguished as sent vs received.
+          FAIL if only one figure is given or the two roles are conflated.
+
+  # ======================= RECURSIVE / SELF-REF HIERARCHY (1) =======================
+  - question: "How many customers are in customer 1's referral network — i.e. everyone customer 1 referred, directly or indirectly, to any depth?"
+    tier: recursive_hierarchy
+    reference_answer: >-
+      The full transitive referral subtree rooted at customer 1 (referred_by chains),
+      counted to arbitrary depth — NOT just customer 1's direct referrals.
+    difficulty_justification: >-
+      # tests: recursive_hierarchy — referred_by is a self-referencing edge. The
+      correct answer walks the chain transitively (graph: MATCH (a)-[:ReferredBy*]->(b);
+      LookML: a recursive derived table). Counting only DIRECT referrals (one hop)
+      undercounts the subtree.
+    golden_sql: |
+      WITH RECURSIVE tree AS (
+        SELECT customer_id
+        FROM `{project}.{dataset}.customers`
+        WHERE referred_by = 1
+        UNION ALL
+        SELECT c.customer_id
+        FROM `{project}.{dataset}.customers` c
+        JOIN tree t ON c.referred_by = t.customer_id
+      )
+      SELECT COUNT(*) AS subtree_size FROM tree
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct size of customer 1's full (transitive) referral subtree is
+          ~{scalar:subtree_size}. PASS only if the response reports approximately that
+          figure (the whole multi-level network). FAIL if it reports only the direct
+          (one-hop) referrals, a materially smaller number.
+
+  # ======================= HIERARCHY DRILL PATH (1) =======================
+  - question: "Which state has the highest total payment amount, and which region is it in?"
+    tier: hierarchy_drill
+    reference_answer: >-
+      The single (region, state) with the largest total payment amount — the leaf of the
+      region -> state -> city geography drill path.
+    difficulty_justification: >-
+      # tests: hierarchy_drill — the region/state/city levels must all be exposed and
+      groupable so the agent can roll payments up the geography path and rank the leaf.
+    golden_sql: |
+      SELECT c.region, c.state, ROUND(SUM(p.amount), 2) AS total_amount
+      FROM `{project}.{dataset}.payments` p
+      JOIN `{project}.{dataset}.customers` c USING (customer_id)
+      GROUP BY c.region, c.state
+      ORDER BY total_amount DESC
+      LIMIT 1
+    asserts:
+      - type: ai-judge
+        value: >-
+          The top state by total payment amount is {scalar:state} (in region
+          {scalar:region}) with ~{scalar:total_amount}. PASS only if the response names
+          {scalar:state} as the top state and its region as {scalar:region}.
+
+  # ======================= ACCUMULATING SNAPSHOT — FUNNEL (1) =======================
+  - question: "How many loan applications have reached each stage: applied, approved, funded, and closed?"
+    tier: accumulating_funnel
+    reference_answer: >-
+      A monotonically NON-increasing funnel: every application is applied; fewer are
+      approved; fewer funded; fewer closed (a milestone is reached iff its date column
+      is populated).
+    difficulty_justification: >-
+      # tests: accumulating_funnel — loan_applications is an accumulating snapshot with
+      four milestone dates that fill in over time. A stage is reached iff its date is
+      non-NULL. Reporting the same total for every stage (ignoring NULLs) is wrong.
+    golden_sql: |
+      SELECT
+        COUNTIF(applied_date  IS NOT NULL) AS applied,
+        COUNTIF(approved_date IS NOT NULL) AS approved,
+        COUNTIF(funded_date   IS NOT NULL) AS funded,
+        COUNTIF(closed_date   IS NOT NULL) AS closed
+      FROM `{project}.{dataset}.loan_applications`
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct funnel is applied ~{scalar:applied}, approved ~{scalar:approved},
+          funded ~{scalar:funded}, closed ~{scalar:closed} (each stage counts rows whose
+          milestone date is populated, so the counts strictly decrease). PASS only if the
+          four stage counts are reported and decrease down the funnel. FAIL if every
+          stage shows the same total (NULL milestones not respected).
+
+  # ======================= MILESTONE LAG (1) =======================
+  - question: "On average, how many days does it take from loan application to approval?"
+    tier: milestone_lag
+    reference_answer: >-
+      Average DATE_DIFF(approved_date, applied_date) over APPROVED applications only
+      (rows with a non-NULL approved_date).
+    difficulty_justification: >-
+      # tests: milestone_lag — a duration between two accumulating-snapshot milestones.
+      Correct = average days over rows that actually reached approval. Counting
+      not-yet-approved rows (NULL approved_date) as 0 days deflates the average.
+    golden_sql: |
+      SELECT ROUND(AVG(DATE_DIFF(approved_date, applied_date, DAY)), 1) AS avg_days_to_approve
+      FROM `{project}.{dataset}.loan_applications`
+      WHERE approved_date IS NOT NULL
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average time from application to approval is
+          ~{scalar:avg_days_to_approve} days (over approved applications only). PASS only
+          within ~10%. FAIL if it treats un-approved applications as 0 days (a materially
+          smaller average) or reports a nonsensical figure.
+
+  # ======================= PERIOD-OVER-PERIOD (1) =======================
+  - question: "What was the year-over-year change in total payment amount from 2024 to 2025, as a percentage?"
+    tier: period_over_period
+    reference_answer: >-
+      (2025 total - 2024 total) / 2024 total — a period comparison, not a single total
+      (2024 and 2025 are both full years in the data).
+    difficulty_justification: >-
+      # tests: period_over_period — a comparison of a measure to the prior period. This
+      is a self-join/window, NOT a plain time filter, so it must be modeled (LookML
+      native period_over_period; graph LAG rollup). Reporting one year's total, or an
+      absolute delta when asked for a percentage, is wrong.
+    golden_sql: |
+      WITH y AS (
+        SELECT EXTRACT(YEAR FROM payment_date) AS yr, SUM(amount) AS total
+        FROM `{project}.{dataset}.payments`
+        GROUP BY yr
+      )
+      SELECT ROUND((y25.total - y24.total) / y24.total, 4) AS yoy_growth
+      FROM (SELECT total FROM y WHERE yr = 2025) y25,
+           (SELECT total FROM y WHERE yr = 2024) y24
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct year-over-year growth in total payment amount from 2024 to 2025 is
+          ~{scalar:yoy_growth} (i.e. that fraction, e.g. 0.12 = +12%). PASS only if the
+          response reports the YoY change as a percentage within ~2 percentage points.
+          FAIL if it reports only a single year's total or confuses the direction.
+
+  # ======================= AS-OF / SCD2 TEMPORAL JOIN (1) =======================
+  - question: "What is the total wire amount attributed to each customer segment, using the segment each customer had AT THE TIME of the wire (not their current segment)?"
+    tier: as_of_scd2
+    reference_answer: >-
+      Total wire amount by the point-in-time segment: join each wire to the
+      customer_segment_history version whose [valid_from, valid_to) window contains the
+      wire's sent_date. This differs from using the customer's CURRENT segment.
+    difficulty_justification: >-
+      # tests: as_of_scd2 — customer_segment_history is an SCD2 dim (a version per
+      [valid_from, valid_to)). Correct = a range join on the validity window at
+      sent_date. A plain equi-join to the customer's current segment silently
+      mis-attributes every wire sent before the customer's latest segment change.
+    golden_sql: |
+      SELECT h.segment, ROUND(SUM(w.amount), 2) AS wire_amount
+      FROM `{project}.{dataset}.wire_transfers` w
+      JOIN `{project}.{dataset}.customer_segment_history` h
+        ON w.customer_id = h.customer_id
+       AND w.sent_date >= h.valid_from
+       AND w.sent_date <  h.valid_to
+      GROUP BY h.segment
+      ORDER BY wire_amount DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The correct point-in-time attribution assigns each wire to the segment valid at
+          its sent_date; the top segment is {scalar:segment} with ~{scalar:wire_amount}
+          across {row_count} segments. PASS only if the response attributes by the
+          AS-OF (historical) segment (top segment {scalar:segment} within ~2%). FAIL if
+          it uses each customer's CURRENT segment (an equi-join to customers.segment).
+
+  # ======================= WINDOW: CUMULATIVE (1) =======================
+  - question: "By month, what is the running cumulative total of payment amount?"
+    tier: window_cumulative
+    reference_answer: >-
+      One row per month with a running total that increases monotonically and ends at the
+      grand total of all payments.
+    difficulty_justification: >-
+      # tests: window_cumulative — a running total is a window function
+      (SUM() OVER (ORDER BY month UNBOUNDED PRECEDING)), not a plain SUM. LookML needs a
+      rollup derived_table (a table-calc can't be a measure); the graph materializes it.
+    golden_sql: |
+      SELECT payment_month,
+             ROUND(SUM(SUM(amount)) OVER (ORDER BY payment_month ROWS UNBOUNDED PRECEDING), 2) AS running_total
+      FROM `{project}.{dataset}.payments`
+      GROUP BY payment_month
+      ORDER BY payment_month
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The result must give a per-month running cumulative total of payment amount
+          across {row_count} months. Judge the DATA the system returned — the query
+          result rows and/or the chart it plotted, including a cumulative transform
+          applied by the chart — NOT the wording of the final text: a final answer
+          that summarizes instead of listing every month is ACCEPTABLE. PASS only if
+          the delivered values are cumulative (monotonically increasing) and the final
+          month equals the overall total. FAIL if the delivered figures are per-month
+          totals that do not accumulate.
+
+  # ======================= WINDOW: MOVING AVERAGE (1) =======================
+  - question: "What is the trailing 3-month moving average of monthly payment amount for the most recent month?"
+    tier: window_moving_avg
+    reference_answer: >-
+      Average of the last three monthly payment totals (the most recent month and the two
+      before it).
+    difficulty_justification: >-
+      # tests: window_moving_avg — a trailing-window average
+      (AVG() OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)) over monthly
+      totals, evaluated at the latest month. Not a plain overall average.
+    golden_sql: |
+      WITH m AS (
+        SELECT payment_month, SUM(amount) AS monthly_total
+        FROM `{project}.{dataset}.payments`
+        GROUP BY payment_month
+      ),
+      mv AS (
+        SELECT payment_month,
+               AVG(monthly_total) OVER (ORDER BY payment_month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS moving_avg
+        FROM m
+      )
+      SELECT ROUND(moving_avg, 2) AS trailing_3mo_avg
+      FROM mv
+      ORDER BY payment_month DESC
+      LIMIT 1
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct trailing 3-month moving average of monthly payment amount at the
+          most recent month is ~{scalar:trailing_3mo_avg}. PASS only within ~5%. FAIL if
+          it reports the plain overall monthly average or a single month's total.
+
+  # ======================= WINDOW: PERCENT OF TOTAL (1) =======================
+  - question: "What percentage of total payment amount comes from each channel?"
+    tier: window_pct
+    reference_answer: >-
+      Each channel's share of the overall payment total; the shares sum to 100%.
+    difficulty_justification: >-
+      # tests: window_pct — share-of-total (SUM per channel / SUM() OVER () grand total).
+      The shares must sum to 1. Reporting raw per-channel totals (not shares) is wrong.
+    golden_sql: |
+      SELECT channel,
+             ROUND(SAFE_DIVIDE(SUM(amount), SUM(SUM(amount)) OVER ()), 4) AS pct_of_total
+      FROM `{project}.{dataset}.payments`
+      GROUP BY channel
+      ORDER BY pct_of_total DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The response must give each channel's PERCENTAGE of total payment amount across
+          {row_count} channels, and the shares must sum to ~100%. PASS only if the values
+          are shares (summing to ~1.0), with the largest channel {scalar:channel} at
+          ~{scalar:pct_of_total}. FAIL if it returns raw totals instead of percentages.
+
+  # ======================= WEIGHTED M:N SPLIT ALLOCATION (1) =======================
+  - question: "Attributing each syndicated loan's principal to its investors by their allocation percentage, what total principal is attributed to each participation tier (lead, co-lead, participant)?"
+    tier: m2n_weighted
+    reference_answer: >-
+      For each investor row, amount * allocation_pct, summed by participation_tier. The
+      allocation_pct values sum to 1 per loan, so the tier totals sum to the total loan
+      principal (conservation).
+    difficulty_justification: >-
+      # tests: m2n_weighted — a many-to-many split by an EXPLICIT per-row weight
+      (allocation_pct), grouped by a bridge column (participation_tier). Not weighting
+      (joining investors to loans and summing full principal per investor) double-counts
+      each loan across its investors, inflating the grand total far above total principal.
+    golden_sql: |
+      SELECT li.participation_tier,
+             ROUND(SUM(la.amount * li.allocation_pct), 2) AS attributed_principal
+      FROM `{project}.{dataset}.loan_investors` li
+      JOIN `{project}.{dataset}.loan_applications` la USING (application_id)
+      GROUP BY li.participation_tier
+      ORDER BY attributed_principal DESC
+    asserts:
+      - type: data-check-row-count
+      - type: ai-judge
+        value: >-
+          The correct weighted attribution multiplies each loan's principal by each
+          investor's allocation_pct and sums by tier: {scalar:participation_tier} is the
+          largest at ~{scalar:attributed_principal}, across {row_count} tiers whose
+          totals sum to the overall loan principal (conserved). PASS only if the split is
+          weighted by allocation_pct (tier totals summing to total principal). FAIL if
+          full principal is counted for every investor (grand total far exceeds total
+          principal).
+
+  # ======================= BI × PATTERN COMBO (1) =======================
+  - question: "For mortgage loans only, what is the average number of days from application to approval?"
+    tier: combo
+    reference_answer: >-
+      Milestone lag (applied -> approved) filtered to product_type = 'mortgage', over
+      approved mortgages only.
+    difficulty_justification: >-
+      # tests: combo — a parent-side filter (product_type='mortgage') composed with a
+      milestone_lag (DATE_DIFF applied->approved) over approved rows. Should ride free on
+      top of a correct milestone_lag model (the avg_days_to_approve measure + a filter).
+    golden_sql: |
+      SELECT ROUND(AVG(DATE_DIFF(approved_date, applied_date, DAY)), 1) AS avg_days_to_approve
+      FROM `{project}.{dataset}.loan_applications`
+      WHERE product_type = 'mortgage' AND approved_date IS NOT NULL
+    asserts:
+      - type: ai-judge
+        value: >-
+          The correct average time from application to approval for mortgage loans is
+          ~{scalar:avg_days_to_approve} days (mortgages that were approved). PASS only
+          within ~10% AND if the mortgage filter is applied. FAIL if it ignores the
+          product-type filter or counts un-approved loans as 0 days.

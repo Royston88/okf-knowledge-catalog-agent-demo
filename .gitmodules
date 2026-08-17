@@ -1,0 +1,3 @@
+[submodule "prism_evaluator"]
+	path = prism_evaluator
+	url = https://github.com/looker-open-source/ca-demos-and-tools.git

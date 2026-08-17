@@ -46,9 +46,11 @@ graph LR
 | Directory | Role | Description |
 |---|---|---|
 | [`bq-kc-agent/`](bq-kc-agent/) | **Consumer** | Natural language → BigQuery SQL agents built with Agent Development Kit (ADK) and FastAPI. Includes both Local OKF (`agent_okf.py`) and Dataplex KC (`agent_kc.py`) agent implementations. |
+| [`prism_evaluator/`](prism_evaluator/) | **Observability** | Git submodule ([`looker-open-source/ca-demos-and-tools`](https://github.com/looker-open-source/ca-demos-and-tools)) hosting the Prism Agent Ops Platform for test suites, trace capture, and Dash diagnostics. |
+| [`eval/`](eval/) | **Test Suites** | 38-question Golden Core Suite (`core.yaml`) and 10x evaluation suite (`core_10x.yaml`) with assertions and golden SQL. |
 | [`kcmd/`](kcmd/) | **Core Engine** | TypeScript CLI, library, and MCP server for Knowledge Catalog. Includes `kcmd/demo/okf/` (push planner & forward differ). |
 | [`okf-bundle/`](okf-bundle/) | **System of Record** | 58 production OKF v0.2 concepts (14 tables/datasets, 13 joins, 26 metrics, 3 grains, hierarchies). |
-| [`okf-eval/`](okf-eval/) | **Evaluation** | Benchmarking harness (`run_arms.py`) scoring NL-to-SQL accuracy across metadata configurations. |
+| [`okf-eval/`](okf-eval/) | **Benchmarking** | Lightweight benchmarking harness (`run_arms.py`) scoring NL-to-SQL accuracy across metadata configurations. |
 | [`okf-emitter/`](okf-emitter/) & [`okf-author/`](okf-author/) | **Producers** | Tools to generate joins/metrics from `spec.yaml` or author table descriptions using Gemini. |
 | [`okf-review/`](okf-review/) | **Quality & CI** | Scripts for OKF v0.2 conformance, link checking, BQ schema mirroring, and frontmatter canonicalization. |
 | [`docs/`](docs/) | **Documentation** | In-depth engineering docs: [`DESIGN.md`](docs/DESIGN.md), [`ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`RESULTS.md`](docs/RESULTS.md), [`MEASUREMENTS.md`](docs/MEASUREMENTS.md), and [`HANDOFF.md`](docs/HANDOFF.md). |
@@ -228,6 +230,51 @@ cd bq-kc-agent
 gcloud config set project YOUR_PROJECT_ID
 agents-cli deploy
 ```
+
+---
+
+## Workflow D: Observability & Evaluation Platform (`prism_evaluator`)
+
+The [`prism_evaluator/`](prism_evaluator/) submodule provides a comprehensive Agent Ops platform built with Dash and PostgreSQL for evaluating the local agents against the **38-Question Golden Core Suite** ([`eval/core.yaml`](eval/core.yaml)).
+
+### 1. Initialize Submodule & Setup PostgreSQL
+```bash
+# Initialize submodule if cloning fresh
+git submodule update --init --recursive
+
+# Navigate to Prism directory
+cd prism_evaluator/ca-agent-ops-prism
+
+# Create local Docker PostgreSQL database and run migrations
+bash scripts/setup_postgres.sh
+```
+
+### 2. Configure Prism Environment
+```bash
+cp .env.example .env
+```
+Ensure `.env` contains:
+```env
+DATABASE_URL=postgresql://postgres:mysecretpassword@localhost:5432/prism
+TEST_DATABASE_URL=postgresql://postgres:mysecretpassword@localhost:5432/prism_test
+PRISM_GENAI_CLIENT_PROJECT=YOUR_PROJECT_ID
+PRISM_GENAI_CLIENT_LOCATION=us-central1
+PRISM_GENAI_MODEL=gemini-2.5-flash
+```
+
+### 3. Import Test Suite & Register Agents
+With your agents running on ports 8000 and 8001, import the 38-question Golden Core Suite:
+```bash
+# From repository root or prism_evaluator/ca-agent-ops-prism
+uv run python eval/scripts/import_core_suite.py
+```
+
+### 4. Start the Prism Diagnostic UI
+```bash
+cd prism_evaluator/ca-agent-ops-prism
+uv run python src/prism/ui/app.py
+```
+Open **`http://localhost:8050`** to view the live dashboard, trigger evaluation runs, inspect trial execution traces, and compare agent accuracy metrics.
 
 ---
 
