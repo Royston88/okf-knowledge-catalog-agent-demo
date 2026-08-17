@@ -39,6 +39,8 @@ credentials*.json
 # Project specific ignores
 ~
 **/~
+scratch/
+**/scratch/
 bq-okf-workspace/bundle/
 .google-agents-cli/
 **/google-agents-cli/

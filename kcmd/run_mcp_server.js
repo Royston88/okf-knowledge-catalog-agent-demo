@@ -18,7 +18,7 @@ console.error("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_
 console.error("GOOGLE_CLOUD_PROJECT:", process.env.GOOGLE_CLOUD_PROJECT);
 console.error("-------------------------");
 
-const { startServer } = require('./build/ts/tool/tool/mcp.js');
+const { startServer } = require(path.join(__dirname, 'build/ts/tool/tool/mcp.js'));
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);

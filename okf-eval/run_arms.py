@@ -44,8 +44,8 @@ import sys
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-PROJECT = "royston-dev-8253"
-DATASET = "cymbal_bank_v6z_scaffold_demo_copy"
+PROJECT = os.environ.get("OKF_PROJECT", os.environ.get("GOOGLE_CLOUD_PROJECT", "your-gcp-project-id"))
+DATASET = os.environ.get("OKF_BQ_DATASET", os.environ.get("BIGQUERY_DATASET", "your-bigquery-dataset"))
 MODEL = os.environ.get("OKF_AGENT_MODEL", "gemini-2.5-flash")
 
 INSTRUCTION = f"""You are a data analyst answering questions about the BigQuery
