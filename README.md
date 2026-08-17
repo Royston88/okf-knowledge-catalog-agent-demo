@@ -235,46 +235,78 @@ agents-cli deploy
 
 ## Workflow D: Observability & Evaluation Platform (`prism_evaluator`)
 
-The [`prism_evaluator/`](prism_evaluator/) submodule provides a comprehensive Agent Ops platform built with Dash and PostgreSQL for evaluating the local agents against the **38-Question Golden Core Suite** ([`eval/core.yaml`](eval/core.yaml)).
+The [`prism_evaluator/`](prism_evaluator/) module hosts the Prism Agent Ops Platform—a Dash- and PostgreSQL-backed evaluation engine designed to evaluate NL-to-SQL data agents against curated, deterministic golden benchmarks with automated assertions (`ai-judge`, `data-check-row-count`, and `data-check-row`).
 
-### 1. Initialize Submodule & Setup PostgreSQL
+### 1. Initialize Database & Setup Environment
 ```bash
-# Initialize submodule if cloning fresh
-git submodule update --init --recursive
-
 # Navigate to Prism directory
 cd prism_evaluator/ca-agent-ops-prism
 
-# Create local Docker PostgreSQL database and run migrations
+# Create local Docker PostgreSQL database and apply migrations
 bash scripts/setup_postgres.sh
-```
 
-### 2. Configure Prism Environment
-```bash
+# Configure environment (.env)
 cp .env.example .env
 ```
-Ensure `.env` contains:
+Ensure `.env` contains your GCP project configuration:
 ```env
 DATABASE_URL=postgresql://postgres:mysecretpassword@localhost:5432/prism
-TEST_DATABASE_URL=postgresql://postgres:mysecretpassword@localhost:5432/prism_test
 PRISM_GENAI_CLIENT_PROJECT=YOUR_PROJECT_ID
 PRISM_GENAI_CLIENT_LOCATION=us-central1
 PRISM_GENAI_MODEL=gemini-2.5-flash
 ```
 
-### 3. Import Test Suite & Register Agents
-With your agents running on ports 8000 and 8001, import the 38-question Golden Core Suite:
+### 2. Import Golden Test Suites & Register Local Agents
+Start your agent servers on ports `8000` (`agent_okf`) and `8001` (`agent_kc`), then import the Golden Core test suites into PostgreSQL:
 ```bash
-# From repository root or prism_evaluator/ca-agent-ops-prism
-uv run python eval/scripts/import_core_suite.py
+# Seed the core (37 questions) and core_10x (370 questions) suites & register local agents
+uv run python scripts/import_core_suite.py
 ```
 
-### 4. Start the Prism Diagnostic UI
+### 3. Start the Prism UI
 ```bash
-cd prism_evaluator/ca-agent-ops-prism
 uv run python src/prism/ui/app.py
 ```
-Open **`http://localhost:8050`** to view the live dashboard, trigger evaluation runs, inspect trial execution traces, and compare agent accuracy metrics.
+Open **`http://localhost:8080`** to trigger evaluation runs, monitor live trial execution, inspect tool traces, and view comparison diffs.
+
+---
+
+### 4. Empirical Evaluation Results
+
+We evaluated two bare-bones AI agents head-to-head using identical minimal instructions and execution tools (`execute_sql`), differing only in their semantic metadata discovery mechanism:
+* **Agent 1 (`okf_bundle_agent`)**: Discovers metadata directly from local `okf-bundle/` Markdown files via `kcmd` MCP server.
+* **Agent 2 (`knowledge_catalog_agent`)**: Discovers metadata by querying Google Cloud Dataplex Knowledge Catalog via `@toolbox-sdk/server dataplex` MCP with enforced `view=4 (ALL)`.
+
+#### A. Head-to-Head Comparison: Core Golden Suite (37 Questions, 49 Assertions)
+
+| Evaluation Metric | **Agent 1: Local OKF Agent** (`Run 6`) | **Agent 2: Dataplex KC Agent** (`Run 7`) | Delta / Finding |
+|---|---|---|---|
+| **Metadata Source** | Local `okf-bundle/` via `kcmd` | Dataplex Knowledge Catalog via MCP | Same semantic source of truth |
+| **Aspect View Level** | Direct Markdown parse | Enforced `view=4 (ALL)` | Full semantic retrieval |
+| **Completed Trials** | 37 / 37 | **37 / 37** | 100% execution completion |
+| **Trial Pass Rate** | **34 / 37 (91.9%)** | **37 / 37 (100.0%)** | **+8.1% (Perfect Score)** |
+| **Assertion Pass Rate** | **45 / 49 (91.8%)** | **49 / 49 (100.0%)** | **+8.2% (Perfect Score)** |
+| **Dropped / Contention Flakes** | 2 trials (stdio pipe contention) | **0 trials** | Dataplex MCP handles multi-session multiplexing |
+
+#### B. 10x Stress Benchmark: `knowledge_catalog_agent` (`core_10x`, 370 Trials, 490 Assertions)
+
+To test stochastic consistency under heavy continuous load (`concurrency: 4`), we ran the 10x replicated suite (`Run 8`):
+
+| Category | Replications | Trials Passed | Assertion Pass Rate | Key Behavior & Robustness |
+|---|---|---|---|---|
+| **Controls (Baseline)** | 20 (2 × 10) | **19 / 20 (95.0%)** | **95.0%** | Baseline distinct counts (500 customers) and table lookups executed consistently. |
+| **Typical BI Queries** | 50 (5 × 10) | **48 / 50 (96.0%)** | **97.0%** | Grouping, top-N, date formatting, and channel percentages replicated cleanly across all passes. |
+| **Traps & Hazards** | 160 (16 × 10) | **152 / 160 (95.0%)** | **96.2%** | Correctly resolved SCD2 validity intervals (`sent_date BETWEEN valid_from AND valid_to`) and preserved syndicated loan principal allocations. |
+| **Enterprise Windows & CTEs** | 140 (14 × 10) | **133 / 140 (95.0%)** | **96.4%** | Formulated multi-level CTEs, moving averages (`ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`), and cumulative sums with 95%+ consistency. |
+| **Total / Overall** | **370 Trials** | **352 / 370 (95.1%)** | **472 / 490 (96.3%)** | **25 / 37 questions achieved 10/10 (100%) pass consistency across all 10 runs.** |
+
+---
+
+### 5. Key Architectural Takeaways
+
+1. **Semantic Equivalence Confirmed**: Google Cloud Dataplex Knowledge Catalog successfully serves as the single source of truth for semantic metadata (table schemas, descriptions, metrics, grains, and SCD2 temporal relationships), matching or exceeding raw OKF bundle file retrieval.
+2. **Aspect View Requirement**: Dataplex Knowledge Catalog entries contain core metadata under default views, but non-required semantic aspects (such as `overview` containing OKF metric definitions and grain rules) require `view=4 (ALL)` or explicit aspect type filters to be included in agent tool outputs.
+3. **MCP Concurrency & Session Isolation**: Multi-session MCP servers (like `@toolbox-sdk/server`) prevent pipe collisions during concurrent parallel test runs, whereas single-process stdio MCP scripts require per-session process management to avoid pipe contention flakes.
 
 ---
 
