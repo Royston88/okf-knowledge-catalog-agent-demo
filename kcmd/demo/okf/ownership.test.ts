@@ -4,6 +4,7 @@
 // The rule: the bundle always projects overview + descriptions + queries, and
 // `userManaged` on descriptions/queries equals whether the concept is verified.
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { splitFrontmatter, assetAspects, schemaFields, queryPatterns,
          toOkfStaging } from './okf';
 import { desiredRelatedLinks } from './bundle';
@@ -14,7 +15,7 @@ const ok = (name: string, cond: boolean, detail = '') => {
   else { fail++; console.log(`  FAIL  ${name} ${detail}`); }
 };
 
-const ROOT = '/home/user/agentic-data-cloud-demo/okf-knowledge-catalog-agent-demo';
+const ROOT = path.resolve(import.meta.dirname ?? __dirname, '../../..');
 const read = (p: string) => splitFrontmatter(fs.readFileSync(`${ROOT}/${p}`, 'utf8'));
 const D = 'dataplex-types.global.descriptions';
 const Q = 'dataplex-types.global.queries';

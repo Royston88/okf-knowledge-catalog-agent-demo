@@ -2,9 +2,9 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
-    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/kcmd-docker-repo/kcmd-sync-service:latest',
-    '-f', 'kcmd-sync-service/Dockerfile',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/kcmd-docker-repo/bq-kc-agent:latest',
+    '-f', 'bq-kc-agent/Dockerfile',
     '.'
   ]
 images:
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/kcmd-docker-repo/kcmd-sync-service:latest'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/kcmd-docker-repo/bq-kc-agent:latest'

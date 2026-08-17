@@ -1,261 +1,214 @@
-> [!IMPORTANT]
-> **This is not the repository's original README — this branch replaced it.**
-> The original is preserved verbatim at **[README.upstream.md](README.upstream.md)**:
-> the BigQuery setup, the `kcmd` build, the pull walkthrough, how to run
-> `bq-kc-agent`, the Docker images and both deploy procedures. **If you came here
-> to run the demo, the agent or the sync service, read that file, not this one.**
->
-> Whether the projector should own the root README at all is still open, and is
-> the repository owner's call — it is one of the questions in
-> **[PR #2](https://github.com/Royston88/okf-knowledge-catalog-agent-demo/pull/2)**,
-> which proposes this branch for `main`. Nothing on the branch is deleted
-> relative to `main`; `bq-kc-agent/` and `kcmd-sync-service/` are present and
-> byte-identical. One caveat before you deploy the sync service against an OKF
-> bundle: see [the overlap note](#the-one-thing-that-does-overlap-kcmd-sync-service).
+# Open Knowledge Format (OKF) & Knowledge Catalog Demo
 
-# OKF ⇄ Knowledge Catalog — the bundle is the source of truth
+This repository demonstrates modern metadata management for Google Cloud BigQuery and Dataplex Knowledge Catalog using the **Open Knowledge Format (OKF)**, `kcmd`, and AI agents.
 
-An **OKF v0.2 bundle in git is the system of record** for what a BigQuery
-dataset means. Dataplex Knowledge Catalog is a *projection* of it: a push makes
-the catalog match the bundle, and a differ reports when the two disagree.
+It supports the full metadata lifecycle:
+1. **Extract & Bootstrap (Pull)**: Extract physical table schemas and Dataplex metadata into human-readable, version-controlled OKF Markdown files in Git.
+2. **Curate & Enrich (As Code)**: Define business metrics, joins, table grains, and semantic descriptions directly in code.
+3. **Bi-Directional Sync & Projection (Push Planner)**: Safely project Git-authored OKF bundles into Dataplex with forward diffing, drift detection, and conflict guards.
+4. **AI Consumption & Benchmarking**: Query metadata via an ADK-powered AI agent (`bq-kc-agent`) or benchmark retrieval accuracy (`okf-eval`).
 
-That is the inversion this branch exists to test. The tool underneath —
-[`kcmd`](kcmd/) — was built for the opposite direction, and the interesting part
-of the result is *why* it was, and what had to change.
+---
 
-**58 concepts · 190 cross-concept links · 82 catalog links · two projection
-tracks · a forward differ that exits 0 when the catalog still matches.**
+## System Architecture
 
-## One substrate, several consumers
+```mermaid
+graph LR
+    subgraph S1 ["1. Extract & Bootstrap"]
+        BQ1[("BigQuery")] -->|"1. Pull Schema"| KCMD1["kcmd pull"]
+        KC1[("Dataplex")] -->|"2. Pull Metadata"| KCMD1
+    end
 
-This branch adds a **substrate** — a bundle in git, a catalog that provably
-matches it, and the machinery that keeps the two in agreement. It does not
-replace the agent work that consumes them. Three tracks share the repo:
+    subgraph S2 ["2. GitOps Authoring"]
+        KCMD1 -->|"3. Bootstrap"| Bundle2["okf-bundle/\n(Git Source of Truth)"]
+        Tools2["okf-emitter / okf-author\nokf-review"] -->|"4. Curate & Validate"| Bundle2
+    end
 
-| track | what it does | consumes | documented in |
-|---|---|---|---|
-| **the projector** | makes the catalog match the bundle, and reports when it stops matching | — it *produces* both | **this document** |
-| [`bq-kc-agent/`](bq-kc-agent/) | natural language → BigQuery SQL, via the **catalog** path | the catalog the projector writes | [its own README](bq-kc-agent/README.md), and [the demo guide](README.upstream.md) |
-| [`kcmd-sync-service/`](kcmd-sync-service/) | event-triggered pull/push against a GCS-hosted workspace | the catalog, and the workspace | [the demo guide](README.upstream.md) — **and read the overlap note below** |
-| [`okf-eval/`](okf-eval/) | not an agent — the **rig** that scores one arm against another | both paths, to compare them | [ARCHITECTURE §2](docs/ARCHITECTURE.md) |
+    subgraph S3 ["3. Safe Projection"]
+        Bundle2 -->|"5. Read & Plan"| Planner3["Push Planner & Differ\n(kcmd/demo/okf/)"]
+        Planner3 -->|"6a. Track A: Table Aspects"| TrackA3[("Dataplex: @bigquery")]
+        Planner3 -->|"6b. Track B: Concepts & Joins"| TrackB3[("Dataplex: EntryGroup")]
+        TrackA3 & TrackB3 -->|"7. Timestamp Drift Check"| Planner3
+    end
 
-**The repository's original README is [README.upstream.md](README.upstream.md),
-preserved verbatim.** This branch took the root README over to document the
-projector; that would otherwise have deleted the only setup guide the demo, the
-agent and the sync service have. If you came here to run the upstream demo
-rather than the projector, read that file instead of this one.
-
-The seam matters because the tracks are easy to mistake for rivals.
-`okf-eval/run_arms.py` is a measurement harness with a deliberately minimal
-instruction; `bq-kc-agent/` is the product agent. A third consumer reading SQL
-off the bundle path directly would sit alongside them, not replace either.
-
-### The one thing that does overlap: `kcmd-sync-service/`
-
-It is still here and untouched, but **read this before deploying it against an
-OKF bundle**, because the overlap is not symmetric and one half of it is
-destructive:
-
-- **Its `pull` half should not be run against a bundle at all.** A BigQuery
-  event runs `sync.pull()` and uploads the result back *over* the workspace. If
-  that workspace holds the source of truth, the service enacts on every event
-  the damage measured by hand in DESIGN §9.2: `type` overwritten, the OKF type
-  demoted into a stash, **44 of 54 bodies emptied**, every entry renamed. This
-  is the reason `pull.ts` was deleted here rather than fixed.
-- **Its `push` half is superseded by the push planner**, which compares first,
-  stages only what differs, aborts when something else wrote to a channel the
-  bundle owns, and reports drift as an exit code. Stock `sync.push()` does none
-  of those, and being pre-patch it also eats the link layer (defect 4/6).
-- **What it has and the planner does not** is event-triggering and a workspace
-  that is not a git checkout. Neither is replaced by anything here.
-
-So the suggestion is a **transplant, not a deletion**: keep the service, its
-trigger and its GCS round-trip, build it against the patched `kcmd/src/`, swap
-the body of the `push` branch for `kcmd/demo/okf/push.ts`, and delete the `pull`
-branch or point it at a scratch directory. Nothing on this branch was measured
-against the service, so this is an argument from reading its source — the full
-version, with what it does and does not license, is **DESIGN §8.4**.
-
-Everything below this line is the projector.
-
-## Where to start
-
-Five documents, split by **kind** rather than by topic, so each has one job.
-**Read them in this order** — each assumes the one before it.
-
-| # | document | what it is for | read it when |
-|---|---|---|---|
-| 1 | **[docs/DESIGN.md](docs/DESIGN.md)** | **Start here.** What exists, why it is shaped this way, and what was wrong with the tooling underneath: the model, the three ownership tiers, the differ, the direction of authority, the eight kcmd defects, the verification commands, the known gaps. | always |
-| 2 | [docs/RESULTS.md](docs/RESULTS.md) | The conclusions. Does this work, is it worth using, and which claims are measured **false**. §7 corrects three that did not survive scrutiny. | deciding whether to adopt any of this |
-| 3 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The as-built diagrams, what each hop costs you, and the Phase 8 evaluation harness. A companion to DESIGN, not a second home for the reasoning. | you want the picture rather than the prose |
-| 4 | [docs/HANDOFF.md](docs/HANDOFF.md) | Operational state: environment, credentials, the exact commands, what is done, what is next, and any blocker in symptom → ruled-out → prime-suspect → ways-forward form. | you are about to **run** something |
-| 5 | [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) | The append-only evidence log. Every "measured" claim in the other four cites it. Long, and not meant to be read front to back. | you want to check a number |
-
-There is no separate forward plan: what remains open is **DESIGN §12, Known
-gaps**.
-
-## The shape of it
-
-```
-spec.yaml ──> gen_okf.py ─────> okf-bundle/references/**   (44 concepts)
-          └─> reference_agent ─> okf-bundle/tables|datasets/** (14 concepts)
-                                        │
-                          mirror.py     │  the tier-A cache, computed from BigQuery
-                          postauthor.py │  absolute links, status, back-links
-                          canonicalize  │  canonical frontmatter, always last
-                                        ▼
-                                 okf-bundle/   ← git = the source of truth
-                                        │
-                     toOkfStaging()     │  project into a kcmd-native tree
-                                        ▼
-                              .staging/bundle/   disposable, gitignored
-                                   │      ▲
-              push only what differs│      │ expected vs actual — the differ
-                                   ▼      │   and the push planner
-                        Dataplex Knowledge Catalog
+    subgraph S4 ["4. AI Consumption & Eval"]
+        TrackA3 & TrackB3 -->|"8. MCP Context"| Agent4["bq-kc-agent\n(ADK Agent)"]
+        Agent4 -->|"9. Execute SQL"| BQ4[("BigQuery")]
+        TrackA3 & TrackB3 -->|"Evaluate"| Eval4["okf-eval\n(Benchmarking Rig)"]
+    end
 ```
 
-**kcmd never sees `okf-bundle/`.** It reads and writes only the staged tree, so
-the bundle stays tool-agnostic — it carries no Dataplex vocabulary, and a second
-projector could consume the same bundle without disturbing the first.
+---
 
-Two tracks, split by one property the bundle already carries. A concept with a
-top-level `resource:` names an asset Dataplex has already ingested, so it belongs
-**on** that entry (**Track A**, 4 aspects on 14 `@bigquery` entries). Everything
-else needs an entry of its own (**Track B**, 44 concepts + 7 directory entries in
-our own EntryGroup).
+## Repository Tracks & Directory Structure
 
-## Layout
+| Directory | Role | Description |
+|---|---|---|
+| [`bq-kc-agent/`](bq-kc-agent/) | **Consumer** | Natural language → BigQuery SQL agent built with Agent Development Kit (ADK) and FastAPI. |
+| [`kcmd/`](kcmd/) | **Core Engine** | TypeScript CLI, library, and MCP server for Knowledge Catalog. Includes `kcmd/demo/okf/` (push planner & forward differ). |
+| [`okf-bundle/`](okf-bundle/) | **System of Record** | 58 production OKF v0.2 concepts (14 tables/datasets, 13 joins, 26 metrics, 3 grains, hierarchies). |
+| [`okf-eval/`](okf-eval/) | **Evaluation** | Benchmarking harness (`run_arms.py`) scoring NL-to-SQL accuracy across metadata configurations. |
+| [`okf-emitter/`](okf-emitter/) & [`okf-author/`](okf-author/) | **Producers** | Tools to generate joins/metrics from `spec.yaml` or author table descriptions using Gemini. |
+| [`okf-review/`](okf-review/) | **Quality & CI** | Scripts for OKF v0.2 conformance, link checking, BQ schema mirroring, and frontmatter canonicalization. |
+| [`docs/`](docs/) | **Documentation** | In-depth engineering docs: [`DESIGN.md`](docs/DESIGN.md), [`ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`RESULTS.md`](docs/RESULTS.md), [`MEASUREMENTS.md`](docs/MEASUREMENTS.md), and [`HANDOFF.md`](docs/HANDOFF.md). |
 
-The same walk again, as directories — top to bottom is stage 1 to stage 5.
+---
 
-| stage | path | what you run | what it is |
-|---|---|---|---|
-| in | [`kc-capture/`](kc-capture/) | — | a frozen capture of Knowledge Catalog — `kc_snapshot.json`, `profile/`, `relationships.json`, hash-manifested by `capture_manifest.json`. Reproducible **input** to authoring, never a source of truth |
-| 1 | [`okf-emitter/`](okf-emitter/) | [`gen_okf.py`](okf-emitter/gen_okf.py) | the deterministic producer — `references/joins/**` and `references/metrics/**`, from [`spec.yaml`](okf-emitter/spec.yaml) |
-| 1b | [`okf-author/`](okf-author/) | [`author_bundle.py`](okf-author/author_bundle.py) | `reference_agent` over BigQuery **+** the capture — the 13 table and 1 dataset concepts. The one non-deterministic stage |
-| 2 | [`okf-review/`](okf-review/) | [`mirror.py`](okf-review/mirror.py) → [`postauthor.py`](okf-review/postauthor.py) → [`canonicalize.py`](okf-review/canonicalize.py) | the three passes over the whole bundle, in that order: the tier-A cache from BigQuery; absolute links, status and back-links; canonical frontmatter last |
-| 3 | [`okf-review/`](okf-review/) | [`conformance.py`](okf-review/conformance.py), [`check_doc_links.py`](okf-review/check_doc_links.py), and `--check` on the three above | assert the bundle is final. All exit non-zero on failure, so CI can gate on them |
-| — | [`okf-bundle/`](okf-bundle/) | — | **the source of truth.** Clean OKF v0.2, tool-agnostic, in git. Every stage above writes it; every stage below only reads it |
-| 4 | [`okf-kb-workspace/`](okf-kb-workspace/), [`bq-okf-workspace/`](bq-okf-workspace/) | `catalog.yaml` in each | the two push manifests (Track B, Track A). No copy of the bundle lives here |
-| 4–5 | [`kcmd/`](kcmd/) | [`demo/okf/push.ts`](kcmd/demo/okf/push.ts), [`push-track-a.ts`](kcmd/demo/okf/push-track-a.ts), [`drift.ts`](kcmd/demo/okf/drift.ts) | the vendored fork that projects and differs. `src/` is patched (8 defects, upstreamable); `demo/okf/` is ours; `docs/` is Google's and is quoted in DESIGN §9 |
-| out | [`_state/`](_state/) | — | tracked evidence: Measurement G, the live-entry probe, the drift baseline |
-| out | [`okf-eval/`](okf-eval/) | [`run_arms.py`](okf-eval/run_arms.py) | the Phase 8 evaluation harness (Arm K vs Arm D) — reads the catalog back |
+## Prerequisites
 
-The rest of `okf-review/` is **one-off evidence, not pipeline**: `count_entrygroup.py`
-and `count_links.py` (what actually landed, following pagination), `probe_entries.py`
-and `probe_glossary.py` (questions only a live catalog can answer), `measure_g.py`
-(does curated content survive a re-scan), `signoff.py` and `join_triage.yaml`.
+- **Google Cloud Project** with BigQuery and Dataplex APIs enabled.
+- **Node.js** (v18+) and npm.
+- **Python 3.10+** (recommended: `uv` or `venv`).
+- **Google Cloud SDK** authenticated (`gcloud auth application-default login`).
+- *(Optional)* [Bun](https://bun.sh/) for running `kcmd` tests and standalone scripts.
 
-`docs/` sits outside the sequence — it is the as-built documentation, see above.
+---
 
-## Running it
+## Quickstart Walkthrough
 
-The same five stages, as commands. Everything runs **from this directory**.
-Steps marked **○** need no credentials; the rest need the prelude in
-**[docs/HANDOFF.md](docs/HANDOFF.md) §2.7** — three different identities are in
-play and getting it wrong fails in ways that look like missing IAM.
+### 1. Build `kcmd`
 
-**1 · Emit** ○ — `references/joins/**` and `references/metrics/**`, from the
-spec that also produces the property graph and the LookML model.
+Navigate to `kcmd` to install dependencies and compile the toolchain:
 
 ```bash
-python okf-emitter/gen_okf.py --spec okf-emitter/spec.yaml --out okf-bundle
+cd kcmd
+npm install
+npm run build:mcp
+cd ..
 ```
 
-**1b · Author** — the other 14 concepts, the tables and datasets.
-`reference_agent` reads BigQuery through `KCBigQuerySource`, which merges in the
-frozen `kc-capture/` so the author can see what a catalog scan produced. The
-model is served at location **`global`** — it is 404 in `us-central1`.
+*Note: To run test scenarios or compile standalone binaries, [Bun](https://bun.sh/) is supported.*
 
-```bash
-export GOOGLE_GENAI_USE_VERTEXAI=TRUE
-export GOOGLE_CLOUD_PROJECT=royston-dev-8253 GOOGLE_CLOUD_LOCATION=global
+### 2. Set Up Demo Data in BigQuery
 
-OKF_KC_DIR=kc-capture python okf-author/author_bundle.py \
-    --dataset royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy \
-    --out okf-bundle --model gemini-3.5-flash
+Create a demo dataset and table using public sample ecommerce data:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS `YOUR_PROJECT_ID.demo_ecommerce` OPTIONS(location="US");
+
+CREATE OR REPLACE TABLE `YOUR_PROJECT_ID.demo_ecommerce.events`
+PARTITION BY event_date_dt AS
+SELECT
+  *,
+  PARSE_DATE('%Y%m%d', event_date) AS event_date_dt
+FROM
+  `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*`
+LIMIT 10000;
 ```
 
-**This is the one stage that does not reproduce.** Stage 1 is deterministic by
-construction — same spec in, byte-identical concepts out — but 1b re-authors
-prose against a model, so a re-run gives you *a* bundle, not *the* bundle in
-git, and it overwrites the committed 14 concepts in place. Run it to see the
-authoring work; `git checkout okf-bundle/tables okf-bundle/datasets` to get the
-evidenced text back. Everything downstream is reproducible either way.
+---
 
-Expect intermittent `429 RESOURCE_EXHAUSTED`. The original run lost
-`tables/transactions` that way; back-fill a single concept rather than re-running
-the lot, and check all 13 table concepts exist before trusting a run:
+## Workflow A: Standard Metadata Pull & Push
 
+### Extract Metadata into OKF (`kcmd pull`)
+Extract BigQuery schemas and Dataplex metadata into the local workspace:
 ```bash
-OKF_KC_DIR=kc-capture python okf-author/author_bundle.py \
-    --dataset royston-dev-8253.cymbal_bank_v6z_scaffold_demo_copy \
-    --out okf-bundle --concept tables/transactions
+cd bq-okf-workspace
+export GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
+export BIGQUERY_DATASET=demo_ecommerce
+node ../kcmd/build/ts/tool/tool/main.js pull --format okf
+cd ..
+```
+This populates `bq-okf-workspace/bundle/` with OKF Markdown files.
+
+### Publish Changes (`kcmd push`)
+After editing the local Markdown files, publish enrichments back to Dataplex:
+```bash
+cd bq-okf-workspace
+node ../kcmd/build/ts/tool/tool/main.js push --format okf
+cd ..
 ```
 
-Either way the canonicaliser in stage 2 is **required** afterwards —
-`reference_agent` writes non-canonical frontmatter every time it authors.
+---
 
-**2 · Three passes over the whole bundle, and the order matters.** `mirror.py`
-reads BigQuery; the other two are offline.
+## Workflow B: Authoritative GitOps Projection & Differ (Advanced)
 
+When your **OKF bundle in Git is the primary source of truth**, use the **Push Planner and Differ** (`kcmd/demo/okf/`) for safe, drift-aware bi-directional synchronization.
+
+### 1. Conformance & Bundle Verification
+Assert that the OKF bundle conforms to specification:
 ```bash
-python okf-review/mirror.py --write        # tier-A cache, from BigQuery
-python okf-review/postauthor.py --write    # absolute links, status, back-links
-python okf-review/canonicalize.py --write okf-bundle   # always last
-```
-
-`canonicalize` is last because every other producer writes non-canonical
-frontmatter.
-
-**3 · Assert the bundle is final** ○ — each pass above has a check twin that
-writes nothing and exits non-zero, which is the form CI runs. (`mirror --check`
-is the exception: it compares against live BigQuery, so CI gets `--selftest`.)
-
-```bash
-python okf-review/conformance.py                 # OKF v0.2 §11 + link-form counts
+python okf-review/conformance.py
 python okf-review/canonicalize.py --check okf-bundle
-python okf-review/postauthor.py --check
-python okf-review/mirror.py --selftest
-python okf-review/check_doc_links.py             # the docs' cross-references
-kcmd/node_modules/.bin/bun kcmd/demo/okf/ownership.test.ts   # 38 assertions
-kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.test.ts       # 27 assertions
+python okf-review/check_doc_links.py
 ```
 
-**4 · Project** — one command per track. Staging into `.staging/bundle/` happens
-inside each push; there is no separate step and no second copy of the bundle on
-disk.
+### 2. Run the Differ (Drift Detection)
+Inspect differences between the Git bundle and live Dataplex catalog using unforgeable server timestamps (`view=ALL`) without writing:
+```bash
+kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.ts
+# Exit codes: 0 = in sync, 1 = drift detected, 2 = error
+```
+
+### 3. Safe Planned Push (Projection)
+The push planner compares timestamps and staging state first, staging only changed elements and aborting if external writes modified owned aspects:
 
 ```bash
-(cd okf-kb-workspace  && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push.ts)
-(cd bq-okf-workspace  && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push-track-a.ts)
+# Track A: Project descriptions & queries onto @bigquery table entries
+(cd bq-okf-workspace && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push-track-a.ts)
+
+# Track B: Project non-asset concepts (joins, metrics, grain) into Dataplex EntryGroup
+(cd okf-kb-workspace && ../kcmd/node_modules/.bin/bun ../kcmd/demo/okf/push.ts)
 ```
 
-Both pushes are **planners**: they compare first and stage only what differs, so
-a second run writes nothing at all. If something other than our last push wrote
-to a channel the bundle owns, the push **aborts** rather than overwriting it.
+---
 
-**5 · Differ** — the same comparison as the push planner, without the writing.
+## Workflow C: Running the AI Agent (`bq-kc-agent`)
+
+The agent queries Dataplex Knowledge Catalog via MCP to retrieve schema context, joins, and metrics before formulating BigQuery SQL.
+
+### 1. Configure Environment
+```bash
+cd bq-kc-agent
+cp .env.example .env
+```
+Edit `.env` and set:
+- `GOOGLE_CLOUD_PROJECT`: Your GCP Project ID.
+- `BIGQUERY_DATASET`: The dataset to query (e.g., `demo_ecommerce`).
+- `GOOGLE_CLOUD_LOCATION`: Location of your dataset (e.g., `US` or `us-central1`).
+
+### 2. Install & Start Agent
+```bash
+cd bq-kc-agent
+pip install -e .
+python app/fast_api_app.py
+```
+The agent server starts at `http://localhost:8000`.
+
+### 3. Running with Docker
+```bash
+# Build the Agent image
+docker build -t bq-kc-agent -f bq-kc-agent/Dockerfile .
+
+# Run the container with ADC credentials
+docker run -p 8000:8080 \
+  -e GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID \
+  -e BIGQUERY_DATASET=YOUR_DATASET_ID \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/gcp/creds/application_default_credentials.json \
+  -v $HOME/.config/gcloud:/gcp/creds:ro \
+  -v $(pwd)/bq-okf-workspace:/code/bq-okf-workspace \
+  bq-kc-agent
+```
+
+### 4. Deploy Agent to Vertex AI Reasoning Engine
+```bash
+cd bq-kc-agent
+gcloud config set project YOUR_PROJECT_ID
+agents-cli deploy
+```
+
+---
+
+## Benchmarking & Evaluation (`okf-eval`)
+
+To evaluate the impact of different metadata representations on NL-to-SQL retrieval accuracy:
 
 ```bash
-kcmd/node_modules/.bin/bun kcmd/demo/okf/drift.ts    # 0 = no drift, 1 = drift, 2 = error
+python okf-eval/run_arms.py --questions okf-eval/questions.yaml --model gemini-3.5-flash
 ```
 
-## Scope
-
-This branch is the **mechanism proof** — can an OKF bundle be the source of
-truth, with kcmd projecting it into Knowledge Catalog and an agent reading it
-back? Enrichment *quality* is deliberately out of scope.
-
-The upstream demo's Cloud Run sync service and its ADK agent application were
-**never exercised here** — every run was manual, single-writer, and driven from
-the shim. So nothing measured on this branch says anything about either of them,
-and no result here should be read as covering them. They are present and
-untouched; DESIGN §8.4 argues that the push planner has taken over the sync
-service's job, which is an argument to weigh rather than a change already made.
-
-**The finding that should shape expectations:** retrieval, not content, is the
-binding constraint. Across 75 runs the score tracked how often the agent *asked*
-for metadata, not what the metadata said. Everything here is necessary and none
-of it is sufficient — see RESULTS §4.
+For empirical findings and methodology across 7 experimental phases, see:
+- [`docs/DESIGN.md`](docs/DESIGN.md): The ownership model, differ, and defect taxonomy.
+- [`docs/RESULTS.md`](docs/RESULTS.md): Key findings and benchmark scores.
+- [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md): Append-only evidence log.
+- [`docs/HANDOFF.md`](docs/HANDOFF.md): Operational guide and GCP resource inventory.

@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Knowledge Format (OKF) Metadata Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           =========================================== */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --google-blue: #4285F4;
+            --google-red: #EA4335;
+            --google-yellow: #FBBC05;
+            --google-green: #34A853;
+            --text-primary: #1f2024;
+            --text-secondary: #5f6368;
+            --card-border: rgba(0, 0, 0, 0.08);
+
+            --font-display: 'Manrope', sans-serif;
+            --font-body: 'Manrope', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --title-size: 92px;
+            --section-title-size: 64px;
+            --subtitle-size: 34px;
+            --body-size: 28px;
+            --slide-padding: 80px;
+            
+            --duration-normal: 0.6s;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           FIXED 16:9 STAGE: MANDATORY BASE STYLES
+           =========================================== */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: #f1f3f4; /* Light grey letterboxing */
+        }
+
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--bg-primary);
+            box-shadow: 0 20px 80px rgba(0,0,0,0.15);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: var(--slide-padding);
+            background: var(--bg-primary);
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* ===========================================
+           PRINT STYLES
+           =========================================== */
+        @media print {
+            html,
+            body {
+                width: 1920px;
+                height: auto;
+                overflow: visible;
+                background: #fff;
+            }
+
+            .deck-viewport {
+                position: static;
+                overflow: visible;
+                background: #fff;
+            }
+
+            .deck-stage {
+                position: static;
+                width: auto;
+                height: auto;
+                transform: none !important;
+                background: none;
+            }
+
+            .slide {
+                position: relative;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                width: 1920px;
+                height: 1080px;
+                break-after: page;
+                page-break-after: always;
+            }
+
+            .slide:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ===========================================
+           GOOGLE STYLED DESIGN SYSTEM
+           =========================================== */
+        .brand-bar {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                var(--google-blue) 25%, 
+                var(--google-red) 25% 50%, 
+                var(--google-yellow) 50% 75%, 
+                var(--google-green) 75%
+            );
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding-bottom: 24px;
+        }
+
+        .google-logo {
+            display: flex;
+            gap: 2px;
+            font-size: 28px;
+        }
+        .google-logo span:nth-child(1) { color: var(--google-blue); }
+        .google-logo span:nth-child(2) { color: var(--google-red); }
+        .google-logo span:nth-child(3) { color: var(--google-yellow); }
+        .google-logo span:nth-child(4) { color: var(--google-blue); }
+        .google-logo span:nth-child(5) { color: var(--google-green); }
+        .google-logo span:nth-child(6) { color: var(--google-red); }
+
+        .content-body {
+            flex-grow: 1;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .kicker {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--google-blue);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: var(--section-title-size);
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 30px;
+            letter-spacing: -1px;
+        }
+
+        /* 2 Column Split */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            flex-grow: 1;
+        }
+
+        .split-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Card Elements */
+        .g-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 35px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .g-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.04);
+            border-color: rgba(66, 133, 244, 0.3);
+        }
+        
+        .g-card h3 {
+            font-family: var(--font-display);
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .g-card p, .g-card li {
+            font-family: var(--font-body);
+            font-size: 22px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .g-card ul {
+            padding-left: 24px;
+            margin-top: 10px;
+        }
+
+        /* Bullet lists */
+        .bullet-list {
+            list-style-type: none;
+        }
+        .bullet-list li {
+            font-family: var(--font-body);
+            font-size: 26px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 16px;
+            position: relative;
+            padding-left: 28px;
+        }
+        .bullet-list li::before {
+            content: "•";
+            color: var(--google-blue);
+            font-size: 38px;
+            position: absolute;
+            left: 0;
+            top: -4px;
+        }
+
+        /* Technical Code Panel */
+        .code-panel {
+            background: #202124 !important;
+            border: none;
+            font-family: var(--font-mono);
+            color: #e8eaed !important;
+        }
+        .code-panel h3 {
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+            font-size: 28px;
+        }
+        .code-panel code {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            color: #8ab4f8;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .code-panel pre {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            line-height: 1.5;
+            color: #e8eaed;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        /* Grid layouts */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            flex-grow: 1;
+        }
+
+        /* ===========================================
+           ARCHITECTURE DIAGRAM GRAPHICS
+           =========================================== */
+        .arch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 600px;
+            padding: 0 40px;
+            margin-top: 20px;
+        }
+
+        .arch-node {
+            background: var(--bg-secondary);
+            border: 2px solid var(--card-border);
+            border-radius: 16px;
+            padding: 30px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            z-index: 2;
+        }
+
+        .arch-node.gcp {
+            border-color: var(--google-red);
+            background: rgba(234, 67, 53, 0.01);
+        }
+
+        .arch-node.sync {
+            border-color: var(--google-blue);
+            background: rgba(66, 133, 244, 0.01);
+        }
+
+        .arch-node.okf {
+            border-color: var(--google-green);
+            background: rgba(52, 168, 83, 0.01);
+        }
+
+        .node-title {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 26px;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .node-subitem {
+            font-family: var(--font-body);
+            font-size: 18px;
+            color: var(--text-secondary);
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .arch-arrow-container {
+            flex-grow: 1;
+            height: 80px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arch-arrow-line {
+            width: 80%;
+            height: 4px;
+            background: #dadce0;
+            position: relative;
+        }
+
+        .arch-arrow-line::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: -8px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 14px solid #dadce0;
+        }
+
+        .arch-arrow-line.bidirectional::before {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: -8px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 14px solid #dadce0;
+        }
+
+        .arrow-label {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            color: var(--google-blue);
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Stagger reveals */
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+
+        /* Navigation controls outside stage */
+        .deck-controls {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .deck-controls button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .deck-controls button:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--google-blue);
+        }
+
+        .deck-controls .page-indicator {
+            font-family: var(--font-body);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Inline Editor styles */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .edit-toggle.show,
+        .edit-toggle.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .edit-toggle.active {
+            background: var(--google-blue);
+            color: #fff;
+            border-color: var(--google-blue);
+        }
+        [contenteditable="true"] {
+            outline: 2px dashed var(--google-blue);
+            outline-offset: 4px;
+            background: rgba(66, 133, 244, 0.05);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+            
+            <!-- SLIDE 1: TITLE SLIDE -->
+            <section class="slide title-slide active">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s1">Metadata as Code</div>
+                </div>
+                
+                <div class="content-body" style="justify-content: center; max-width: 1300px; margin-top: -60px;">
+                    <div class="kicker reveal" contenteditable="false" data-key="kicker-s1">Repository Walkthrough</div>
+                    <h1 class="reveal" style="font-family: var(--font-display); font-size: var(--title-size); font-weight: 800; line-height: 1.15; margin-bottom: 24px; letter-spacing: -1.5px;" contenteditable="false" data-key="title-s1">
+                        Open Knowledge Format (OKF)<br>Metadata Demo
+                    </h1>
+                    <p class="subtitle reveal" style="font-family: var(--font-body); font-size: var(--subtitle-size); color: var(--text-secondary); line-height: 1.5;" contenteditable="false" data-key="desc-s1">
+                        Summarizing the architecture, OKF metadata generation, pipeline execution, and deployment.
+                    </p>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s1">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s1">kcmd CLI & Cloud Run</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 2: ARCHITECTURE DIAGRAM -->
+            <section class="slide">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s2">Architecture Overview</div>
+                </div>
+                
+                <div class="content-body">
+                    <div class="kicker" contenteditable="false" data-key="kicker-s2">System Map</div>
+                    <h2 contenteditable="false" data-key="title-s2">Metadata Workflow Architecture</h2>
+                    
+                    <div class="arch-container">
+                        <!-- Node 1: GCP Source -->
+                        <div class="arch-node gcp reveal">
+                            <div class="node-title" style="color: var(--google-red);">☁️ Google Cloud</div>
+                            <div class="node-subitem">🗄️ BigQuery (Schemas)</div>
+                            <div class="node-subitem">🏷️ Knowledge Catalog</div>
+                        </div>
+
+                        <!-- Arrow 1: BQ/Dataplex -> Sync -->
+                        <div class="arch-arrow-container reveal">
+                            <span class="arrow-label">1. Pull</span>
+                            <div class="arch-arrow-line"></div>
+                        </div>
+
+                        <!-- Node 2: Sync Engine -->
+                        <div class="arch-node sync reveal">
+                            <div class="node-title" style="color: var(--google-blue);">⚡ kcmd Sync</div>
+                            <div class="node-subitem">⚙️ kcmd CLI (Local)</div>
+                            <div class="node-subitem">🐳 Cloud Run (Automated)</div>
+                        </div>
+
+                        <!-- Arrow 2: Sync <-> OKF -->
+                        <div class="arch-arrow-container reveal">
+                            <span class="arrow-label" style="color: var(--google-green);">2. Read/Write</span>
+                            <div class="arch-arrow-line bidirectional"></div>
+                        </div>
+
+                        <!-- Node 3: OKF Bundle -->
+                        <div class="arch-node okf reveal">
+                            <div class="node-title" style="color: var(--google-green);">📄 OKF Bundle</div>
+                            <div class="node-subitem">📁 local/bundle (Dev)</div>
+                            <div class="node-subitem">🪣 GCS Bucket (Prod)</div>
+                            <div class="node-subitem">✏️ AI / Steward Edits</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s2">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s2">Sync Flow Diagram</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 3: HOW OKF IS GENERATED -->
+            <section class="slide">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s3">Generation Mechanics</div>
+                </div>
+                
+                <div class="content-body">
+                    <div class="kicker" contenteditable="false" data-key="kicker-s3">Extraction Stage</div>
+                    <h2 contenteditable="false" data-key="title-s3">How the OKF Bundle is Generated</h2>
+                    
+                    <div class="split-layout">
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-blue); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c1-title-s3">1. Technical Metadata Pull</h3>
+                                <p contenteditable="false" data-key="c1-desc-s3">The engine queries GCP using the scope defined in <code>catalog.yaml</code>.</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c1-bullet1-s3">Reads BigQuery information schema to extract column names, modes, and types.</li>
+                                    <li contenteditable="false" data-key="c1-bullet2-s3">Calls Knowledge Catalog APIs to read existing aspects (e.g. schemas, glossary tags).</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-green); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c2-title-s3">2. Bundle Compilation</h3>
+                                <p contenteditable="false" data-key="c2-desc-s3">Translates remote configurations into readable local documents.</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c2-bullet1-s3">Transforms BQ schemas into structured YAML tables.</li>
+                                    <li contenteditable="false" data-key="c2-bullet2-s3">Saves catalog data as Markdown files (one per BQ table/asset) under <code>bundle/</code>.</li>
+                                    <li contenteditable="false" data-key="c2-bullet3-s3">Generates navigation index listings (<code>index.md</code>) mapping the BQ project structures.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s3">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s3">kcmd pull</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 4: OKF REPRESENTATION -->
+            <section class="slide">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s4">Data Structures</div>
+                </div>
+                
+                <div class="content-body">
+                    <div class="kicker" contenteditable="false" data-key="kicker-s4">Metadata representation</div>
+                    <h2 contenteditable="false" data-key="title-s4">Inside an OKF Markdown File</h2>
+                    
+                    <div class="split-layout">
+                        <div class="split-column reveal" style="flex: 1.1;">
+                            <div class="g-card code-panel" style="flex-grow: 1; padding: 25px;">
+                                <h3 contenteditable="false" data-key="c1-title-s4">Example: table1.md</h3>
+                                <pre><code>---
+type: dataplex-types.global.bigquery-table
+title: Orders Table
+resource:
+  name: projects/my-proj/datasets/sales/tables/orders
+aspects:
+  schema:
+    fields:
+      - name: order_id
+        dataType: STRING
+x-kcmd:
+  # Hidden serialization key to preserve full 
+  # Knowledge Catalog aspects for lossless round-trips
+  full_entry_payload: { "aspects": {} }
+---
+# Orders Table Overview
+This table stores customer order transaction details.
+It is partitioned on event_date.</code></pre>
+                            </div>
+                        </div>
+                        <div class="split-column reveal" style="flex: 0.9;">
+                            <div class="g-card" style="border-top: 6px solid var(--google-yellow); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c2-title-s4">Anatomy of the File</h3>
+                                <ul style="margin-top: 15px; padding-left: 20px;">
+                                    <li style="margin-bottom: 12px;" contenteditable="false" data-key="c2-bullet1-s4"><strong>YAML Frontmatter:</strong> Holds structured schema details, ancestors, and technical references.</li>
+                                    <li style="margin-bottom: 12px;" contenteditable="false" data-key="c2-bullet2-s4"><strong>Markdown Body:</strong> The place where data stewards or AI models write human-friendly definitions.</li>
+                                    <li style="margin-bottom: 12px;" contenteditable="false" data-key="c2-bullet3-s4"><strong>x-kcmd Tag:</strong> Preserves additional Knowledge Catalog parameters (e.g. system properties) that are skipped by standard OKF viewers.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s4">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s4">OKF File Format</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 5: RECONCILING & PUBLISHING -->
+            <section class="slide">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s5">Publishing Phase</div>
+                </div>
+                
+                <div class="content-body">
+                    <div class="kicker" contenteditable="false" data-key="kicker-s5">Catalog Reconciliation</div>
+                    <h2 contenteditable="false" data-key="title-s5">Pushing Updates Back to Knowledge Catalog</h2>
+                    
+                    <div class="split-layout">
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-red); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c1-title-s5">Reconciliation Engine</h3>
+                                <p contenteditable="false" data-key="c1-desc-s5">Ensures modifications sync cleanly without disrupting unchanged metadata.</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c1-bullet1-s5"><strong>Normalized Comparisons:</strong> Reconciles links by normalizing Project IDs/Names, avoiding duplicate connections.</li>
+                                    <li contenteditable="false" data-key="c1-bullet2-s5"><strong>Safe Deletes:</strong> Removes catalog associations only if they are configured to sync and missing locally.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-yellow); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c2-title-s5">Reconstruction & Write</h3>
+                                <p contenteditable="false" data-key="c2-desc-s5">Translates the files back into GCP format.</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c2-bullet1-s5">Loads OKF layouts from GCS/Local workspace.</li>
+                                    <li contenteditable="false" data-key="c2-bullet2-s5">Extracts core payload from frontmatter and merges it with the <code>x-kcmd</code> hidden parameters.</li>
+                                    <li contenteditable="false" data-key="c2-bullet3-s5">Pushes clean API calls back to Knowledge Catalog.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s5">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s5">kcmd push</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 6: METADATA IN THE DATAPLEX CONSOLE -->
+            <section class="slide">
+                <div class="brand-bar"></div>
+                <div class="header">
+                    <div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+                    <div contenteditable="false" data-key="header-s6">Console Visualization</div>
+                </div>
+                
+                <div class="content-body">
+                    <div class="kicker" contenteditable="false" data-key="kicker-s6">End-User Experience</div>
+                    <h2 contenteditable="false" data-key="title-s6">Metadata in the Knowledge Catalog UI</h2>
+                    
+                    <div class="split-layout">
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-blue); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c1-title-s6">🖥️ The Catalog Entry View</h3>
+                                <p contenteditable="false" data-key="c1-desc-s6">How the synced OKF bundle renders in the Google Cloud Console:</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c1-bullet1-s6"><strong>Rich Overview Tab:</strong> The Markdown body is rendered as formatted HTML, displaying long-form documentation, markdown tables, and runbooks directly on the asset page.</li>
+                                    <li style="margin-top: 10px;" contenteditable="false" data-key="c1-bullet2-s6"><strong>Schema & Column Descriptions:</strong> BigQuery structural descriptions and custom column-level metadata aspects appear alongside BQ native schemas.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="split-column reveal">
+                            <div class="g-card" style="border-left: 6px solid var(--google-green); flex-grow: 1;">
+                                <h3 contenteditable="false" data-key="c2-title-s6">🔗 Glossary & Entry Links</h3>
+                                <p contenteditable="false" data-key="c2-desc-s6">Connecting datasets to governance structures:</p>
+                                <ul style="margin-top: 15px;">
+                                    <li contenteditable="false" data-key="c2-bullet1-s6"><strong>Semantic Linking:</strong> Columns with definition links (e.g. <code>definition: customer-id</code>) show up as clickable links to the Business Glossary term in the UI.</li>
+                                    <li style="margin-top: 10px;" contenteditable="false" data-key="c2-bullet2-s6"><strong>Governance Navigation:</strong> Users browsing the glossary term can easily see all linked tables and columns in a unified lineage graph, enabling powerful data discovery.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div contenteditable="false" data-key="footer-left-s6">Google Cloud Knowledge Catalog</div>
+                    <div class="tag" contenteditable="false" data-key="tag-s6">Knowledge Catalog Console</div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="deck-controls">
+        <button id="prevBtn" title="Previous (Left Arrow)">◀</button>
+        <span class="page-indicator" id="pageIndicator">Slide 1 of 6</span>
+        <button id="nextBtn" title="Next (Right Arrow / Space)">▶</button>
+    </div>
+
+    <!-- Inline Editor Controls -->
+    <div class="edit-hotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.prevBtn = document.getElementById('prevBtn');
+                this.nextBtn = document.getElementById('nextBtn');
+                this.indicator = document.getElementById('pageIndicator');
+                
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupClickNav();
+                this.showSlide(0);
+            }
+
+            setupStageScale() {
+                const scale = () => {
+                    const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                    const x = (window.innerWidth - 1920 * factor) / 2;
+                    const y = (window.innerHeight - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    // Disable slide nav keys when user is editing content
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    
+                    if (e.key === 'ArrowRight' || e.key === 'Space' || e.key === 'PageDown') {
+                        this.next();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                        this.prev();
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startX = 0;
+                document.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    const endX = e.changedTouches[0].clientX;
+                    const diff = startX - endX;
+                    if (diff > 50) {
+                        this.next();
+                    } else if (diff < -50) {
+                        this.prev();
+                    }
+                });
+            }
+
+            setupClickNav() {
+                this.prevBtn.addEventListener('click', () => this.prev());
+                this.nextBtn.addEventListener('click', () => this.next());
+            }
+
+            next() {
+                this.showSlide(this.currentSlide + 1);
+            }
+
+            prev() {
+                this.showSlide(this.currentSlide - 1);
+            }
+
+            showSlide(index) {
+                if (index < 0 || index >= this.slides.length) return;
+                
+                this.slides[this.currentSlide].classList.remove('active', 'visible');
+                this.currentSlide = index;
+                this.slides[this.currentSlide].classList.add('active', 'visible');
+                
+                // Update buttons state
+                this.prevBtn.style.opacity = this.currentSlide === 0 ? "0.3" : "1";
+                this.nextBtn.style.opacity = this.currentSlide === this.slides.length - 1 ? "0.3" : "1";
+                
+                // Update indicator
+                this.indicator.textContent = `Slide ${this.currentSlide + 1} of ${this.slides.length}`;
+            }
+        }
+
+        /* ===========================================
+           INLINE PRESENTATION EDITOR
+           =========================================== */
+        class SlideEditor {
+            constructor() {
+                this.isActive = false;
+                this.toggleBtn = document.getElementById('editToggle');
+                this.hotzone = document.querySelector('.edit-hotzone');
+                this.editables = document.querySelectorAll('[contenteditable]');
+                this.hideTimeout = null;
+
+                this.setupHotzone();
+                this.setupHotkeys();
+                this.loadSavedContent();
+                this.setupAutoSave();
+            }
+
+            setupHotzone() {
+                // Show button on hover hotzone
+                this.hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                    this.toggleBtn.classList.add('show');
+                });
+                this.hotzone.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggleBtn.classList.remove('show');
+                    }, 400);
+                });
+                this.toggleBtn.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                });
+                this.toggleBtn.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggleBtn.classList.remove('show');
+                    }, 400);
+                });
+
+                // Toggle edit mode on click
+                this.hotzone.addEventListener('click', () => this.toggleEditMode());
+                this.toggleBtn.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupHotkeys() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && e.target.getAttribute('contenteditable') !== 'true') {
+                        this.toggleEditMode();
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                this.toggleBtn.classList.toggle('active', this.isActive);
+                
+                this.editables.forEach(elem => {
+                    elem.setAttribute('contenteditable', this.isActive ? "true" : "false");
+                });
+
+                if (!this.isActive) {
+                    this.saveContent();
+                    this.toggleBtn.classList.remove('show');
+                }
+            }
+
+            saveContent() {
+                const data = {};
+                this.editables.forEach(elem => {
+                    const key = elem.getAttribute('data-key');
+                    if (key) {
+                        data[key] = elem.innerHTML;
+                    }
+                });
+                localStorage.setItem('okf_metadata_slides_draft', JSON.stringify(data));
+                console.log("Draft saved to LocalStorage.");
+            }
+
+            loadSavedContent() {
+                const saved = localStorage.getItem('okf_metadata_slides_draft');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.editables.forEach(elem => {
+                            const key = elem.getAttribute('data-key');
+                            if (key && data[key]) {
+                                elem.innerHTML = data[key];
+                            }
+                        });
+                    } catch(e) {
+                        console.error("Failed to parse saved draft:", e);
+                    }
+                }
+            }
+
+            setupAutoSave() {
+                this.editables.forEach(elem => {
+                    elem.addEventListener('blur', () => {
+                        if (this.isActive) this.saveContent();
+                    });
+                });
+            }
+        }
+
+        // Initialize components
+        const presentation = new SlidePresentation();
+        const editor = new SlideEditor();
+    </script>
+</body>
+</html>
